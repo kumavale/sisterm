@@ -5,41 +5,43 @@
 #include <termios.h>
 
 #include <stdio.h>
-//#include <unistd.h>
+#include <regex.h>
 
-char backSpaceCount(unsigned char *str);
+#include "syntax.h"
+
+char *increaseChar(unsigned char *str, char);
 void syntaxCheck(unsigned char *str);
 void usage(char *v);
 
 int main(int argc, char **argv)
 {
-  //if(argc != 2 ) {
-  //  printf("Usage:  `%s /dev/ttyS0` (for example)\n", argv[0]);
-  //  return 1;
-  //}
-
-  const char *B;
-  const char *serialPort;
+  const char *B = NULL;
+  const char *serialPort = "/dev/ttyS5";
   int baudRate = B9600;
 
-  int j=1;
-  while (j<argc)
+  for (int j=1; j<argc; j++)
   {
     if(*argv[j] == '-')
     {
-      if(*argv[j]+1 == 'l')       serialPort = argv[j+1];
-      else if(*argv[j]+1 == 's')  B = argv[j+1];
-      else if(*argv[j]+1 == 'h')  usage(argv[0]);
-      else return 1;
+      switch(*++argv[j])
+      {
+        case 'l': serialPort = argv[++j]; break;
+        case 's': B = argv[++j]; break;
+        case 'h': usage(argv[0]); return EXIT_SUCCESS;
+        default :
+          printf("%s: unrecognized option `-%s`\n", argv[0], argv[j]);
+          printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-h]\n", argv[0]);
+          printf("Use %s -h for help\n", argv[0]);
+          return EXIT_FAILURE;
+      }
     }
-    else return 1;
-    j++;
+    else
+    {
+      printf("%s: %s: System not found\n", argv[0], argv[j]);
+      return EXIT_FAILURE;
+    }
   }
 
-  struct termios tio;
-  struct termios stdio;
-  struct termios old_stdio;
-  int fd;
   if(B != NULL){
     if     (!strcmp(B, "0"))      baudRate = B0;
     else if(!strcmp(B, "50"))     baudRate = B50;
@@ -63,16 +65,21 @@ int main(int argc, char **argv)
     else
     {
       printf("Invalid BaudRate...\n");
-      return 1;
+      return EXIT_FAILURE;
     }
   }
 
-  //const char *serialPort = argv[1];
-  //int i;
+  struct termios tio;
+  struct termios stdio;
+  struct termios old_stdio;
+  int fd;
+
   int i = 0;
-  unsigned char buf[255];
+  unsigned char bufi[255];
+  unsigned char bufo[255];
 
   unsigned char c = '0';
+  const unsigned char endcode = '~';
   tcgetattr(STDOUT_FILENO, &old_stdio);
 
   memset(&stdio, 0, sizeof(stdio));
@@ -87,14 +94,21 @@ int main(int argc, char **argv)
   fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);     // make the reads non-blocking
 
   memset(&tio, 0, sizeof(tio));
-  tio.c_iflag     = 0;
-  tio.c_oflag     = 0;
-  tio.c_cflag     = CS8 | CREAD | CLOCAL;       // 8n1, see termios.h for more information
-  tio.c_lflag     = 0;
-  tio.c_cc[VMIN]  = 1;
-  tio.c_cc[VTIME] = 5;
+  tio.c_iflag       = 0;
+  tio.c_oflag       = 0;
+  tio.c_cflag       = CS8 | CREAD | CLOCAL;       // 8n1, see termios.h for more information
+  tio.c_lflag       = 0;
+  tio.c_cc[VMIN]    = 1;
+  tio.c_cc[VTIME]   = 5;
 
   fd = open(serialPort, O_RDWR | O_NONBLOCK);
+  if(fd < 0)
+  {
+    tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+    printf("%s: open (%s): Failure\n", argv[0], serialPort);
+    return EXIT_FAILURE;
+  }
+
   cfsetospeed(&tio, baudRate);
   cfsetispeed(&tio, baudRate);
 
@@ -103,58 +117,50 @@ int main(int argc, char **argv)
   {
     // if new data is available on the serial port, print it out
     if(read(fd, &c, 1) > 0) {
-      //if(c == '~') if((read(fd, &c, 1) > 0) && c == '.') break;
-      //             else c = '~';
-      buf[i++] = c;
-      if(buf[i]==' ')
-      {
-        syntaxCheck(buf);
-        i=0;
-      }
+      //if(!(c==' '&&i==0)) bufo[i] = c;
+      //if(bufo[i++]==' ')
+      //{
+      //  syntaxCheck(bufo);
+      //  i=0;
+      //}
       write(STDOUT_FILENO, &c, 1);
     }
 
     // if new data is available on the console, send it to the serial port
     if(read(STDIN_FILENO, &c, 1) > 0) {
-      //if(c == '~') break;
-      if(c == '~') if((read(fd, &c, 1) > 0) && c == '.') break;
-                   else c = '~';
-      buf[i++] = c;
-      if(buf[i]==' ')
-      {
-        syntaxCheck(buf);
-        i=0;
-      }
+      if(c == endcode) break;
       write(fd, &c, 1);
     }
   }
 
   close(fd);
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
-  printf("\n\0");
+  printf("\n");
 
   return EXIT_SUCCESS;
 }
 
-// murida...
 void syntaxCheck(unsigned char *str)
 {
-  if(!strcasecmp(str, "cisco "))
-    printf("%s\033[36m%s\033[0m", backSpaceCount(str), str);
+  //if(!strcasecmp(str, "cisco "))
+  //if( regcomp())
+    printf("%sCYAN%sRESET", increaseChar(str, '\b'), str);
 }
 
-char backSpaceCount(unsigned char *str)
+char *increaseChar(unsigned char *str, char c)
 {
-  unsigned char b;
-  for(int i=0; i<strlen(str); i++) b+='\b';
+  unsigned char *b;
+  for(int i=0; i<strlen(str); i++) *b++=c;
   return b;
 }
 
 void usage(char *v)
 {
-  printf("Usage:  %s [<option>]\n", v);
-  printf(" -s [speed]    BaudRate\n");
-  printf(" -l [Path]     Serial Port\n");
-  printf(" -h            This help\n\n");
-  printf("Example:  %s -s 9600 -l /dev/ttyS0\n", v);
+  printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-h]\n\n", v);
+  printf("-----------------------------------------------------\n");
+  printf("https://github.com/yorimoi/sisterm\n\n");
+  printf("optional arguments:\n");
+  printf("  -h    Show this help message and exit\n");
+  printf("  -l    Use named device (e.g. /dev/ttyS0)\n");
+  printf("  -s    Use given speed  (e.g. 9600)\n");
 }

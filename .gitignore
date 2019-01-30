@@ -1,0 +1,13 @@
+# Ignore All
+*
+
+# Add all files to the Whitelist
+!*/
+
+# Allow
+!.gitignore
+!sisterm.c
+!Makefile
+!README.md
+!run.sh
+!sisterm

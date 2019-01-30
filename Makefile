@@ -5,7 +5,7 @@ PROGRAM = sisterm
 all :
 	$(PROGRAM)
 
-$(PROGRAM) : main.c
+$(PROGRAM) : sisterm.c
 	gcc -o sisterm main.c
 
 clean :
