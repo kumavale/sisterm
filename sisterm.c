@@ -5,6 +5,8 @@
 #include <termios.h>
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <regex.h>
 
 #include "syntax.h"
@@ -74,9 +76,19 @@ int main(int argc, char **argv)
   struct termios old_stdio;
   int fd;
 
-  int i = 0;
-  unsigned char bufi[255];
-  unsigned char bufo[255];
+  unsigned int i = 0;
+  unsigned char buf[255];
+
+  //char *palette[5] = {
+  //  RED,
+  //  GREEN,
+  //  YELLOW,
+  //  MAGENTA,
+  //  CYAN,
+  //};
+  srand((unsigned)time(NULL));
+  unsigned char s[32];
+  unsigned int n = 34;
 
   unsigned char c = '0';
   const unsigned char endcode = '~';
@@ -105,7 +117,12 @@ int main(int argc, char **argv)
   if(fd < 0)
   {
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
-    printf("%s: open (%s): Failure\n", argv[0], serialPort);
+    if(access( serialPort, F_OK ) < 0)
+      printf("%s: open (%s): No such file or directory\n", argv[0], serialPort);
+    else if(access( serialPort, (R_OK | W_OK) ) < 0)
+      printf("%s: open (%s): Permission denied\n", argv[0], serialPort);
+    else
+      printf("%s: open (%s): Failure\n", argv[0], serialPort);
     return EXIT_FAILURE;
   }
 
@@ -117,24 +134,37 @@ int main(int argc, char **argv)
   {
     // if new data is available on the serial port, print it out
     if(read(fd, &c, 1) > 0) {
-      //if(!(c==' '&&i==0)) bufo[i] = c;
-      //if(bufo[i++]==' ')
-      //{
-      //  syntaxCheck(bufo);
-      //  i=0;
-      //}
+      /*
+      buf[i++] = c;
+      //if(buf[i-1]=='\0' || buf[i-1]=='\n')
+      {
+        syntaxCheck(&buf[0]);
+        i=0;
+      } //*/
+      //sprintf(s, "\e[48;5;%03dm\e[38;5;%03dm%c%s", rand()%255, rand()%255, c, RESET);
+      //write(STDOUT_FILENO, &s, n);
       write(STDOUT_FILENO, &c, 1);
+      //printf("Debug!");
     }
 
     // if new data is available on the console, send it to the serial port
     if(read(STDIN_FILENO, &c, 1) > 0) {
       if(c == endcode) break;
+      /*
+      buf[i++] = c;
+      if(buf[i-1]=='\0' || buf[i-1]=='\n')
+      {
+        syntaxCheck(&buf[0]);
+        i=0;
+      } //*/
+      //printf("%c", c);
       write(fd, &c, 1);
     }
   }
 
   close(fd);
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+  printf(RESET);
   printf("\n");
 
   return EXIT_SUCCESS;
@@ -144,7 +174,22 @@ void syntaxCheck(unsigned char *str)
 {
   //if(!strcasecmp(str, "cisco "))
   //if( regcomp())
-    printf("%sCYAN%sRESET", increaseChar(str, '\b'), str);
+  //unsigned int i = 0;
+  //unsigned char *_s;
+  unsigned char _s[128];
+  size_t len = 0;
+  //unsigned char *buf = str;
+  //while(*str != '\0')
+  while(*str)
+  {
+    //write(STDOUT_FILENO, str, 1);
+    _s[len++] = *str++;
+    //len++;
+  }
+    //sprintf(_s, "%s%s%s%s", increaseChar(str, '\b'), CYAN, str, RESET);
+    //sprintf(_s, "%s%s%s%s", increaseChar(str, '\b'), CYAN, str, RESET);
+    //write(STDOUT_FILENO, &_s, len);
+    write(STDIN_FILENO, &_s, len);
 }
 
 char *increaseChar(unsigned char *str, char c)

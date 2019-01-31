@@ -7,6 +7,7 @@
 # Allow
 !.gitignore
 !sisterm.c
+!syntax.h
 !Makefile
 !README.md
 !run.sh

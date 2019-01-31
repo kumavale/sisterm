@@ -2,11 +2,8 @@ DESTDIR =
 PREFIX  = /usr/local
 PROGRAM = sisterm
 
-all :
-	$(PROGRAM)
-
 $(PROGRAM) : sisterm.c
-	gcc -o sisterm main.c
+	gcc -o sisterm sisterm.c
 
 clean :
 	rm -f $(PROGRAM)
