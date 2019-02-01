@@ -11,14 +11,10 @@
 
 #include "syntax.h"
 
-char increaseChar(unsigned char *str, char);
 int syntaxCheck(unsigned char *str);
 //void printw(int );
 void coloring(unsigned char);
 void usage(char *v);
-
-unsigned char s[128];
-unsigned char *io = s;
 
 int main(int argc, char **argv)
 {
@@ -165,56 +161,54 @@ int main(int argc, char **argv)
 int syntaxCheck(unsigned char *str)
 {
   size_t i=0;
-  unsigned char buf[128];
+  unsigned char *buf = (unsigned char *)malloc(128);
   while(*str) buf[i++] = *str++;
-  //printf("[buf:%s]", buf);
-  //if(!strcasecmp(buf, "cisco")) return HL_CISCO;
-  if(strstr(buf, "cisco") != NULL) return HL_CISCO;
+  if(strstr(buf, "cisco") != NULL) { free(buf); return HL_CISCO; }
   return -1;
 }
 
+unsigned char s[128];
+unsigned char *io = s;
 void coloring(unsigned char c)
 {
   //if(!strcasecmp(str, "cisco "))
   //if( regcomp())
-  if( c==' ' || c=='\n' || c=='\0' || c=='\t' ) { io = s; return; }
-  unsigned char buf[128];
-  //unsigned char tmp[64];
+  if( c=='#' || c=='\'' || c=='"' || c==' ' || c=='\n' || c=='\0' || c=='\t' )
+  {
+    memset( io, '\0', sizeof(s) );
+    io = s;
+    return;
+  }
   size_t i = 0;
   *io++ = c;
   int checked = syntaxCheck(s);
-  //printf("[%d]", checked);
-  //      sleep(3);
   if(checked > 0)
   {
+    unsigned char *buf, *tmp, *b;
+    buf = (unsigned char*)malloc(128);
+    tmp = (unsigned char*)malloc(128);
+    b   = (unsigned char*)malloc(128);
+
     io = s;
     switch(checked)
     {
-      case 1:{
-        //while(*io) tmp[i++] = *io++;
-        while(*io++) i++;
-        unsigned char tmp[i];
-        i=0; io = s;
-        while(*io) tmp[i++] = *io++;
-        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s", AQUA, tmp, RESET));
-        break; }
+      case 1:
+        while(*io)
+        {
+          b[i]     = '\b';
+          tmp[i++] = *io++;
+        }
+        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, AQUA, tmp, RESET));
+        break;
       default: break;
     }
+    memset( io, '\0', sizeof(s) );
+    io = s;
+    free(buf);
+    free(tmp);
+    free( b );
   }
 
-  //while(*str != '\0')
-  //while(*str) _s[len++] = *str++;
-  //write(STDIN_FILENO, &_s, len);
-}
-
-// en route
-char increaseChar(unsigned char *str, char c)
-{
-  size_t len = 0;
-  while(*str) len++;
-  unsigned char b[len];
-  for(int i=0; i<len; i++) b[i++]=c;
-  return b[0];
 }
 
 void usage(char *v)
