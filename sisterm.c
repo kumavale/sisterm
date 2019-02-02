@@ -173,7 +173,7 @@ void coloring(unsigned char c)
 {
   //if(!strcasecmp(str, "cisco "))
   //if( regcomp())
-  if( c=='#' || c=='\'' || c=='"' || c==' ' || c=='\n' || c=='\0' || c=='\t' )
+  if( c=='.' || c==':' || c=='-' || c=='(' || c==')' || c=='&' || c=='#' || c=='\'' || c=='"' || c==' ' || c=='\n' || c=='\0' || c=='\t' )
   {
     memset( io, '\0', sizeof(s) );
     io = s;
