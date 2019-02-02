@@ -122,6 +122,7 @@ int main(int argc, char **argv)
 
   // for test {
   char s[8];
+  int bsflag = 0;
   unsigned char buf[256];
   srand((unsigned)time(NULL));
   // }
@@ -131,17 +132,19 @@ int main(int argc, char **argv)
     // if new data is available on the serial port, print it out
     if(read(fd, &c, 1) > 0)
     {
-      //write(STDOUT_FILENO, &c, 1);
-      write(STDOUT_FILENO, s, sprintf(s, "[0x%02x]", c));
+      write(STDOUT_FILENO, &c, 1);
+      //write(STDOUT_FILENO, s, sprintf(s, "[0x%02x]", c));
       //write(STDOUT_FILENO, buf, sprintf(buf, "\e[38;5;%03dm%c%s", rand()%256, c, RESET));
-      coloring(c);
+      if(c==0x08 && bsflag==0) bsflag=3;
+      if(0 == bsflag) coloring(c);
+      else if(3 == bsflag) {coloring(c); bsflag--;}
+      else bsflag--;
     }
 
     // if new data is available on the console, send it to the serial port
     if(read(STDIN_FILENO, &c, 1) > 0)
     {
       if(c == endcode) break;
-      //if(c == 0x7f)    coloring(c);
       write(fd, &c, 1);
       //write(STDOUT_FILENO, s, sprintf(s, "[0x%02x]", c));
     }
@@ -169,7 +172,7 @@ unsigned char *io = s;
 void coloring(unsigned char c)
 {
   //if( regcomp())
-  if(c<0x20 || c==0x7e || c=='#' || c=='>' || c=='"')
+  if( (c!=0x08 && c<0x21) || c==0x7e || c=='#' || c=='>' || c=='"')
   {
     memset( io = s, '\0', strlen(s) );
     return;
@@ -178,6 +181,9 @@ void coloring(unsigned char c)
 
   if( c=='\b' ) *--io = '\0';
   else          *io++ = c;
+
+  int j=0;char t[32];io=s;while(*io)t[j++]=*io++;
+  //write(STDOUT_FILENO, t, sprintf(t, "[%d]", j));
 
   int checked = syntaxCheck(s);
   if(checked > 0)
