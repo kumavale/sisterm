@@ -22,17 +22,17 @@ int main(int argc, char **argv)
   const char *serialPort = "/dev/ttyS5";
   int baudRate = B9600;
 
-  for (int j=1; j<argc; j++)
+  for (int i=1; i<argc; i++)
   {
-    if(*argv[j] == '-')
+    if(*argv[i] == '-')
     {
-      switch(*++argv[j])
+      switch(*++argv[i])
       {
-        case 'l': serialPort = argv[++j]; break;
-        case 's': B = argv[++j]; break;
-        case 'h': usage(argv[0]); return EXIT_SUCCESS;
+        case 'l': serialPort = argv[++i]; break;
+        case 's': B = argv[++i];          break;
+        case 'h': usage(argv[0]);         return EXIT_SUCCESS;
         default :
-          printf("%s: unrecognized option `-%s`\n", argv[0], argv[j]);
+          printf("%s: unrecognized option `-%s`\n", argv[0], argv[i]);
           printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-h]\n", argv[0]);
           printf("Use %s -h for help\n", argv[0]);
           return EXIT_FAILURE;
@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     }
     else
     {
-      printf("%s: %s: System not found\n", argv[0], argv[j]);
+      printf("%s: %s: System not found\n", argv[0], argv[i]);
       return EXIT_FAILURE;
     }
   }
@@ -77,19 +77,10 @@ int main(int argc, char **argv)
   struct termios old_stdio;
   int fd;
 
-  unsigned int i = 0;
+  // for test {
   unsigned char buf[256];
-
-  //char *palette[5] = {
-  //  RED,
-  //  GREEN,
-  //  YELLOW,
-  //  MAGENTA,
-  //  CYAN,
-  //};
   srand((unsigned)time(NULL));
-  unsigned char s[32];
-  unsigned int n = 27; // color + 1 + RESET
+  // }
 
   unsigned char c = '0';
   const unsigned char endcode = '~';
@@ -104,12 +95,12 @@ int main(int argc, char **argv)
   stdio.c_cc[VTIME] = 0;
   tcsetattr(STDOUT_FILENO, TCSANOW,&stdio);
   tcsetattr(STDOUT_FILENO, TCSAFLUSH,&stdio);
-  fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);     // make the reads non-blocking
+  fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
 
   memset(&tio, 0, sizeof(tio));
   tio.c_iflag       = 0;
   tio.c_oflag       = 0;
-  tio.c_cflag       = CS8 | CREAD | CLOCAL;       // 8n1, see termios.h for more information
+  tio.c_cflag       = CS8 | CREAD | CLOCAL;
   tio.c_lflag       = 0;
   tio.c_cc[VMIN]    = 1;
   tio.c_cc[VTIME]   = 5;
@@ -130,6 +121,8 @@ int main(int argc, char **argv)
   cfsetospeed(&tio, baudRate);
   cfsetispeed(&tio, baudRate);
 
+  printf("\aConnected.\n");
+
   tcsetattr(fd, TCSANOW, &tio);
 
   while (1)
@@ -137,10 +130,9 @@ int main(int argc, char **argv)
     // if new data is available on the serial port, print it out
     if(read(fd, &c, 1) > 0)
     {
-      write(STDOUT_FILENO, &c, 1);
+      //write(STDOUT_FILENO, &c, 1);
+      write(STDOUT_FILENO, buf, sprintf(buf, "\e[38;5;%03dm%c%s", rand()%256, c, RESET));
       coloring(c);
-      //sprintf(s, "\e[48;5;%03dm\e[38;5;%03dm%c%s", rand()%255, rand()%255, c, RESET);
-      //write(STDOUT_FILENO, buf, sprintf(buf, "\e[38;5;%03dm%c%s", rand()%256, c, RESET));
     }
 
     // if new data is available on the console, send it to the serial port
@@ -153,7 +145,7 @@ int main(int argc, char **argv)
 
   close(fd);
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
-  printf("%s\n", RESET);
+  printf("%s\n\aDisconnected.\n", RESET);
 
   return EXIT_SUCCESS;
 }
@@ -163,7 +155,9 @@ int syntaxCheck(unsigned char *str)
   size_t i=0;
   unsigned char *buf = (unsigned char *)malloc(128);
   while(*str) buf[i++] = *str++;
-  if(strstr(buf, "cisco") != NULL) { free(buf); return HL_CISCO; }
+  if(!strcasecmp(buf, "cisco")) { free(buf); return HL_CISCO; }
+  if(!strcasecmp(buf, "test"))  { free(buf); return HL_COND ; }
+  if(!strcmp(buf, "!"))  { free(buf); return HL_ACTION ; }
   return -1;
 }
 
@@ -171,16 +165,15 @@ unsigned char s[128];
 unsigned char *io = s;
 void coloring(unsigned char c)
 {
-  //if(!strcasecmp(str, "cisco "))
   //if( regcomp())
-  if( c=='.' || c==':' || c=='-' || c=='(' || c==')' || c=='&' || c=='#' || c=='\'' || c=='"' || c==' ' || c=='\n' || c=='\0' || c=='\t' )
+  if( c=='/' || c=='.' || c=='>' || c=='-' || c=='(' || c==')' || c=='#' || c=='\'' || c=='"' || c==' ' || c=='\n' || c=='\0' || c=='\t' )
   {
-    memset( io, '\0', sizeof(s) );
-    io = s;
+    memset( io = s, '\0', strlen(s) );
     return;
   }
   size_t i = 0;
-  *io++ = c;
+  if( c=='\b' ) *--io = '\0';
+  else *io++ = c;
   int checked = syntaxCheck(s);
   if(checked > 0)
   {
@@ -192,18 +185,20 @@ void coloring(unsigned char c)
     io = s;
     switch(checked)
     {
-      case 1:
-        while(*io)
-        {
-          b[i]     = '\b';
-          tmp[i++] = *io++;
-        }
+      case HL_CISCO:
+        while(*io) b[i] = '\b', tmp[i++] = *io++;
         write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, AQUA, tmp, RESET));
+        break;
+      case HL_COND:
+        while(*io) b[i] = '\b', tmp[i++] = *io++;
+        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, RED, tmp, RESET));
+        break;
+      case HL_ACTION:
+        write(STDOUT_FILENO, buf, sprintf(buf, "\b%s!%s", LIME, RESET));
         break;
       default: break;
     }
-    memset( io, '\0', sizeof(s) );
-    io = s;
+    memset( io = s, '\0', strlen(s) );
     free(buf);
     free(tmp);
     free( b );
