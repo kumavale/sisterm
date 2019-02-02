@@ -1,7 +1,8 @@
 # sisterm
 sisterm is Serial console for CISCO.  
 Not typo :)  
-![demo](https://user-images.githubusercontent.com/29778890/52157763-0bd66400-26d5-11e9-829f-27da5c85a3aa.gif)
+![demo](https://user-images.githubusercontent.com/29778890/52164454-e711d900-2734-11e9-9700-adfe7ae03d72.gif)
+
 
 
 ## Usage
