@@ -1,42 +1,42 @@
 
-#define RESET                 "\e[0m"
-#define UNDERLINE             "\e[4m"
-#define DEFAULT_F             "\e[39m"
-#define DEFAULT_B             "\e[49m"
+#define RESET             "\e[0m"
+#define UNDERLINE         "\e[4m"
+#define DEFAULT_F         "\e[39m"
+#define DEFAULT_B         "\e[49m"
 
 // Use 8-bit Colours format (bat only 4-bit used)
-#define BLACK                 "\e[38;5;000m"
-#define MAROON                "\e[38;5;001m"
-#define GREEN                 "\e[38;5;002m"
-#define OLIVE                 "\e[38;5;003m"
-#define NAVY                  "\e[38;5;004m"
-#define PURPLE                "\e[38;5;005m"
-#define TEAL                  "\e[38;5;006m"
-#define SILVER                "\e[38;5;007m"
-#define GREY                  "\e[38;5;008m"
-#define RED                   "\e[38;5;009m"
-#define LIME                  "\e[38;5;010m"
-#define YELLOW                "\e[38;5;011m"
-#define BLUE                  "\e[38;5;012m"
-#define FUCHSIA               "\e[38;5;013m"
-#define AQUA                  "\e[38;5;014m"
-#define WHITE                 "\e[38;5;015m"
+#define BLACK             "\e[38;5;000m"
+#define MAROON            "\e[38;5;001m"
+#define GREEN             "\e[38;5;002m"
+#define OLIVE             "\e[38;5;003m"
+#define NAVY              "\e[38;5;004m"
+#define PURPLE            "\e[38;5;005m"
+#define TEAL              "\e[38;5;006m"
+#define SILVER            "\e[38;5;007m"
+#define GREY              "\e[38;5;008m"
+#define RED               "\e[38;5;009m"
+#define LIME              "\e[38;5;010m"
+#define YELLOW            "\e[38;5;011m"
+#define BLUE              "\e[38;5;012m"
+#define FUCHSIA           "\e[38;5;013m"
+#define AQUA              "\e[38;5;014m"
+#define WHITE             "\e[38;5;015m"
 
 
-#define HL_CISCO            1
-#define HL_COND             2
-#define HL_KEYWORD          3
-#define HL_PROTOCOL         4
-#define HL_CONFIGURE        5
-#define HL_FUNCTION         6
-#define HL_COMMENT          7
-#define HL_STRING           8
-#define HL_INTERFACE        9
-#define HL_ACTION           10
-#define HL_VAR              11
-#define HL_IPV4             12
-#define HL_IPV6             13
-#define HL_SPACE            14
+#define HL_CISCO          1
+#define HL_COND           2
+#define HL_KEYWORD        3
+#define HL_PROTOCOL       4
+#define HL_CONFIGURE      5
+#define HL_FUNCTION       6
+#define HL_COMMENT        7
+#define HL_STRING         8
+#define HL_INTERFACE      9
+#define HL_ACTION         10
+#define HL_VAR            11
+#define HL_IPV4           12
+#define HL_IPV6           13
+#define HL_SPACE          14
 
 
 //enum palette {

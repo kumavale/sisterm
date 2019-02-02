@@ -77,11 +77,6 @@ int main(int argc, char **argv)
   struct termios old_stdio;
   int fd;
 
-  // for test {
-  unsigned char buf[256];
-  srand((unsigned)time(NULL));
-  // }
-
   unsigned char c = '0';
   const unsigned char endcode = '~';
   tcgetattr(STDOUT_FILENO, &old_stdio);
@@ -125,13 +120,20 @@ int main(int argc, char **argv)
 
   tcsetattr(fd, TCSANOW, &tio);
 
+  // for test {
+  char s[8];
+  unsigned char buf[256];
+  srand((unsigned)time(NULL));
+  // }
+
   while (1)
   {
     // if new data is available on the serial port, print it out
     if(read(fd, &c, 1) > 0)
     {
       //write(STDOUT_FILENO, &c, 1);
-      write(STDOUT_FILENO, buf, sprintf(buf, "\e[38;5;%03dm%c%s", rand()%256, c, RESET));
+      write(STDOUT_FILENO, s, sprintf(s, "[0x%02x]", c));
+      //write(STDOUT_FILENO, buf, sprintf(buf, "\e[38;5;%03dm%c%s", rand()%256, c, RESET));
       coloring(c);
     }
 
@@ -139,7 +141,9 @@ int main(int argc, char **argv)
     if(read(STDIN_FILENO, &c, 1) > 0)
     {
       if(c == endcode) break;
+      //if(c == 0x7f)    coloring(c);
       write(fd, &c, 1);
+      //write(STDOUT_FILENO, s, sprintf(s, "[0x%02x]", c));
     }
   }
 
@@ -157,7 +161,6 @@ int syntaxCheck(unsigned char *str)
   while(*str) buf[i++] = *str++;
   if(!strcasecmp(buf, "cisco")) { free(buf); return HL_CISCO; }
   if(!strcasecmp(buf, "test"))  { free(buf); return HL_COND ; }
-  if(!strcmp(buf, "!"))  { free(buf); return HL_ACTION ; }
   return -1;
 }
 
@@ -166,14 +169,16 @@ unsigned char *io = s;
 void coloring(unsigned char c)
 {
   //if( regcomp())
-  if( c=='/' || c=='.' || c=='>' || c=='-' || c=='(' || c==')' || c=='#' || c=='\'' || c=='"' || c==' ' || c=='\n' || c=='\0' || c=='\t' )
+  if(c<0x20 || c==0x7e || c=='#' || c=='>' || c=='"')
   {
     memset( io = s, '\0', strlen(s) );
     return;
   }
   size_t i = 0;
+
   if( c=='\b' ) *--io = '\0';
-  else *io++ = c;
+  else          *io++ = c;
+
   int checked = syntaxCheck(s);
   if(checked > 0)
   {
@@ -192,9 +197,6 @@ void coloring(unsigned char c)
       case HL_COND:
         while(*io) b[i] = '\b', tmp[i++] = *io++;
         write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, RED, tmp, RESET));
-        break;
-      case HL_ACTION:
-        write(STDOUT_FILENO, buf, sprintf(buf, "\b%s!%s", LIME, RESET));
         break;
       default: break;
     }
