@@ -23,7 +23,7 @@
 #define WHITE             "\e[38;5;015m"
 
 
-#define HL_CISCO          1
+#define HL_VENDORS        1
 #define HL_COND           2
 #define HL_KEYWORD        3
 #define HL_PROTOCOL       4
@@ -51,7 +51,6 @@
 //  COLOR_MAX
 //};
 
-//CISCO   = cisco
 //COND    = match|eq|neq|gt|lt|ge|le|range
 //KEYWORD = speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers
 //KEYWORD = logging|log|login|password|username|user|license|host|hostname|system
@@ -61,19 +60,7 @@
 //KEYWORD = timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel
 //KEYWORD = privilege|secret
 
-//PROTOCOL = ipv4 ipv6 tcp udp icmp echo
-//PROTOCOL = http https www dhcp domain nameserver ssh telnet ftp ftp-data
-//PROTOCOL = ntp snmp snmptrap syslog
-//PROTOCOL = smtp pop2 pop3
-//PROTOCOL = klogin kshell login rlogin sunrpc
-//PROTOCOL = mpls rip isis ospf ospfv3 eigrp bgp hsrp vrrp ipsla
-//PROTOCOL = isdn dial hdlc frame-relay atm
-//PROTOCOL = igmp multicast broadcast
-//PROTOCOL = rsa pki isakmp ipsec ike esp gre vpn mvpn pppoe
-//PROTOCOL = qos cef pim ahp tacacs
-//PROTOCOL = cdp lldp vtp spanning-tree lacp dot1q l2tun ethernet
-//PROTOCOL = aaa aaa-server
-//PROTOCOL = /traps\?/
+#define PROTOCOL "ipv4|ipv6|tcp|udp|icmp|echo|http|https|www|dhcp|domain|nameserver|ssh|telnet|ftp|ftp[-]data|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|login|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server"
 
 //CONFIGURE = activate set default redundancy prefe ron tag
 //CONFIGURE = inside outside input output static export import
@@ -91,9 +78,9 @@
 //COMMENT = /remark.*$/
 //COMMENT = /\s*#.*$/
 
-//STRING = /\"[^"]*\"/
+#define STRING "\".*\"|\'.*\'"
 
-//INTERFACE = /^\(interface\|vlan\|line\|router\|track\)\s.*\d$/
+#define INTERFACE "^\(interface|vlan|line|router|track\).*[0-9]$"
 //INTERFACE = /^ip\s\(sla\|vrf\)\s.*\d$/
 //INTERFACE = /^monitor\ssession\s\d\+$/
 //INTERFACE = /^\(class\|policy\|route\)\-map\s.*$/
@@ -101,11 +88,9 @@
 //INTERFACE = /^vrf\s\(definition\|context\)\s.*$/
 //INTERFACE = /^address\-family\sipv.*$/
 
-//ACTION = disable deny shutdown down none
+#define ACTION  "disable|deny|shutdown|down|none"
 
-//VAR = trunk access full full-duplex auto active monitor
-//VAR = any enable disable
-//VAR = pvst mst rapid-pvst \transparent server client
-//VAR = /\d\+[mg]\?/
+#define VAR     "trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|active|monitor|any|enable|disable|pvst|mst|rapid[-]pvst|transparent|server|client"
 
-//IPV4 = /\(25[0-5]\|2[0-4]\d\|[01]\?\d\{1,2}\)\(\.\(25[0-5]\|2[0-4]\d\|[01]\?\d\{1,2}\)\)\{3}\(\/[0-9]\{1,2\}\)\?/
+#define VENDORS "^cisco$|^jun$|^yama$|^mella$"
+#define IPV4    "(^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"

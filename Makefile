@@ -2,11 +2,11 @@ DESTDIR =
 PREFIX  = /usr/local
 PROGRAM = sist
 
-$(PROGRAM) : sisterm.c
+$(PROGRAM): sisterm.c
 	@gcc -o sist sisterm.c
 
-clean :
-	rm -f $(PROGRAM)
+install: $(PROGRAM)
+	@install -s $(PROGRAM) $(PREFIX)/bin
 
-install : $(PROGRAM)
-	install -s $(PROGRAM) $(PREFIX)/bin
+uninstall:
+	@rm -f $(PREFIX)/bin/sist
