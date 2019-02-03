@@ -11,16 +11,23 @@
 #include "syntax.h"
 
 int syntaxCheck(unsigned char *str);
+void repaint(unsigned char *color);
 void coloring(unsigned char);
 void usage(char *v);
 
+unsigned char s[128];
+unsigned char prev[128];
+unsigned char *io = s;
+
+regex_t reg_prompt;
 regex_t reg_vendors;
 regex_t reg_ipv4;
 regex_t reg_var;
 regex_t reg_string;
 regex_t reg_action;
 regex_t reg_protocol;
-//regex_t reg_comment;
+regex_t reg_keyword;
+regex_t reg_cond;
 
 int main(int argc, char **argv)
 {
@@ -85,6 +92,7 @@ int main(int argc, char **argv)
 
   int regmiss      = 0 ;
   int bsflag       = 0 ;
+  int prflag       = 0 ;
   unsigned char c = '0';
   const unsigned char endcode = '~';
   tcgetattr(STDOUT_FILENO, &old_stdio);
@@ -123,13 +131,15 @@ int main(int argc, char **argv)
 
   cfsetspeed(&tio, baudRate);
 
-  if(regcomp( &reg_vendors , VENDORS,  REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_ipv4    , IPV4,     REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_var     , VAR ,     REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_string  , STRING,   REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_action  , ACTION,   REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp( &reg_prompt  , "#|>"   , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp( &reg_vendors , VENDORS , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp( &reg_ipv4    , IPV4    , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp( &reg_var     , VAR     , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp( &reg_string  , STRING  , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp( &reg_action  , ACTION  , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
   if(regcomp( &reg_protocol, PROTOCOL, REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  //if(regcomp( &reg_comment, COMMENT, REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp( &reg_keyword , KEYWORD , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp( &reg_cond    , COND    , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
 
   printf("\aConnected.\n");
@@ -142,9 +152,18 @@ int main(int argc, char **argv)
     if(read(fd, &c, 1) > 0)
     {
       write(STDOUT_FILENO, &c, 1);
+
       if(0x08==c && 0==bsflag) bsflag=3;
       if(0 == bsflag) coloring(c);
       else if(3 == bsflag--) coloring(c);
+
+      if(0x0a==c) prflag=1;
+      if(prflag)
+        if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
+        {
+          memset( io = s, '\0', sizeof(s) );
+          prflag=0;
+        }
     }
 
     // if new data is available on the console, send it to the serial port
@@ -165,21 +184,36 @@ int main(int argc, char **argv)
 
 int syntaxCheck(unsigned char *str)
 {
-  if( regexec(&reg_vendors,  str, 0, 0, 0) == 0 ) return HL_VENDORS;
-  if( regexec(&reg_ipv4,     str, 0, 0, 0) == 0 ) return HL_IPV4;
-  if( regexec(&reg_string,   str, 0, 0, 0) == 0 ) return HL_STRING;
-  if( regexec(&reg_var,      str, 0, 0, 0) == 0 ) return HL_VAR;
-  if( regexec(&reg_action,   str, 0, 0, 0) == 0 ) return HL_ACTION;
+  if( regexec(&reg_vendors , str, 0, 0, 0) == 0 ) return HL_VENDORS;
+  if( regexec(&reg_ipv4    , str, 0, 0, 0) == 0 ) return HL_IPV4;
+  if( regexec(&reg_string  , str, 0, 0, 0) == 0 ) return HL_STRING;
+  if( regexec(&reg_var     , str, 0, 0, 0) == 0 ) return HL_VAR;
+  if( regexec(&reg_action  , str, 0, 0, 0) == 0 ) return HL_ACTION;
   if( regexec(&reg_protocol, str, 0, 0, 0) == 0 ) return HL_PROTOCOL;
+  if( regexec(&reg_keyword , str, 0, 0, 0) == 0 ) return HL_KEYWORD;
+  if( regexec(&reg_cond    , str, 0, 0, 0) == 0 ) return HL_COND;
   return -1;
 }
 
-unsigned char s[128];
-unsigned char prev[128];
-unsigned char *io = s;
+void repaint(unsigned char *color)
+{
+  io = s;
+  size_t i = 0;
+  unsigned char *buf, *tmp, *b;
+  buf = (unsigned char*)malloc(128);
+  tmp = (unsigned char*)malloc(128);
+  b   = (unsigned char*)malloc(128);
+  while(*io) b[i] = '\b', tmp[i++] = *io++;
+  if(tmp[i]!='\0') tmp[i]='\0';
+  write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, color, tmp, RESET));
+  free(buf);
+  free(tmp);
+  free( b );
+}
+
 void coloring(unsigned char c)
 {
-  if( (c!=0x08 && c<0x21) || c=='#' || c=='>')
+  if( (c!=0x08 && c<0x21) /*|| c=='#' || c=='>' */)
     { memset( io = s, '\0', sizeof(s) ); return; }
 
   if( c=='\b' ) *--io = '\0';
@@ -188,57 +222,35 @@ void coloring(unsigned char c)
   int checked = syntaxCheck(s);
   if(checked > 0)
   {
-    unsigned char *buf, *tmp, *b;
-    buf = (unsigned char*)malloc(128);
-    tmp = (unsigned char*)malloc(128);
-    b   = (unsigned char*)malloc(128);
-
-    size_t i = 0;
-    io = s;
     switch(checked)
     {
       case HL_VENDORS:
         //while(*io) write(STDOUT_FILENO, buf, sprintf(buf, "%s[0x%02x]%s",AQUA,*io++,RESET));
-        while(*io) b[i] = '\b', tmp[i++] = *io++;
-        if(tmp[i]!='\0') tmp[i]='\0';
-        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, AQUA, tmp, RESET));
         //write(STDOUT_FILENO, buf, sprintf(buf, "%s[%d]%s", LIME, strlen(b), RESET));
-        break;
+        repaint(AQUA);    break;
       case HL_ACTION:
-        while(*io) b[i] = '\b', tmp[i++] = *io++;
-        if(tmp[i]!='\0') tmp[i]='\0';
-        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, FUCHSIA, tmp, RESET));
-        break;
+        repaint(FUCHSIA); break;
+      case HL_KEYWORD:
+        repaint(MAROON);  break;
+      case HL_COND:
+        repaint(SILVER);  break;
       case HL_PROTOCOL:
-        while(*io) b[i] = '\b', tmp[i++] = *io++;
-        if(tmp[i]!='\0') tmp[i]='\0';
-        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, OLIVE, tmp, RESET));
-        break;
+        repaint(OLIVE);   break;
       case HL_VAR:
-        while(*io) b[i] = '\b', tmp[i++] = *io++;
-        if(tmp[i]!='\0') tmp[i]='\0';
-        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, TEAL, tmp, RESET));
-        break;
+        repaint(TEAL);    break;
       case HL_STRING:
-        while(*io) b[i] = '\b', tmp[i++] = *io++;
-        if(tmp[i]!='\0') tmp[i]='\0';
-        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, YELLOW, tmp, RESET));
-        break;
+        repaint(YELLOW);  break;
       case HL_IPV4:
-        while(*io) b[i]='\b', tmp[i++] = *io++;
-        write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s", RED, tmp, RESET));
+        //while(*io) b[i]='\b', tmp[i++] = *io++;
+        //write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s", RED, tmp, RESET));
+        repaint(RED);
         //write(STDOUT_FILENO, buf, sprintf(buf, "%s[%d]%s", LIME, strlen(tmp), RESET));
-        if(tmp[i-1]<0x29 || tmp[i-1]>0x3a) { free(buf); free(tmp); free( b ); return; }
         break;
-      default:
-        //write(STDOUT_FILENO, buf, sprintf(buf, "%s[%d]%s", LIME, checked, RESET));
-        break;
+      default: break;
     }
-    //if(tmp[i-1]<0x29 || tmp[i-1]>0x3a)
-    memset( io = s, '\0', sizeof(s) );
-    free(buf);
-    free(tmp);
-    free( b );
+
+    if(*(io-1)<0x29 || *(io-1)>0x3a)
+      memset( io = s, '\0', sizeof(s) );
   }
 
 }
