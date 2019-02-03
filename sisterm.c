@@ -16,9 +16,12 @@ int syntaxCheck(unsigned char *str);
 void coloring(unsigned char);
 void usage(char *v);
 
-const char *keyword = "^cisco$|^jun$|^yama$|^mella$";
-const char *ipv4 = "(25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})(.(25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3}(g[0-9]{1,2})?";
-regex_t preg;
+const char *vendors = "^cisco$|^jun$|^yama$|^mella$";
+const char *ipv4 = "(^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$";
+
+regex_t reg_vendors;
+regex_t reg_ipv4;
+//regex_t reg_;
 
 int main(int argc, char **argv)
 {
@@ -119,7 +122,8 @@ int main(int argc, char **argv)
 
   cfsetspeed(&tio, baudRate);
 
-  if( regcomp( &preg, keyword, REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0 ) return 1;
+  if( regcomp( &reg_vendors, vendors, REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0 ) return 1;
+  if( regcomp( &reg_ipv4   , ipv4,    REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0 ) return 1;
 
   printf("\aConnected.\n");
 
@@ -157,7 +161,8 @@ int main(int argc, char **argv)
   close(fd);
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
-  regfree(&preg);
+  regfree(&reg_vendors);
+  regfree(&reg_ipv4);
 
   printf("%s\n\aDisconnected.\n", RESET);
 
@@ -171,12 +176,14 @@ int syntaxCheck(unsigned char *str)
   //while(*str) buf[i++] = *str++;
   //if(!strcasecmp(buf, "cisco")) { free(buf); return HL_CISCO; }
   //if(!strcasecmp(buf, "test"))  { free(buf); return HL_COND ; }
-  if( regexec(&preg, str, 0, 0, 0) == 0 ) return HL_CISCO;
+  if( regexec(&reg_vendors, str, 0, 0, 0) == 0 ) return HL_CISCO;
+  if( regexec(&reg_ipv4,    str, 0, 0, 0) == 0 ) return HL_IPV4;
   //if( regexec(&preg, str, 0, 0, 0) == 0 ) { while(*str++) i++; return i; }
   return -1;
 }
 
 unsigned char s[128];
+unsigned char prev[128];
 unsigned char *io = s;
 void coloring(unsigned char c)
 {
@@ -206,15 +213,22 @@ void coloring(unsigned char c)
         write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, AQUA, tmp, RESET));
         //write(STDOUT_FILENO, buf, sprintf(buf, "%s[%d]%s", LIME, strlen(b), RESET));
         break;
-      case HL_COND:
+      case HL_IPV4:
         while(*io) b[i] = '\b', tmp[i++] = *io++;
+        //io = s; i=0;
+        //write(STDOUT_FILENO, buf, sprintf(buf, "%s",b));
+        //while(*io++) write(STDOUT_FILENO, buf, sprintf(buf, "%s%c%s",RED,tmp[i++],RESET));
         write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, RED, tmp, RESET));
+        //write(STDOUT_FILENO, buf, sprintf(buf, "%s[%d]%s", LIME, strlen(tmp), RESET));
         break;
       default:
         //write(STDOUT_FILENO, buf, sprintf(buf, "%s[%d]%s", LIME, checked, RESET));
         break;
     }
-    memset( io = s, '\0', strlen(s) );
+    //strcpy(prev, s);
+    //if(prev[strlen(prev)-1]
+    if(tmp[i-1]<0x29 || tmp[i-1]>0x3a)
+      memset( io = s, '\0', strlen(s) );
     free(buf);
     free(tmp);
     free( b );
