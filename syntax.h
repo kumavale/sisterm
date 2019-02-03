@@ -61,51 +61,51 @@
 //KEYWORD = timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel
 //KEYWORD = privilege|secret
 
-//ciscoprotocol = ipv4 ipv6 tcp udp icmp echo
-//ciscoprotocol = http https www dhcp domain nameserver ssh telnet ftp ftp-data
-//ciscoprotocol = ntp snmp snmptrap syslog
-//ciscoprotocol = smtp pop2 pop3
-//ciscoprotocol = klogin kshell login rlogin sunrpc
-//ciscoprotocol = mpls rip isis ospf ospfv3 eigrp bgp hsrp vrrp ipsla
-//ciscoprotocol = isdn dial hdlc frame-relay atm
-//ciscoprotocol = igmp multicast broadcast
-//ciscoprotocol = rsa pki isakmp ipsec ike esp gre vpn mvpn pppoe
-//ciscoprotocol = qos cef pim ahp tacacs
-//ciscoprotocol = cdp lldp vtp spanning-tree lacp dot1q l2tun ethernet
-//ciscoprotocol = aaa aaa-server
-//ciscoprotocol = /traps\?/
+//PROTOCOL = ipv4 ipv6 tcp udp icmp echo
+//PROTOCOL = http https www dhcp domain nameserver ssh telnet ftp ftp-data
+//PROTOCOL = ntp snmp snmptrap syslog
+//PROTOCOL = smtp pop2 pop3
+//PROTOCOL = klogin kshell login rlogin sunrpc
+//PROTOCOL = mpls rip isis ospf ospfv3 eigrp bgp hsrp vrrp ipsla
+//PROTOCOL = isdn dial hdlc frame-relay atm
+//PROTOCOL = igmp multicast broadcast
+//PROTOCOL = rsa pki isakmp ipsec ike esp gre vpn mvpn pppoe
+//PROTOCOL = qos cef pim ahp tacacs
+//PROTOCOL = cdp lldp vtp spanning-tree lacp dot1q l2tun ethernet
+//PROTOCOL = aaa aaa-server
+//PROTOCOL = /traps\?/
 
-//ciscoconfigure = activate set default redundancy prefe ron tag
-//ciscoconfigure = inside outside input output static export import
+//CONFIGURE = activate set default redundancy prefe ron tag
+//CONFIGURE = inside outside input output static export import
 
-//ciscofunction = service crypto encapsulation standby mode in out
-//ciscofunction = storm-control snmp-server group nat banner mask seq metric
-//ciscofunction = add-route shape rd route-target as-path remote-as
-//ciscofunction = access-list access-class access-group prefix-list
-//ciscofunction = passive-interface distribute-list permit subnet-zero
-//ciscofunction = /channel\-\(group\|protocol\)/
+//FUNCTION = service crypto encapsulation standby mode in out
+//FUNCTION = storm-control snmp-server group nat banner mask seq metric
+//FUNCTION = add-route shape rd route-target as-path remote-as
+//FUNCTION = access-list access-class access-group prefix-list
+//FUNCTION = passive-interface distribute-list permit subnet-zero
+//FUNCTION = /channel\-\(group\|protocol\)/
 
-//ciscocomment = /!.*$/
-//ciscocomment = /no\s.*$/
-//ciscocomment = /description.*$/
-//ciscocomment = /remark.*$/
-//ciscocomment = /\s*#.*$/
+//COMMENT = /!.*$/
+//COMMENT = /no\s.*$/
+//COMMENT = /description.*$/
+//COMMENT = /remark.*$/
+//COMMENT = /\s*#.*$/
 
-//ciscostring = /\"[^"]*\"/
+//STRING = /\"[^"]*\"/
 
-//ciscointerface = /^\(interface\|vlan\|line\|router\|track\)\s.*\d$/
-//ciscointerface = /^ip\s\(sla\|vrf\)\s.*\d$/
-//ciscointerface = /^monitor\ssession\s\d\+$/
-//ciscointerface = /^\(class\|policy\|route\)\-map\s.*$/
-//ciscointerface = /^ip\saccess\-list\s\(standard\|extended\)\s.*$/
-//ciscointerface = /^vrf\s\(definition\|context\)\s.*$/
-//ciscointerface = /^address\-family\sipv.*$/
+//INTERFACE = /^\(interface\|vlan\|line\|router\|track\)\s.*\d$/
+//INTERFACE = /^ip\s\(sla\|vrf\)\s.*\d$/
+//INTERFACE = /^monitor\ssession\s\d\+$/
+//INTERFACE = /^\(class\|policy\|route\)\-map\s.*$/
+//INTERFACE = /^ip\saccess\-list\s\(standard\|extended\)\s.*$/
+//INTERFACE = /^vrf\s\(definition\|context\)\s.*$/
+//INTERFACE = /^address\-family\sipv.*$/
 
-//ciscoaction = disable deny shutdown down none
+//ACTION = disable deny shutdown down none
 
-//ciscovar = trunk access full full-duplex auto active monitor
-//ciscovar = any enable disable
-//ciscovar = pvst mst rapid-pvst \transparent server client
-//ciscovar = /\d\+[mg]\?/
+//VAR = trunk access full full-duplex auto active monitor
+//VAR = any enable disable
+//VAR = pvst mst rapid-pvst \transparent server client
+//VAR = /\d\+[mg]\?/
 
-//ciscoipv4 = /\(25[0-5]\|2[0-4]\d\|[01]\?\d\{1,2}\)\(\.\(25[0-5]\|2[0-4]\d\|[01]\?\d\{1,2}\)\)\{3}\(\/[0-9]\{1,2\}\)\?/
+//IPV4 = /\(25[0-5]\|2[0-4]\d\|[01]\?\d\{1,2}\)\(\.\(25[0-5]\|2[0-4]\d\|[01]\?\d\{1,2}\)\)\{3}\(\/[0-9]\{1,2\}\)\?/

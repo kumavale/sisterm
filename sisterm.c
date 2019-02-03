@@ -16,6 +16,10 @@ int syntaxCheck(unsigned char *str);
 void coloring(unsigned char);
 void usage(char *v);
 
+const char *keyword = "^cisco$|^jun$|^yama$|^mella$";
+const char *ipv4 = "(25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})(.(25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3}(g[0-9]{1,2})?";
+regex_t preg;
+
 int main(int argc, char **argv)
 {
   const char *B = NULL;
@@ -113,8 +117,9 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  cfsetospeed(&tio, baudRate);
-  cfsetispeed(&tio, baudRate);
+  cfsetspeed(&tio, baudRate);
+
+  if( regcomp( &preg, keyword, REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0 ) return 1;
 
   printf("\aConnected.\n");
 
@@ -135,10 +140,9 @@ int main(int argc, char **argv)
       write(STDOUT_FILENO, &c, 1);
       //write(STDOUT_FILENO, s, sprintf(s, "[0x%02x]", c));
       //write(STDOUT_FILENO, buf, sprintf(buf, "\e[38;5;%03dm%c%s", rand()%256, c, RESET));
-      if(c==0x08 && bsflag==0) bsflag=3;
+      if(0x08==c && 0==bsflag) bsflag=3;
       if(0 == bsflag) coloring(c);
-      else if(3 == bsflag) {coloring(c); bsflag--;}
-      else bsflag--;
+      else if(3 == bsflag--) coloring(c);
     }
 
     // if new data is available on the console, send it to the serial port
@@ -152,6 +156,9 @@ int main(int argc, char **argv)
 
   close(fd);
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+
+  regfree(&preg);
+
   printf("%s\n\aDisconnected.\n", RESET);
 
   return EXIT_SUCCESS;
@@ -160,10 +167,12 @@ int main(int argc, char **argv)
 int syntaxCheck(unsigned char *str)
 {
   size_t i=0;
-  unsigned char *buf = (unsigned char *)malloc(128);
-  while(*str) buf[i++] = *str++;
-  if(!strcasecmp(buf, "cisco")) { free(buf); return HL_CISCO; }
-  if(!strcasecmp(buf, "test"))  { free(buf); return HL_COND ; }
+  //unsigned char *buf = (unsigned char *)malloc(128);
+  //while(*str) buf[i++] = *str++;
+  //if(!strcasecmp(buf, "cisco")) { free(buf); return HL_CISCO; }
+  //if(!strcasecmp(buf, "test"))  { free(buf); return HL_COND ; }
+  if( regexec(&preg, str, 0, 0, 0) == 0 ) return HL_CISCO;
+  //if( regexec(&preg, str, 0, 0, 0) == 0 ) { while(*str++) i++; return i; }
   return -1;
 }
 
@@ -172,18 +181,11 @@ unsigned char *io = s;
 void coloring(unsigned char c)
 {
   //if( regcomp())
-  if( (c!=0x08 && c<0x21) || c==0x7e || c=='#' || c=='>' || c=='"')
-  {
-    memset( io = s, '\0', strlen(s) );
-    return;
-  }
-  size_t i = 0;
+  if( (c!=0x08 && c<0x21) || c=='#' || c=='>' || c=='"')
+    { memset( io = s, '\0', strlen(s) ); return; }
 
   if( c=='\b' ) *--io = '\0';
   else          *io++ = c;
-
-  int j=0;char t[32];io=s;while(*io)t[j++]=*io++;
-  //write(STDOUT_FILENO, t, sprintf(t, "[%d]", j));
 
   int checked = syntaxCheck(s);
   if(checked > 0)
@@ -193,18 +195,24 @@ void coloring(unsigned char c)
     tmp = (unsigned char*)malloc(128);
     b   = (unsigned char*)malloc(128);
 
+    size_t i = 0;
     io = s;
     switch(checked)
     {
       case HL_CISCO:
+        //while(*io) write(STDOUT_FILENO, buf, sprintf(buf, "%s[0x%02x]%s",AQUA,*io++,RESET));
         while(*io) b[i] = '\b', tmp[i++] = *io++;
+        if(tmp[i]!='\0') tmp[i]='\0';
         write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, AQUA, tmp, RESET));
+        //write(STDOUT_FILENO, buf, sprintf(buf, "%s[%d]%s", LIME, strlen(b), RESET));
         break;
       case HL_COND:
         while(*io) b[i] = '\b', tmp[i++] = *io++;
         write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", b, RED, tmp, RESET));
         break;
-      default: break;
+      default:
+        //write(STDOUT_FILENO, buf, sprintf(buf, "%s[%d]%s", LIME, checked, RESET));
+        break;
     }
     memset( io = s, '\0', strlen(s) );
     free(buf);
