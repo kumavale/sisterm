@@ -5,12 +5,12 @@ sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.
 
 
 ## Usage
-`chmod 666 /dev/ttyS5`  
+`chmod 666 /path/to/port`  
 ```
 sist [-l SERIAL_PORT] [-s BAUDRATE]
-     [-e /path/to/LOG] [-t] [-h] [-v]
+     [-w /path/to/LOG] [-t] [-h] [-v]
 ```
-(e.g. `sist -l /dev/ttyS0 -s 9600 -e /tmp/sist.log`)  
+(e.g. `sist -l /dev/ttyS0 -s 9600 -t -w /tmp/sist.log`)  
 
 
 ## Installation

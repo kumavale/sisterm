@@ -1,5 +1,6 @@
-#define PROGRAM "sisterm"
-#define VERSION "0.1" // 20190204
+#define PROGRAM      "sisterm"
+#define VERSION      "1.0"
+#define RELEASE_DATE "2019-02-04"
 
 #include <string.h>
 #include <stdlib.h>
@@ -13,14 +14,6 @@
 
 #include "syntax.h"
 
-
-#if ANSI_C
-#define CONNMSG "\aConnected."
-#define DISMSG  "\aDisconnected."
-#else
-#define CONNMSG "Connected."
-#define DISMSG  "Disconnected."
-#endif
 
 #ifdef __linux__
 #define CLOCK CLOCK_REALTIME_COARSE
@@ -67,16 +60,11 @@ void repaint(unsigned char *color)
 {
   io = s;
   size_t i = 0;
-  unsigned char *buf, *tmp, *b;
-  buf = (unsigned char*)malloc(128);
-  tmp = (unsigned char*)malloc(128);
-  b   = (unsigned char*)malloc(128);
-  while(*io) tmp[i++] = *io++, write(STDOUT_FILENO, buf, sprintf(buf, "\b \b"));
+  unsigned char str[128];
+  unsigned char tmp[128];
+  while(*io) tmp[i++] = *io++, write(STDOUT_FILENO, str, sprintf(str, "\b \b"));
   if(tmp[i]!='\0') tmp[i]='\0';
-  write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s", color, tmp, RESET));
-  free(buf);
-  free(tmp);
-  free( b );
+  write(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
 }
 
 
@@ -136,7 +124,7 @@ void version()
 void usage(char *v)
 {
   printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE]\n"
-         "            [-e /path/to/LOG] [-h] [-v]\n\n", v);
+         "            [-w /path/to/LOG] [-t] [-h] [-v]\n\n", v);
 
   printf("Command line interface for Serial Console by Network device.\n");
   printf("------------------------------------------------------------\n");
@@ -147,7 +135,7 @@ void usage(char *v)
   printf("  -v          Show %s version and exit\n", PROGRAM);
   printf("  -l port     Use named device (e.g.    /dev/ttyS0)\n");
   printf("  -s speed    Use given speed  (default 9600)\n");
-  printf("  -e path     Saved log        (e.g.    /tmp/sist.log)\n");
+  printf("  -w path     Saved log        (e.g.    /tmp/sist.log)\n");
   printf("  -t          Add timestamp to log\n");
 }
 
@@ -156,7 +144,7 @@ int main(int argc, char **argv)
 {
   const char *sPort = NULL;
   const char *B     = NULL;
-  const char *E     = NULL;
+  const char *W     = NULL;
   speed_t baudRate  = B9600;
   int  logflag      = 0;
   int  ts           = 0;
@@ -171,9 +159,10 @@ int main(int argc, char **argv)
     {
       switch(*++argv[i])
       {
+        //ToDo Add or Overwrite
         case 'l': sPort = argv[++i];    break;
         case 's': B = argv[++i];        break;
-        case 'e': E = argv[++i];        break;
+        case 'w': W = argv[++i];        break;
         case 't': ts = 1;               break;
         case 'h': usage(argv[0]);       return EXIT_SUCCESS;
         case 'v': version();            return EXIT_SUCCESS;
@@ -224,10 +213,10 @@ int main(int argc, char **argv)
     }
   }
 
-  if( E != NULL )
+  if( W != NULL )
   {
-    log = fopen(E, "a+");
-    if(access( E, (F_OK | R_OK) ) < 0)
+    log = fopen(W, "a+");
+    if(access( W, (F_OK | R_OK) ) < 0)
     {
       printf("Logfile Access Denied\n");
       return EXIT_FAILURE;
@@ -302,13 +291,14 @@ int main(int argc, char **argv)
   if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
 
-  printf("%s\n", CONNMSG);
+  printf("Connected.\n");
 
   tcsetattr(fd, TCSANOW, &tio);
 
   while (1)
   {
     // if new data is available on the serial port, print it out
+    // ToDo Parallel processing
     if(read(fd, &c, 1) > 0)
     {
       write(STDOUT_FILENO, &c, 1);
@@ -354,10 +344,15 @@ int main(int argc, char **argv)
   }
 
   close(fd);
-  if(logflag) fclose(log);
+  if(logflag)
+  {
+    c = '\n';
+    fwrite(&c, 1, 1, log);
+    fclose(log);
+  }
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
-  printf("%s\n%s\n", RESET, DISMSG);
+  printf("%s\nDisconnected.\n", RESET);
 
   return EXIT_SUCCESS;
 }
