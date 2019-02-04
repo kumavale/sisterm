@@ -1,3 +1,6 @@
+#define PROGRAM "sisterm"
+#define VERSION "0.1" // 20190204
+
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -5,7 +8,7 @@
 #include <termios.h>
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <time.h>
 #include <regex.h>
 
 #include "syntax.h"
@@ -19,9 +22,14 @@
 #define DISMSG  "Disconnected."
 #endif
 
+#ifdef __linux__
+#define CLOCK CLOCK_REALTIME_COARSE
+#else
+#define CLOCK CLOCK_REALTIME
+#endif
+
 
 unsigned char s[128];
-unsigned char prev[128];
 unsigned char *io = s;
 
 regex_t reg_prompt;
@@ -65,7 +73,7 @@ void repaint(unsigned char *color)
   b   = (unsigned char*)malloc(128);
   while(*io) tmp[i++] = *io++, write(STDOUT_FILENO, buf, sprintf(buf, "\b \b"));
   if(tmp[i]!='\0') tmp[i]='\0';
-  write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s%s", RESET, color, tmp, RESET));
+  write(STDOUT_FILENO, buf, sprintf(buf, "%s%s%s", color, tmp, RESET));
   free(buf);
   free(tmp);
   free( b );
@@ -103,19 +111,16 @@ void coloring(unsigned char c)
         repaint(BLUE);    break;
       case HL_IPV4_NET:
         repaint(RED);
-        //unsigned char *last;
-        //last = (unsigned char*)malloc(128);
-        //write(STDOUT_FILENO, last, sprintf(last, "%s[%c]%s", LIME, *(io-1), RESET));
-        if(*(io-1)>0x29 || *(io-1)<0x3a) {
-        //write(STDOUT_FILENO, last, sprintf(last, "%s", UNDERLINE));
-        return; }
+        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
         break;
       case HL_IPV4_SUB:
         repaint(PURPLE);
         if(*(io-1)>0x29 || *(io-1)<0x3a) return;
+        break;
       case HL_IPV4_WILD:
         repaint(LIME);
         if(*(io-1)>0x29 || *(io-1)<0x3a) return;
+        break;
       default: break;
     }
     memset( io = s, '\0', sizeof(s) );
@@ -123,24 +128,42 @@ void coloring(unsigned char c)
 
 }
 
+void version()
+{
+  printf("%s %s\n", PROGRAM, VERSION);
+}
 
 void usage(char *v)
 {
-  printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-h]\n\n", v);
-  printf("-----------------------------------------------------\n");
+  printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE]\n"
+         "            [-e /path/to/LOG] [-h] [-v]\n\n", v);
+
+  printf("Command line interface for Serial Console by Network device.\n");
+  printf("------------------------------------------------------------\n");
   printf("https://github.com/yorimoi/sisterm\n\n");
+
   printf("optional arguments:\n");
-  printf("  -h    Show this help message and exit\n");
-  printf("  -l    Use named device (e.g. /dev/ttyS0)\n");
-  printf("  -s    Use given speed  (e.g. 9600)\n");
+  printf("  -h          Show this help message and exit\n");
+  printf("  -v          Show %s version and exit\n", PROGRAM);
+  printf("  -l port     Use named device (e.g.    /dev/ttyS0)\n");
+  printf("  -s speed    Use given speed  (default 9600)\n");
+  printf("  -e path     Saved log        (e.g.    /tmp/sist.log)\n");
+  printf("  -t          Add timestamp to log\n");
 }
 
 
 int main(int argc, char **argv)
 {
-  const char *B = NULL;
-  const char *serialPort = "/dev/ttyS5";
-  int baudRate = B9600;
+  const char *sPort = NULL;
+  const char *B     = NULL;
+  const char *E     = NULL;
+  speed_t baudRate  = B9600;
+  int  logflag      = 0;
+  int  ts           = 0;
+  unsigned char     date[32];
+  struct timespec   now;
+  struct tm         tm;
+  FILE              *log;
 
   for (int i=1; i<argc; i++)
   {
@@ -148,12 +171,14 @@ int main(int argc, char **argv)
     {
       switch(*++argv[i])
       {
-        case 'l': serialPort = argv[++i]; break;
-        case 's': B = argv[++i];          break;
-        case 'h': usage(argv[0]);         return EXIT_SUCCESS;
+        case 'l': sPort = argv[++i];    break;
+        case 's': B = argv[++i];        break;
+        case 'e': E = argv[++i];        break;
+        case 't': ts = 1;               break;
+        case 'h': usage(argv[0]);       return EXIT_SUCCESS;
+        case 'v': version();            return EXIT_SUCCESS;
         default :
           printf("%s: unrecognized option `-%s`\n", argv[0], argv[i]);
-          printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-h]\n", argv[0]);
           printf("Use %s -h for help\n", argv[0]);
           return EXIT_FAILURE;
       }
@@ -165,7 +190,14 @@ int main(int argc, char **argv)
     }
   }
 
-  if(B != NULL){
+  if( sPort == NULL )
+  {
+    printf("%s: must specify Serial Port\n", argv[0]);
+    return EXIT_FAILURE;
+  }
+
+  if( B != NULL )
+  {
     if     (!strcmp(B, "0"))      baudRate = B0;
     else if(!strcmp(B, "50"))     baudRate = B50;
     else if(!strcmp(B, "75"))     baudRate = B75;
@@ -187,10 +219,24 @@ int main(int argc, char **argv)
     else if(!strcmp(B, "230400")) baudRate = B230400;
     else
     {
-      printf("Invalid BaudRate...\n");
+      printf("(%s) Invalid BaudRate...\n", B);
       return EXIT_FAILURE;
     }
   }
+
+  if( E != NULL )
+  {
+    log = fopen(E, "a+");
+    if(access( E, (F_OK | R_OK) ) < 0)
+    {
+      printf("Logfile Access Denied\n");
+      return EXIT_FAILURE;
+    }
+    if(log < 0) return EXIT_FAILURE;
+    logflag = 1;
+  }
+  else
+    ts = 0;
 
   struct termios tio;
   struct termios stdio;
@@ -223,33 +269,37 @@ int main(int argc, char **argv)
   tio.c_cc[VMIN]    = 1;
   tio.c_cc[VTIME]   = 5;
 
-  fd = open(serialPort, O_RDWR | O_NONBLOCK);
+  fd = open(sPort, O_RDWR | O_NONBLOCK);
   if(fd < 0)
   {
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
-    if(access( serialPort, F_OK ) < 0)
-      printf("%s: open (%s): No such file or directory\n", argv[0], serialPort);
-    else if(access( serialPort, (R_OK | W_OK) ) < 0)
-      printf("%s: open (%s): Permission denied\n", argv[0], serialPort);
+    if(access( sPort, F_OK ) < 0)
+      printf("%s: open (%s): No such file or directory\n", argv[0], sPort);
+    else if(access( sPort, (R_OK | W_OK) ) < 0)
+      printf("%s: open (%s): Permission denied\n", argv[0], sPort);
+    // en route
+    //else if(fcntl(fd, F_GETFL) == (F_RDLCK | F_WRLCK) )
+    //  printf("%s: Line in use\n", sPort);
     else
-      printf("%s: open (%s): Failure\n", argv[0], serialPort);
+      printf("%s: open (%s): Failure\n", argv[0], sPort);
+    close(fd);
     return EXIT_FAILURE;
   }
 
-  cfsetspeed(&tio, baudRate);
+  if( cfsetspeed(&tio, baudRate) < 0 ) return EXIT_FAILURE;
 
-  if(regcomp( &reg_prompt   , "#|>"    , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_vendors  , VENDORS  , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_ipv4_net , IPV4_NET , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_ipv4_sub , IPV4_SUB , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_ipv4_wild, IPV4_WILD, REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_var      , VAR      , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_string   , STRING   , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_action   , ACTION   , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_protocol , PROTOCOL , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
-  if(regcomp( &reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE ) != 0) regmiss=1;
+  if(regcomp(&reg_prompt   , "#|>"    , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_vendors  , VENDORS  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_net , IPV4_NET , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_sub , IPV4_SUB , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_wild, IPV4_WILD, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_var      , VAR      , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_string   , STRING   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_action   , ACTION   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_protocol , PROTOCOL , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
 
   printf("%s\n", CONNMSG);
@@ -262,16 +312,31 @@ int main(int argc, char **argv)
     if(read(fd, &c, 1) > 0)
     {
       write(STDOUT_FILENO, &c, 1);
+      if(logflag) fwrite(&c, 1, 1, log);
 
-      if(0x08==c && 0==bsflag) bsflag=3;
+      if(0x08==c && 0==bsflag)
+      {
+        bsflag=3;
+      }
       if(0 == bsflag) coloring(c);
       else if(3 == bsflag--) coloring(c);
 
-      if(0x0a==c) prflag=1;
+      if(0x0a==c)
+      {
+        prflag=1;
+        if(ts)
+        {
+          clock_gettime(CLOCK, &now);
+          localtime_r(&now.tv_sec, &tm);
+          sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+              tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+              tm.tm_hour, tm.tm_min, tm.tm_sec,
+              now.tv_nsec / 1000000
+              );
+          fwrite(date, strlen(date), 1, log);
+        }
+      }
       if(prflag) {
-        //unsigned char *e;
-        //e = (unsigned char*)malloc(128);
-        //write(STDOUT_FILENO, e, sprintf(e, "%s", RESET));
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
         {
           memset( io = s, '\0', sizeof(s) );
@@ -289,6 +354,7 @@ int main(int argc, char **argv)
   }
 
   close(fd);
+  if(logflag) fclose(log);
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
   printf("%s\n%s\n", RESET, DISMSG);

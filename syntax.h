@@ -79,19 +79,19 @@
 
 //#define INTERFACE "^\(interface|vlan|line|router|track\).*[0-9]$"
 //#define INTERFACE "^ip\s\(sla\|vrf\)\s.*\d$"
-#define INTERFACE "^((Gigabit|Fast)Ethernet[0-9]/[0-9]+)$"
+#define INTERFACE "^((Gigabit|Fast|)Ethernet[0-9]/[0-9]+)$"
 //INTERFACE = /^monitor\ssession\s\d\+$/
 //INTERFACE = /^\(class\|policy\|route\)\-map\s.*$/
 //INTERFACE = /^ip\saccess\-list\s\(standard\|extended\)\s.*$/
 //INTERFACE = /^vrf\s\(definition\|context\)\s.*$/
 //INTERFACE = /^address\-family\sipv.*$/
 
-#define ACTION  "^(disable|deny|shutdown|down|none)$"
+#define ACTION  "^(disable|deny|shutdown|down|administratively|none)$"
 
 #define VAR     "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|active|monitor|any|enable|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
 
 #define VENDORS "^(cisco|juniper|yamaha|mellanox)$"
 
 #define IPV4_NET    "^(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
-#define IPV4_SUB    "^(25[0-5][.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
+#define IPV4_SUB    "^(25[0-5]|24[89][.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
 #define IPV4_WILD   "^(0[.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
