@@ -4,7 +4,7 @@
 ------------------------- */
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1.1"
+#define VERSION      "1.1.2"
 
 #include <string.h>
 #include <stdlib.h>
@@ -344,15 +344,16 @@ int main(int argc, char **argv)
 
   if( W != NULL && !rflag )
   {
-    if(!access(W, F_OK)) existsflag = 1;
-    log = fopen(W, mode);
-    if(access( W, (F_OK | R_OK) ) < 0)
+    if(!access(W, F_OK))
+      existsflag = 1;
+
+    if( existsflag && (access( W, (F_OK | R_OK) ) < 0) )
     {
-      printf("Logfile Access Denied\n");
+      printf("Access to the log file is denied\n");
       return EXIT_FAILURE;
     }
-    if(log < 0) return EXIT_FAILURE;
-    if( !strcmp(mode, "w+") && existsflag )
+
+    if( existsflag && !strcmp(mode, "w+") )
     {
       printf("\a%s already exists!\n", W);
       printf("Do you want to overwrite?[confirm]");
@@ -360,6 +361,27 @@ int main(int argc, char **argv)
       if( !(con=='\n' || con=='y' || con=='Y') )
         return EXIT_SUCCESS;
     }
+
+    log = fopen(W, mode);
+
+    if(log == NULL)
+    {
+      if(access(W, F_OK))
+      {
+        printf("Failed to create file\n");
+        printf("Try to check the permissions\n");
+        return EXIT_FAILURE;
+      }
+      else if( access( W, (F_OK | R_OK) ) < 0 )
+      {
+        printf("Access to the log file is denied\n");
+        return EXIT_FAILURE;
+      }
+
+      printf("%s: open (%s): Failure\n", argv[0], W);
+      return EXIT_FAILURE;
+    }
+
     logflag = 1;
   }
   else
@@ -421,9 +443,10 @@ int main(int argc, char **argv)
     fr = fopen(R, "r");
     if(fr == NULL)
     {
+      tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
       if(access( R, F_OK ) < 0)
         printf("%s: open (%s): No such file or directory\n", argv[0], R);
-      else if(access( R, (R_OK | W_OK) ) < 0)
+      else if(access( R, (R_OK) ) < 0)
         printf("%s: open (%s): Permission denied\n", argv[0], R);
       else
         printf("%s: open (%s): Failure\n", argv[0], R);

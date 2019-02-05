@@ -24,5 +24,10 @@ Commands:
 (e.g. `sist -l /dev/ttyS0 -s 9600 -t -a -w /tmp/sist.log`)  
 
 
+## Custom color
+palette.h  
+reinstall
+
+
 ## Installation
 Once you have it set up, a simple `make && make install` will compile sisterm and install it into `/usr/local/bin`.  

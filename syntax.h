@@ -72,7 +72,7 @@ enum HiLight {
 
 //#define INTERFACE "^\(interface|vlan|line|router|track\).*[0-9]$"
 //#define INTERFACE "^ip\s\(sla\|vrf\)\s.*\d$"
-#define INTERFACE "^((Gigabit|Fast|)Ethernet[0-9]/[0-9]+)$"
+#define INTERFACE "^((Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9])$"
 //INTERFACE = /^monitor\ssession\s\d\+$/
 //INTERFACE = /^\(class\|policy\|route\)\-map\s.*$/
 //INTERFACE = /^ip\saccess\-list\s\(standard\|extended\)\s.*$/
