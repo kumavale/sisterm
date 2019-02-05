@@ -1,10 +1,10 @@
 /* -------------------------
-   Release Date  2019-02-04
-   Update  Date  2019-02-05
+ Release Date  2019-02-04
+ Update  Date  2019-02-05
 ------------------------- */
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1"
+#define VERSION      "1.1.1"
 
 #include <string.h>
 #include <stdlib.h>
@@ -17,6 +17,7 @@
 #include <regex.h>
 
 #include "syntax.h"
+#include "palette.h"
 
 
 #ifdef __linux__
@@ -119,36 +120,44 @@ void coloring(unsigned char c)
   }
 
   int checked = syntaxCheck(s);
-  if(checked > 0)
+  if(checked >= 0)
   {
     switch(checked)
     {
       case HL_VENDORS:
-        repaint(AQUA);    break;
+        repaint(COLOR_VENDORS);
+        break;
       case HL_ACTION:
-        repaint(FUCHSIA); break;
+        repaint(COLOR_ACTION);
+        break;
       case HL_KEYWORD:
-        repaint(MAROON);  break;
+        repaint(COLOR_KEYWORD);
+        break;
       case HL_COND:
-        repaint(SILVER);  break;
+        repaint(COLOR_COND);
+        break;
       case HL_PROTOCOL:
-        repaint(OLIVE);   break;
+        repaint(COLOR_PROTOCOL);
+        break;
       case HL_VAR:
-        repaint(TEAL);    break;
+        repaint(COLOR_VAR);
+        break;
       case HL_STRING:
-        repaint(YELLOW);  break;
+        repaint(COLOR_STRING);
+        break;
       case HL_INTERFACE:
-        repaint(BLUE);    break;
+        repaint(COLOR_INTERFACE);
+        break;
       case HL_IPV4_NET:
-        repaint(RED);
+        repaint(COLOR_IPV4_NET);
         if(*(io-1)>0x29 || *(io-1)<0x3a) return;
         break;
       case HL_IPV4_SUB:
-        repaint(PURPLE);
+        repaint(COLOR_IPV4_SUB);
         if(*(io-1)>0x29 || *(io-1)<0x3a) return;
         break;
       case HL_IPV4_WILD:
-        repaint(LIME);
+        repaint(COLOR_IPV4_WILD);
         if(*(io-1)>0x29 || *(io-1)<0x3a) return;
         break;
       default: break;
@@ -180,10 +189,10 @@ void usage(char *v)
   printf("Options:\n");
   printf("  -h,--help   Show this help message and exit\n");
   printf("  -v          Show %s version and exit\n", PROGRAM);
-  printf("  -l port     Use named device   (e.g.    /dev/ttyS0)\n");
+  printf("  -l port     Use named device   (e.g. /dev/ttyS0)\n");
   printf("  -s speed    Use given speed    (default 9600)\n");
-  printf("  -r path     Output config file (e.g.    /tmp/config.txt)\n");
-  printf("  -w path     Saved log          (e.g.    /tmp/sist.log)\n");
+  printf("  -r path     Output config file (e.g. /tmp/config.txt)\n");
+  printf("  -w path     Saved log          (e.g. /tmp/sist.log)\n");
   printf("  -t          Add timestamp to log\n");
   printf("  -a          Append to log      (default overwrite)\n\n");
 
@@ -217,8 +226,8 @@ int main(int argc, char **argv)
     {
       switch(*++argv[i])
       {
-        // /path/to/SerialPort
         case 'l':
+        // /path/to/SerialPort
           if(NULL==argv[i+1])
           {
             nothingArgs(argv[0], *argv[i]);
@@ -227,8 +236,8 @@ int main(int argc, char **argv)
           sPort = argv[++i];
           break;
 
-        // BaudRate speed
         case 's':
+        // BaudRate speed
           if(NULL==argv[i+1])
           {
             nothingArgs(argv[0], *argv[i]);
@@ -237,8 +246,8 @@ int main(int argc, char **argv)
           B = argv[++i];
           break;
 
-        // /path/to/config.txt
         case 'r':
+        // /path/to/config.txt
           if(NULL==argv[i+1])
           {
             nothingArgs(argv[0], *argv[i]);
@@ -247,8 +256,8 @@ int main(int argc, char **argv)
           R = argv[++i];
           break;
 
-        // /path/to/log.txt
         case 'w':
+        // /path/to/log.txt
           if(NULL==argv[i+1])
           {
             nothingArgs(argv[0], *argv[i]);
@@ -257,23 +266,23 @@ int main(int argc, char **argv)
           W = argv[++i];
           break;
 
-        // Add timestamp to log
         case 't':
+        // Add timestamp to log
           ts = 1;
           break;
 
-        // Append log
         case 'a':
+        // Append log
           strcpy(mode, "a+");
           break;
 
-        // Show help
         case 'h':
+        // Show help
           usage(argv[0]);
           return EXIT_SUCCESS;
 
-        // Show version
         case 'v':
+        // Show version
           version();
           return EXIT_SUCCESS;
 
@@ -480,10 +489,10 @@ int main(int argc, char **argv)
         {
           clock_gettime(CLOCK, &now);
           localtime_r(&now.tv_sec, &tm);
-          sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03ld] ",
+          sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
               tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
               tm.tm_hour, tm.tm_min, tm.tm_sec,
-              now.tv_nsec / 1000000
+              (int) now.tv_nsec / 1000000
               );
           fwrite(date, strlen(date), 1, log);
         }

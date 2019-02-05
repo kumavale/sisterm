@@ -23,35 +23,26 @@
 #define WHITE             "\e[38;5;015m"
 
 
-#define HL_VENDORS        1
-#define HL_COND           2
-#define HL_KEYWORD        3
-#define HL_PROTOCOL       4
-#define HL_CONFIGURE      5
-#define HL_FUNCTION       6
-#define HL_COMMENT        7
-#define HL_STRING         8
-#define HL_INTERFACE      9
-#define HL_ACTION         10
-#define HL_VAR            11
-#define HL_IPV4_NET       12
-#define HL_IPV4_SUB       13
-#define HL_IPV4_WILD      14
-#define HL_IPV6           15
-#define HL_SPACE          16
+enum HiLight {
+  HL_VENDORS,
+  HL_COND,
+  HL_KEYWORD,
+  HL_PROTOCOL,
+  HL_CONFIGURE,
+  HL_FUNCTION,
+  HL_COMMENT,
+  HL_STRING,
+  HL_INTERFACE,
+  HL_ACTION,
+  HL_VAR,
+  HL_IPV4_NET,
+  HL_IPV4_SUB,
+  HL_IPV4_WILD,
+  HL_IPV6,
+  HL_SPACE,
+  HL_MAX
+};
 
-
-//enum palette {
-//  BLACK,
-//  RED,
-//  GREEN,
-//  YELLOW,
-//  BLUE,
-//  MAGENTA,
-//  CYAN,
-//  WHITE,
-//  COLOR_MAX
-//};
 
 #define COND "match|eq|neq|gt|lt|ge|le|range"
 

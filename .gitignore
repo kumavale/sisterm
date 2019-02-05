@@ -8,5 +8,6 @@
 !.gitignore
 !sisterm.c
 !syntax.h
+!pakette.h
 !Makefile
 !README.md
