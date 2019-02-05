@@ -1,6 +1,10 @@
+/* -------------------------
+   Release Date  2019-02-04
+   Update  Date  2019-02-05
+------------------------- */
+
 #define PROGRAM      "sisterm"
-#define VERSION      "1.0"
-#define RELEASE_DATE "2019-02-04"
+#define VERSION      "1.1"
 
 #include <string.h>
 #include <stdlib.h>
@@ -21,8 +25,9 @@
 #define CLOCK CLOCK_REALTIME
 #endif
 
+#define MAX_LENGTH 128
 
-unsigned char s[128];
+unsigned char s[MAX_LENGTH];
 unsigned char *io = s;
 
 regex_t reg_prompt;
@@ -38,6 +43,25 @@ regex_t reg_keyword;
 regex_t reg_cond;
 regex_t reg_interface;
 
+
+int regcompAll()
+{
+  int regmiss = 0 ;
+  if(regcomp(&reg_prompt   , "#|>"    , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_vendors  , VENDORS  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_net , IPV4_NET , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_sub , IPV4_SUB , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_wild, IPV4_WILD, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_var      , VAR      , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_string   , STRING   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_action   , ACTION   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_protocol , PROTOCOL , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regmiss) return EXIT_FAILURE;
+  return 0;
+}
 
 int syntaxCheck(unsigned char *str)
 {
@@ -60,9 +84,13 @@ void repaint(unsigned char *color)
 {
   io = s;
   size_t i = 0;
-  unsigned char str[128];
-  unsigned char tmp[128];
-  while(*io) tmp[i++] = *io++, write(STDOUT_FILENO, str, sprintf(str, "\b \b"));
+  unsigned char str[MAX_LENGTH];
+  unsigned char tmp[MAX_LENGTH];
+  while(*io)
+  {
+    tmp[i++] = *io++;
+    write(STDOUT_FILENO, str, sprintf(str, "\b \b"));
+  }
   if(tmp[i]!='\0') tmp[i]='\0';
   write(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
 }
@@ -71,10 +99,24 @@ void repaint(unsigned char *color)
 void coloring(unsigned char c)
 {
   if( (c!=0x08 && c<0x21) )
-    { memset( io = s, '\0', sizeof(s) ); return; }
+  {
+    memset( io = s, '\0', sizeof(s) );
+    return;
+  }
 
-  if( c=='\b' ) *--io = '\0';
-  else          *io++ = c;
+  if( c=='\b' )
+  {
+    *--io = '\0';
+  }
+  else if(strlen(s) < sizeof(s))
+  {
+    *io++ = c;
+  }
+  else
+  {
+    memset( io = s, '\0', sizeof(s) );
+    return;
+  }
 
   int checked = syntaxCheck(s);
   if(checked > 0)
@@ -116,6 +158,11 @@ void coloring(unsigned char c)
 
 }
 
+void nothingArgs(char *argv0, char op)
+{
+  printf("%s: option `-%c` requires an argument\n", argv0, op);
+}
+
 void version()
 {
   printf("%s %s\n", PROGRAM, VERSION);
@@ -123,49 +170,113 @@ void version()
 
 void usage(char *v)
 {
-  printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE]\n"
-         "            [-w /path/to/LOG] [-t] [-h] [-v]\n\n", v);
+  printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]\n"
+         "            [-w /path/to/LOG] [-t] [-a] [-h] [-v]\n\n", v);
 
   printf("Command line interface for Serial Console by Network device.\n");
   printf("------------------------------------------------------------\n");
   printf("https://github.com/yorimoi/sisterm\n\n");
 
-  printf("optional arguments:\n");
-  printf("  -h          Show this help message and exit\n");
+  printf("Options:\n");
+  printf("  -h,--help   Show this help message and exit\n");
   printf("  -v          Show %s version and exit\n", PROGRAM);
-  printf("  -l port     Use named device (e.g.    /dev/ttyS0)\n");
-  printf("  -s speed    Use given speed  (default 9600)\n");
-  printf("  -w path     Saved log        (e.g.    /tmp/sist.log)\n");
+  printf("  -l port     Use named device   (e.g.    /dev/ttyS0)\n");
+  printf("  -s speed    Use given speed    (default 9600)\n");
+  printf("  -r path     Output config file (e.g.    /tmp/config.txt)\n");
+  printf("  -w path     Saved log          (e.g.    /tmp/sist.log)\n");
   printf("  -t          Add timestamp to log\n");
+  printf("  -a          Append to log      (default overwrite)\n\n");
+
+  printf("Commands:\n");
+  printf("  ~           Terminate the conversation\n");
 }
 
 
 int main(int argc, char **argv)
 {
-  const char *sPort = NULL;
-  const char *B     = NULL;
-  const char *W     = NULL;
-  speed_t baudRate  = B9600;
-  int  logflag      = 0;
-  int  ts           = 0;
-  unsigned char     date[32];
+  const char *sPort = NULL;     // SerialPort
+  const char *B     = NULL;     // BaudRate
+  const char *R     = NULL;     // File path to load
+  const char *W     = NULL;     // File path to save
+  speed_t baudRate  = B9600;    // Default BaudRate
+  int  existsflag   = 0;        // Whether to log file
+  int  logflag      = 0;        // Whether to take a log
+  int  bsflag       = 0;
+  int  prflag       = 0;
+  int  rflag        = 0;
+  int  ts           = 0;        // Whether to timestamp
+  unsigned char     date[32];   // Buffer to set timestamp
   struct timespec   now;
   struct tm         tm;
   FILE              *log;
+  char mode[3]      = "w+";
 
   for (int i=1; i<argc; i++)
   {
-    if(*argv[i] == '-')
+    if(*argv[i]=='-' && *(argv[i]+2)=='\0')
     {
       switch(*++argv[i])
       {
-        //ToDo Add or Overwrite
-        case 'l': sPort = argv[++i];    break;
-        case 's': B = argv[++i];        break;
-        case 'w': W = argv[++i];        break;
-        case 't': ts = 1;               break;
-        case 'h': usage(argv[0]);       return EXIT_SUCCESS;
-        case 'v': version();            return EXIT_SUCCESS;
+        // /path/to/SerialPort
+        case 'l':
+          if(NULL==argv[i+1])
+          {
+            nothingArgs(argv[0], *argv[i]);
+            return EXIT_FAILURE;
+          }
+          sPort = argv[++i];
+          break;
+
+        // BaudRate speed
+        case 's':
+          if(NULL==argv[i+1])
+          {
+            nothingArgs(argv[0], *argv[i]);
+            return EXIT_FAILURE;
+          }
+          B = argv[++i];
+          break;
+
+        // /path/to/config.txt
+        case 'r':
+          if(NULL==argv[i+1])
+          {
+            nothingArgs(argv[0], *argv[i]);
+            return EXIT_FAILURE;
+          }
+          R = argv[++i];
+          break;
+
+        // /path/to/log.txt
+        case 'w':
+          if(NULL==argv[i+1])
+          {
+            nothingArgs(argv[0], *argv[i]);
+            return EXIT_FAILURE;
+          }
+          W = argv[++i];
+          break;
+
+        // Add timestamp to log
+        case 't':
+          ts = 1;
+          break;
+
+        // Append log
+        case 'a':
+          strcpy(mode, "a+");
+          break;
+
+        // Show help
+        case 'h':
+          usage(argv[0]);
+          return EXIT_SUCCESS;
+
+        // Show version
+        case 'v':
+          version();
+          return EXIT_SUCCESS;
+
         default :
           printf("%s: unrecognized option `-%s`\n", argv[0], argv[i]);
           printf("Use %s -h for help\n", argv[0]);
@@ -174,18 +285,26 @@ int main(int argc, char **argv)
     }
     else
     {
+      if( !strcmp(argv[i], "--help") ){
+        usage(argv[0]); return EXIT_SUCCESS;
+      }
       printf("%s: %s: System not found\n", argv[0], argv[i]);
       return EXIT_FAILURE;
     }
   }
 
-  if( sPort == NULL )
+  if( R != NULL ) rflag = 1;
+
+
+  if( sPort == NULL && !rflag )
   {
     printf("%s: must specify Serial Port\n", argv[0]);
     return EXIT_FAILURE;
   }
 
-  if( B != NULL )
+
+  // ToDo define...?
+  if( B != NULL && !rflag )
   {
     if     (!strcmp(B, "0"))      baudRate = B0;
     else if(!strcmp(B, "50"))     baudRate = B50;
@@ -213,15 +332,25 @@ int main(int argc, char **argv)
     }
   }
 
-  if( W != NULL )
+
+  if( W != NULL && !rflag )
   {
-    log = fopen(W, "a+");
+    if(!access(W, F_OK)) existsflag = 1;
+    log = fopen(W, mode);
     if(access( W, (F_OK | R_OK) ) < 0)
     {
       printf("Logfile Access Denied\n");
       return EXIT_FAILURE;
     }
     if(log < 0) return EXIT_FAILURE;
+    if( !strcmp(mode, "w+") && existsflag )
+    {
+      printf("\a%s already exists!\n", W);
+      printf("Do you want to overwrite?[confirm]");
+      unsigned char con = getchar();
+      if( !(con=='\n' || con=='y' || con=='Y') )
+        return EXIT_SUCCESS;
+    }
     logflag = 1;
   }
   else
@@ -232,9 +361,6 @@ int main(int argc, char **argv)
   struct termios old_stdio;
   int fd;
 
-  int regmiss      = 0 ;
-  int bsflag       = 0 ;
-  int prflag       = 0 ;
   unsigned char c = '0';
   const unsigned char endcode = '~';
   tcgetattr(STDOUT_FILENO, &old_stdio);
@@ -259,7 +385,7 @@ int main(int argc, char **argv)
   tio.c_cc[VTIME]   = 5;
 
   fd = open(sPort, O_RDWR | O_NONBLOCK);
-  if(fd < 0)
+  if( fd < 0 && !rflag )
   {
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
     if(access( sPort, F_OK ) < 0)
@@ -275,21 +401,57 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if( cfsetspeed(&tio, baudRate) < 0 ) return EXIT_FAILURE;
+  if( cfsetspeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
 
-  if(regcomp(&reg_prompt   , "#|>"    , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_vendors  , VENDORS  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_net , IPV4_NET , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_sub , IPV4_SUB , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_wild, IPV4_WILD, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_var      , VAR      , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_string   , STRING   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_action   , ACTION   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_protocol , PROTOCOL , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regmiss) return EXIT_FAILURE;
+  if( regcompAll() != 0 ) return EXIT_FAILURE;
+
+  if( rflag )
+  {
+    int  i;
+    FILE *fr;
+    fr = fopen(R, "r");
+    if(fr == NULL)
+    {
+      if(access( R, F_OK ) < 0)
+        printf("%s: open (%s): No such file or directory\n", argv[0], R);
+      else if(access( R, (R_OK | W_OK) ) < 0)
+        printf("%s: open (%s): Permission denied\n", argv[0], R);
+      else
+        printf("%s: open (%s): Failure\n", argv[0], R);
+      return EXIT_FAILURE;
+    }
+
+    tcsetattr(fd, TCSANOW, &tio);
+
+    while((i=fgetc(fr)) != EOF)
+    {
+      c = (char)i;
+      write(STDOUT_FILENO, &c, 1);
+      if(0x0a==c)
+      {
+        prflag=1;
+      }
+      if(prflag) {
+        if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
+        {
+          memset( io = s, '\0', sizeof(s) );
+          prflag=0;
+        }
+      }
+      coloring(c);
+
+      if(read(STDIN_FILENO, &c, 1) > 0)
+      {
+        if(c == endcode) break;
+      }
+    }
+
+    tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+    fclose(fr);
+    printf("%s\n", RESET);
+
+    return EXIT_SUCCESS;
+  }
 
   printf("Connected.\n");
 
@@ -318,7 +480,7 @@ int main(int argc, char **argv)
         {
           clock_gettime(CLOCK, &now);
           localtime_r(&now.tv_sec, &tm);
-          sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+          sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03ld] ",
               tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
               tm.tm_hour, tm.tm_min, tm.tm_sec,
               now.tv_nsec / 1000000

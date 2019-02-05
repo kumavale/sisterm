@@ -69,6 +69,8 @@
 //FUNCTION = passive-interface distribute-list permit subnet-zero
 //FUNCTION = /channel\-\(group\|protocol\)/
 
+#define CONFIRM  "^(y|yes)$"
+
 #define COMMENT  "^(!.*)$"
 //COMMENT = /no\s.*$/
 //COMMENT = /description.*$/
