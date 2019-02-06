@@ -21,6 +21,12 @@
 #define FUCHSIA           "\e[38;5;013m"
 #define AQUA              "\e[38;5;014m"
 #define WHITE             "\e[38;5;015m"
+#define SPRINGGREEN       "\e[38;5;048m"
+#define STEELBLUE         "\e[38;5;067m"
+#define CORNFLOWERBLUE    "\e[38;5;069m"
+#define YELLOW3           "\e[38;5;148m"
+#define MEDIUMORCHID      "\e[38;5;207m"
+#define ORANGE            "\e[38;5;214m"
 
 
 enum HiLight {
@@ -46,7 +52,7 @@ enum HiLight {
 
 #define COND "match|eq|neq|gt|lt|ge|le|range"
 
-#define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|logging|login|password|username|user|license|host|hostname|system|address|network|router|route|neighbor|redistribute|default[-]gateway|community|version|class|switchport|clock|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
+#define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|logging|login|password|username|user|license|host|hostname|system|systems|address|network|route|router|neighbor|redistribute|default[-]gateway|community|version|class|switchport|clock|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
 
 #define PROTOCOL "^(ipv4|ipv6|tcp|udp|icmp|echo|http|https|www|dhcp|domain|nameserver|ssh|telnet|ftp|ftp[-]data|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|login|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
 
@@ -81,7 +87,7 @@ enum HiLight {
 
 #define ACTION  "^(disable|deny|shutdown|down|administratively|none)$"
 
-#define VAR     "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|active|monitor|any|enable|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
+#define VAR     "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|active|monitor|any|enable|enabled|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
 
 #define VENDORS "^(cisco|juniper|yamaha|mellanox)$"
 

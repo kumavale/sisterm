@@ -1,10 +1,10 @@
 /* -------------------------
  Release Date  2019-02-04
- Update  Date  2019-02-05
+ Update  Date  2019-02-06
 ------------------------- */
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1.2"
+#define VERSION      "1.1.3"
 
 #include <string.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #define CLOCK CLOCK_REALTIME
 #endif
 
-#define MAX_LENGTH 128
+#define MAX_LENGTH 256
 
 unsigned char s[MAX_LENGTH];
 unsigned char *io = s;
@@ -43,6 +43,7 @@ regex_t reg_protocol;
 regex_t reg_keyword;
 regex_t reg_cond;
 regex_t reg_interface;
+//regex_t reg_comment;
 
 
 int regcompAll()
@@ -60,9 +61,11 @@ int regcompAll()
   if(regcomp(&reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  //if(regcomp(&reg_comment  , COMMENT  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
   return 0;
 }
+
 
 int syntaxCheck(unsigned char *str)
 {
@@ -77,6 +80,7 @@ int syntaxCheck(unsigned char *str)
   if( regexec(&reg_keyword  , str, 0, 0, 0) == 0 ) return HL_KEYWORD;
   if( regexec(&reg_cond     , str, 0, 0, 0) == 0 ) return HL_COND;
   if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
+  //if( regexec(&reg_comment  , str, 0, 0, 0) == 0 ) return HL_COMMENT;
   return -1;
 }
 
@@ -105,11 +109,11 @@ void coloring(unsigned char c)
     return;
   }
 
-  if( c=='\b' )
+  if( '\b'==c )
   {
     *--io = '\0';
   }
-  else if(strlen(s) < sizeof(s))
+  else if( strlen(s) < sizeof(s) )
   {
     *io++ = c;
   }
@@ -132,6 +136,8 @@ void coloring(unsigned char c)
         break;
       case HL_KEYWORD:
         repaint(COLOR_KEYWORD);
+        if(!strcasecmp(s, "route")) return;
+        if(!strcasecmp(s, "system")) return;
         break;
       case HL_COND:
         repaint(COLOR_COND);
@@ -141,6 +147,7 @@ void coloring(unsigned char c)
         break;
       case HL_VAR:
         repaint(COLOR_VAR);
+        if(!strcasecmp(s, "enable")) return;
         break;
       case HL_STRING:
         repaint(COLOR_STRING);
@@ -148,6 +155,9 @@ void coloring(unsigned char c)
       case HL_INTERFACE:
         repaint(COLOR_INTERFACE);
         break;
+      //case HL_COMMENT:
+      //  repaint(COLOR_COMMENT);
+      //  break;
       case HL_IPV4_NET:
         repaint(COLOR_IPV4_NET);
         if(*(io-1)>0x29 || *(io-1)<0x3a) return;
@@ -210,10 +220,12 @@ int main(int argc, char **argv)
   speed_t baudRate  = B9600;    // Default BaudRate
   int  existsflag   = 0;        // Whether to log file
   int  logflag      = 0;        // Whether to take a log
-  int  bsflag       = 0;
-  int  prflag       = 0;
-  int  rflag        = 0;
+  int  excflag      = 0;        // Exclamation mark flag
+  int  bsflag       = 0;        // BackSpace Flag
+  int  prflag       = 0;        // Prompt Flag
+  int  rflag        = 0;        // Read file Flag
   int  ts           = 0;        // Whether to timestamp
+  unsigned char     comm[32];   // For comment
   unsigned char     date[32];   // Buffer to set timestamp
   struct timespec   now;
   struct tm         tm;
@@ -302,6 +314,7 @@ int main(int argc, char **argv)
     }
   }
 
+
   if( R != NULL ) rflag = 1;
 
 
@@ -312,7 +325,6 @@ int main(int argc, char **argv)
   }
 
 
-  // ToDo define...?
   if( B != NULL && !rflag )
   {
     if     (!strcmp(B, "0"))      baudRate = B0;
@@ -459,18 +471,31 @@ int main(int argc, char **argv)
     {
       c = (char)i;
       write(STDOUT_FILENO, &c, 1);
-      if(0x0a==c)
+
+      if( 0x0a==c )
       {
-        prflag=1;
+        prflag  = 1;
+        excflag = 0;
+        write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
       }
-      if(prflag) {
+
+      if( prflag )
+      {
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
         {
           memset( io = s, '\0', sizeof(s) );
-          prflag=0;
+          prflag = 0;
         }
       }
-      coloring(c);
+
+      if( !excflag )
+        coloring(c);
+
+      if( 0x21==c )
+      {
+        excflag = 1;
+        write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+      }
 
       if(read(STDIN_FILENO, &c, 1) > 0)
       {
@@ -498,17 +523,17 @@ int main(int argc, char **argv)
       write(STDOUT_FILENO, &c, 1);
       if(logflag) fwrite(&c, 1, 1, log);
 
-      if(0x08==c && 0==bsflag)
+      if( 0x08==c && 0==bsflag )
       {
-        bsflag=3;
+        bsflag = 3;
       }
-      if(0 == bsflag) coloring(c);
-      else if(3 == bsflag--) coloring(c);
 
-      if(0x0a==c)
+      if( 0x0a==c )
       {
-        prflag=1;
-        if(ts)
+        prflag  = 1;
+        excflag = 0;
+        write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+        if( ts )
         {
           clock_gettime(CLOCK, &now);
           localtime_r(&now.tv_sec, &tm);
@@ -520,13 +545,24 @@ int main(int argc, char **argv)
           fwrite(date, strlen(date), 1, log);
         }
       }
-      if(prflag) {
+
+      if     ( 0 == bsflag   && !excflag ) coloring(c);
+      else if( 3 == bsflag-- && !excflag ) coloring(c);
+
+      if( prflag ) {
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
         {
           memset( io = s, '\0', sizeof(s) );
-          prflag=0;
+          prflag = 0;
         }
       }
+
+      if( 0x21==c )
+      {
+        excflag = 1;
+        write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+      }
+
     }
 
     // if new data is available on the console, send it to the serial port
