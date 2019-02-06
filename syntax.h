@@ -4,20 +4,24 @@
 #define DEFAULT_F         "\e[39m"
 #define DEFAULT_B         "\e[49m"
 
-// Use 8-bit Colours format (bat only 4-bit used)
 #define BLACK             "\e[38;5;000m"
 #define MAROON            "\e[38;5;001m"
-#define GREEN             "\e[38;5;002m"
+//#define GREEN             "\e[38;5;002m"
+#define GREEN             "\e[38;2;0;176;107m"
 #define OLIVE             "\e[38;5;003m"
 #define NAVY              "\e[38;5;004m"
-#define PURPLE            "\e[38;5;005m"
+//#define PURPLE            "\e[38;5;005m"
+#define PURPLE            "\e[38;2;153;0;153m"
 #define TEAL              "\e[38;5;006m"
 #define SILVER            "\e[38;5;007m"
 #define GREY              "\e[38;5;008m"
-#define RED               "\e[38;5;009m"
+//#define RED               "\e[38;5;009m"
+#define RED               "\e[38;2;255;75;0m"
 #define LIME              "\e[38;5;010m"
-#define YELLOW            "\e[38;5;011m"
-#define BLUE              "\e[38;5;012m"
+//#define YELLOW            "\e[38;5;011m"
+#define YELLOW            "\e[38;2;242;170;0m"
+//#define BLUE              "\e[38;5;012m"
+#define BLUE              "\e[38;2;25;113;255m"
 #define FUCHSIA           "\e[38;5;013m"
 #define AQUA              "\e[38;5;014m"
 #define WHITE             "\e[38;5;015m"
@@ -63,7 +67,7 @@ enum BackGround {
 
 #define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|logging|login|password|username|user|license|host|hostname|system|systems|address|network|route|router|neighbor|redistribute|default[-]gateway|community|version|class|switchport|clock|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
 
-#define PROTOCOL "^(ipv4|ipv6|tcp|udp|icmp|echo|http|https|www|dhcp|domain|nameserver|ssh|telnet|ftp|ftp[-]data|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|login|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
+#define PROTOCOL "^(ipv4|ipv6|tcp|udp|icmp|echo|http|https|www|dhcp|domain|nameserver|ssh|telnet|ftp|ftp[-]data|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|login|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|dialog|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
 
 //CONFIGURE = activate set default redundancy prefe ron tag
 //CONFIGURE = inside outside input output static export import

@@ -49,7 +49,7 @@ regex_t reg_keyword;
 regex_t reg_cond;
 regex_t reg_interface;
 regex_t reg_command;
-regex_t reg_emphasis;
+//regex_t reg_emphasis;
 //regex_t reg_comment;
 
 
@@ -73,6 +73,7 @@ int main(int argc, char **argv)
   struct tm         tm;
   FILE              *log;
   char mode[3]      = "w+";
+
 
   for (int i=1; i<argc; i++)
   {
@@ -338,17 +339,19 @@ int main(int argc, char **argv)
         write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
       }
 
+      coloring(c);
+
+      if( excflag )
+        memset( io = s, '\0', MAX_LENGTH );
+
       if( prflag )
       {
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
         {
-          memset( io = s, '\0', sizeof(s) );
+          memset( io = s, '\0', MAX_LENGTH );
           prflag = 0;
         }
       }
-
-      if( !excflag )
-        coloring(c);
 
       if( 0x21==c )
       {
@@ -413,10 +416,13 @@ int main(int argc, char **argv)
       if     ( 0 == bsflag )   coloring(c);
       else if( 3 == bsflag-- ) coloring(c);
 
+      if( excflag )
+        memset( io = s, '\0', MAX_LENGTH );
+
       if( prflag ) {
-        if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
+        if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 )
         {
-          memset( io = s, '\0', sizeof(s) );
+          memset( io = s, '\0', MAX_LENGTH );
           prflag = 0;
         }
       }
@@ -560,6 +566,7 @@ void coloring(unsigned char c)
         break;
       case HL_PROTOCOL:
         repaint(COLOR_PROTOCOL);
+        if(!strcasecmp(s, "dial")) return;
         break;
       case HL_VAR:
         repaint(COLOR_VAR);
