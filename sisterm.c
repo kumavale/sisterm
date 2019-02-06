@@ -2,9 +2,12 @@
  Release Date  2019-02-04
  Update  Date  2019-02-06
 ------------------------- */
+// ToDo
+// -b light, dark
+// Various syntax
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1.3"
+#define VERSION      "1.1.4"
 
 #include <string.h>
 #include <stdlib.h>
@@ -16,6 +19,7 @@
 #include <time.h>
 #include <regex.h>
 
+#include "sisterm.h"
 #include "syntax.h"
 #include "palette.h"
 
@@ -36,6 +40,7 @@ regex_t reg_vendors;
 regex_t reg_ipv4_net;
 regex_t reg_ipv4_sub;
 regex_t reg_ipv4_wild;
+regex_t reg_ipv6;
 regex_t reg_var;
 regex_t reg_string;
 regex_t reg_action;
@@ -44,171 +49,6 @@ regex_t reg_keyword;
 regex_t reg_cond;
 regex_t reg_interface;
 //regex_t reg_comment;
-
-
-int regcompAll()
-{
-  int regmiss = 0 ;
-  if(regcomp(&reg_prompt   , "#|>"    , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_vendors  , VENDORS  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_net , IPV4_NET , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_sub , IPV4_SUB , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_wild, IPV4_WILD, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_var      , VAR      , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_string   , STRING   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_action   , ACTION   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_protocol , PROTOCOL , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  //if(regcomp(&reg_comment  , COMMENT  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regmiss) return EXIT_FAILURE;
-  return 0;
-}
-
-
-int syntaxCheck(unsigned char *str)
-{
-  if( regexec(&reg_vendors  , str, 0, 0, 0) == 0 ) return HL_VENDORS;
-  if( regexec(&reg_ipv4_net , str, 0, 0, 0) == 0 ) return HL_IPV4_NET;
-  if( regexec(&reg_ipv4_sub , str, 0, 0, 0) == 0 ) return HL_IPV4_SUB;
-  if( regexec(&reg_ipv4_wild, str, 0, 0, 0) == 0 ) return HL_IPV4_WILD;
-  if( regexec(&reg_string   , str, 0, 0, 0) == 0 ) return HL_STRING;
-  if( regexec(&reg_var      , str, 0, 0, 0) == 0 ) return HL_VAR;
-  if( regexec(&reg_action   , str, 0, 0, 0) == 0 ) return HL_ACTION;
-  if( regexec(&reg_protocol , str, 0, 0, 0) == 0 ) return HL_PROTOCOL;
-  if( regexec(&reg_keyword  , str, 0, 0, 0) == 0 ) return HL_KEYWORD;
-  if( regexec(&reg_cond     , str, 0, 0, 0) == 0 ) return HL_COND;
-  if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
-  //if( regexec(&reg_comment  , str, 0, 0, 0) == 0 ) return HL_COMMENT;
-  return -1;
-}
-
-
-void repaint(unsigned char *color)
-{
-  io = s;
-  size_t i = 0;
-  unsigned char str[MAX_LENGTH];
-  unsigned char tmp[MAX_LENGTH];
-  while(*io)
-  {
-    tmp[i++] = *io++;
-    write(STDOUT_FILENO, str, sprintf(str, "\b \b"));
-  }
-  if(tmp[i]!='\0') tmp[i]='\0';
-  write(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
-}
-
-
-void coloring(unsigned char c)
-{
-  if( (c!=0x08 && c<0x21) )
-  {
-    memset( io = s, '\0', sizeof(s) );
-    return;
-  }
-
-  if( '\b'==c )
-  {
-    *--io = '\0';
-  }
-  else if( strlen(s) < sizeof(s) )
-  {
-    *io++ = c;
-  }
-  else
-  {
-    memset( io = s, '\0', sizeof(s) );
-    return;
-  }
-
-  int checked = syntaxCheck(s);
-  if(checked >= 0)
-  {
-    switch(checked)
-    {
-      case HL_VENDORS:
-        repaint(COLOR_VENDORS);
-        break;
-      case HL_ACTION:
-        repaint(COLOR_ACTION);
-        break;
-      case HL_KEYWORD:
-        repaint(COLOR_KEYWORD);
-        if(!strcasecmp(s, "route")) return;
-        if(!strcasecmp(s, "system")) return;
-        break;
-      case HL_COND:
-        repaint(COLOR_COND);
-        break;
-      case HL_PROTOCOL:
-        repaint(COLOR_PROTOCOL);
-        break;
-      case HL_VAR:
-        repaint(COLOR_VAR);
-        if(!strcasecmp(s, "enable")) return;
-        break;
-      case HL_STRING:
-        repaint(COLOR_STRING);
-        break;
-      case HL_INTERFACE:
-        repaint(COLOR_INTERFACE);
-        break;
-      //case HL_COMMENT:
-      //  repaint(COLOR_COMMENT);
-      //  break;
-      case HL_IPV4_NET:
-        repaint(COLOR_IPV4_NET);
-        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
-        break;
-      case HL_IPV4_SUB:
-        repaint(COLOR_IPV4_SUB);
-        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
-        break;
-      case HL_IPV4_WILD:
-        repaint(COLOR_IPV4_WILD);
-        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
-        break;
-      default: break;
-    }
-    memset( io = s, '\0', sizeof(s) );
-  }
-
-}
-
-void nothingArgs(char *argv0, char op)
-{
-  printf("%s: option `-%c` requires an argument\n", argv0, op);
-}
-
-void version()
-{
-  printf("%s %s\n", PROGRAM, VERSION);
-}
-
-void usage(char *v)
-{
-  printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]\n"
-         "            [-w /path/to/LOG] [-t] [-a] [-h] [-v]\n\n", v);
-
-  printf("Command line interface for Serial Console by Network device.\n");
-  printf("------------------------------------------------------------\n");
-  printf("https://github.com/yorimoi/sisterm\n\n");
-
-  printf("Options:\n");
-  printf("  -h,--help   Show this help message and exit\n");
-  printf("  -v          Show %s version and exit\n", PROGRAM);
-  printf("  -l port     Use named device   (e.g. /dev/ttyS0)\n");
-  printf("  -s speed    Use given speed    (default 9600)\n");
-  printf("  -r path     Output config file (e.g. /tmp/config.txt)\n");
-  printf("  -w path     Saved log          (e.g. /tmp/sist.log)\n");
-  printf("  -t          Add timestamp to log\n");
-  printf("  -a          Append to log      (default overwrite)\n\n");
-
-  printf("Commands:\n");
-  printf("  ~           Terminate the conversation\n");
-}
 
 
 int main(int argc, char **argv)
@@ -277,6 +117,23 @@ int main(int argc, char **argv)
           }
           W = argv[++i];
           break;
+
+/* ------------------------------------------------
+        case 'b':
+        // /path/to/log.txt
+          if(NULL==argv[i+1])
+          {
+            nothingArgs(argv[0], *argv[i]);
+            return EXIT_FAILURE;
+          }
+          if( !strcasecmp(argv[++i], "light") )
+            bg = LIGHT;
+          else if( !strcasecmp(argv[i], "dark") )
+            bg = DARK;
+          else
+            bg = NONE;
+          break;
+------------------------------------------------ */
 
         case 't':
         // Add timestamp to log
@@ -547,7 +404,7 @@ int main(int argc, char **argv)
       }
 
       if     ( 0 == bsflag   && !excflag ) coloring(c);
-      else if( 3 == bsflag-- && !excflag ) coloring(c);
+      else if( 3 == bsflag-- )             coloring(c);
 
       if( prflag ) {
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
@@ -586,3 +443,177 @@ int main(int argc, char **argv)
 
   return EXIT_SUCCESS;
 }
+
+int regcompAll()
+{
+  int regmiss = 0 ;
+  if(regcomp(&reg_prompt   , "#|>"    , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_vendors  , VENDORS  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_net , IPV4_NET , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_sub , IPV4_SUB , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_wild, IPV4_WILD, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_ipv6     , IPV6     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_var      , VAR      , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_string   , STRING   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_action   , ACTION   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_protocol , PROTOCOL , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  //if(regcomp(&reg_comment  , COMMENT  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regmiss) return EXIT_FAILURE;
+  return 0;
+}
+
+
+int syntaxCheck(unsigned char *str)
+{
+  if( regexec(&reg_vendors  , str, 0, 0, 0) == 0 ) return HL_VENDORS;
+  if( regexec(&reg_ipv4_net , str, 0, 0, 0) == 0 ) return HL_IPV4_NET;
+  if( regexec(&reg_ipv4_sub , str, 0, 0, 0) == 0 ) return HL_IPV4_SUB;
+  if( regexec(&reg_ipv4_wild, str, 0, 0, 0) == 0 ) return HL_IPV4_WILD;
+  if( regexec(&reg_ipv6     , str, 0, 0, 0) == 0 ) return HL_IPV6;
+  if( regexec(&reg_string   , str, 0, 0, 0) == 0 ) return HL_STRING;
+  if( regexec(&reg_var      , str, 0, 0, 0) == 0 ) return HL_VAR;
+  if( regexec(&reg_action   , str, 0, 0, 0) == 0 ) return HL_ACTION;
+  if( regexec(&reg_protocol , str, 0, 0, 0) == 0 ) return HL_PROTOCOL;
+  if( regexec(&reg_keyword  , str, 0, 0, 0) == 0 ) return HL_KEYWORD;
+  if( regexec(&reg_cond     , str, 0, 0, 0) == 0 ) return HL_COND;
+  if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
+  //if( regexec(&reg_comment  , str, 0, 0, 0) == 0 ) return HL_COMMENT;
+  return -1;
+}
+
+
+void repaint(unsigned char *color)
+{
+  io = s;
+  size_t i = 0;
+  unsigned char str[MAX_LENGTH];
+  unsigned char tmp[MAX_LENGTH];
+  while(*io)
+  {
+    tmp[i++] = *io++;
+    write(STDOUT_FILENO, str, sprintf(str, "\b \b"));
+  }
+  if(tmp[i]!='\0') tmp[i]='\0';
+  write(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
+}
+
+
+void coloring(unsigned char c)
+{
+  if( (c!=0x08 && c<0x21) )
+  {
+    memset( io = s, '\0', sizeof(s) );
+    return;
+  }
+
+  if( '\b'==c )
+  {
+    *--io = '\0';
+  }
+  else if( strlen(s) < sizeof(s) )
+  {
+    *io++ = c;
+  }
+  else
+  {
+    memset( io = s, '\0', sizeof(s) );
+    return;
+  }
+
+  int checked = syntaxCheck(s);
+  if(checked >= 0)
+  {
+    switch(checked)
+    {
+      case HL_VENDORS:
+        repaint(COLOR_VENDORS);
+        break;
+      case HL_ACTION:
+        repaint(COLOR_ACTION);
+        break;
+      case HL_KEYWORD:
+        repaint(COLOR_KEYWORD);
+        if(!strcasecmp(s, "route")) return;
+        if(!strcasecmp(s, "system")) return;
+        break;
+      case HL_COND:
+        repaint(COLOR_COND);
+        break;
+      case HL_PROTOCOL:
+        repaint(COLOR_PROTOCOL);
+        break;
+      case HL_VAR:
+        repaint(COLOR_VAR);
+        if(!strcasecmp(s, "enable")) return;
+        break;
+      case HL_STRING:
+        repaint(COLOR_STRING);
+        break;
+      case HL_INTERFACE:
+        repaint(COLOR_INTERFACE);
+        break;
+      //case HL_COMMENT:
+      //  repaint(COLOR_COMMENT);
+      //  break;
+      case HL_IPV4_NET:
+        repaint(COLOR_IPV4_NET);
+        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
+        break;
+      case HL_IPV4_SUB:
+        repaint(COLOR_IPV4_SUB);
+        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
+        break;
+      case HL_IPV4_WILD:
+        repaint(COLOR_IPV4_WILD);
+        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
+        break;
+      case HL_IPV6:
+        repaint(COLOR_IPV6);
+        if( (*(io-1)>0x29 || *(io-1)<0x3a)
+         || (*(io-1)>0x40 || *(io-1)<0x47)
+         || (*(io-1)>0x60 || *(io-1)<0x67)
+         ) return;
+        break;
+      default: break;
+    }
+    memset( io = s, '\0', sizeof(s) );
+  }
+
+}
+
+void nothingArgs(char *argv0, char op)
+{
+  printf("%s: option `-%c` requires an argument\n", argv0, op);
+}
+
+void version()
+{
+  printf("%s %s\n", PROGRAM, VERSION);
+}
+
+void usage(char *v)
+{
+  printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]\n"
+         "            [-w /path/to/LOG] [-t] [-a] [-h] [-v]\n\n", v);
+
+  printf("Command line interface for Serial Console by Network device.\n");
+  printf("------------------------------------------------------------\n");
+  printf("https://github.com/yorimoi/sisterm\n\n");
+
+  printf("Options:\n");
+  printf("  -h,--help   Show this help message and exit\n");
+  printf("  -v          Show %s version and exit\n", PROGRAM);
+  printf("  -l port     Use named device   (e.g. /dev/ttyS0)\n");
+  printf("  -s speed    Use given speed    (default 9600)\n");
+  printf("  -r path     Output config file (e.g. /tmp/config.txt)\n");
+  printf("  -w path     Saved log          (e.g. /tmp/sist.log)\n");
+  printf("  -t          Add timestamp to log\n");
+  printf("  -a          Append to log      (default overwrite)\n\n");
+
+  printf("Commands:\n");
+  printf("  ~           Terminate the conversation\n");
+}
+
