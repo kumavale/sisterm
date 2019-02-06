@@ -1,4 +1,5 @@
 #define COLOR_VENDORS      AQUA
+#define COLOR_COMMAND      MEDIUMORCHID
 #define COLOR_COND         SILVER
 #define COLOR_KEYWORD      MAROON
 #define COLOR_PROTOCOL     OLIVE
@@ -11,6 +12,7 @@
 #define COLOR_IPV4_WILD    LIME
 #define COLOR_COMMENT      STEELBLUE
 #define COLOR_IPV6         SPRINGGREEN
+#define COLOR_EMPHASIS     ORANGE
 // ToDo
 //#define COLOR_CONFIGURE
 //#define COLOR_FUNCTION

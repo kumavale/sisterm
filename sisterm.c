@@ -48,6 +48,8 @@ regex_t reg_protocol;
 regex_t reg_keyword;
 regex_t reg_cond;
 regex_t reg_interface;
+regex_t reg_command;
+regex_t reg_emphasis;
 //regex_t reg_comment;
 
 
@@ -184,7 +186,7 @@ int main(int argc, char **argv)
 
   if( B != NULL && !rflag )
   {
-    if     (!strcmp(B, "0"))      baudRate = B0;
+    if     (!strcmp(B, "0"))      baudRate = B0;      // hang up
     else if(!strcmp(B, "50"))     baudRate = B50;
     else if(!strcmp(B, "75"))     baudRate = B75;
     else if(!strcmp(B, "110"))    baudRate = B110;
@@ -197,7 +199,7 @@ int main(int argc, char **argv)
     else if(!strcmp(B, "1800"))   baudRate = B1800;
     else if(!strcmp(B, "2400"))   baudRate = B2400;
     else if(!strcmp(B, "4800"))   baudRate = B4800;
-    else if(!strcmp(B, "9600"))   baudRate = B9600;
+    else if(!strcmp(B, "9600"))   baudRate = B9600;   // Default
     else if(!strcmp(B, "19200"))  baudRate = B19200;
     else if(!strcmp(B, "38400"))  baudRate = B38400;
     else if(!strcmp(B, "57600"))  baudRate = B57600;
@@ -261,7 +263,7 @@ int main(int argc, char **argv)
   struct termios old_stdio;
   int fd;
 
-  unsigned char c = '0';
+  unsigned char c             = '0';
   const unsigned char endcode = '~';
   tcgetattr(STDOUT_FILENO, &old_stdio);
 
@@ -383,6 +385,11 @@ int main(int argc, char **argv)
       if( 0x08==c && 0==bsflag )
       {
         bsflag = 3;
+        if( s[1] == '\0' )
+        {
+          excflag = 0;
+          write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+        }
       }
 
       if( 0x0a==c )
@@ -403,8 +410,8 @@ int main(int argc, char **argv)
         }
       }
 
-      if     ( 0 == bsflag   && !excflag ) coloring(c);
-      else if( 3 == bsflag-- )             coloring(c);
+      if     ( 0 == bsflag )   coloring(c);
+      else if( 3 == bsflag-- ) coloring(c);
 
       if( prflag ) {
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
@@ -460,6 +467,8 @@ int regcompAll()
   if(regcomp(&reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_command  , COMMAND  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  //if(regcomp(&reg_emphasis , EMPHASIS , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   //if(regcomp(&reg_comment  , COMMENT  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
   return 0;
@@ -480,6 +489,8 @@ int syntaxCheck(unsigned char *str)
   if( regexec(&reg_keyword  , str, 0, 0, 0) == 0 ) return HL_KEYWORD;
   if( regexec(&reg_cond     , str, 0, 0, 0) == 0 ) return HL_COND;
   if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
+  if( regexec(&reg_command  , str, 0, 0, 0) == 0 ) return HL_COMMAND;
+  //if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
   //if( regexec(&reg_comment  , str, 0, 0, 0) == 0 ) return HL_COMMENT;
   return -1;
 }
@@ -511,9 +522,13 @@ void coloring(unsigned char c)
 
   if( '\b'==c )
   {
-    *--io = '\0';
+    if( s[0]!='\0' )
+    {
+      *io--;
+      s[strlen(s)-1] = '\0';
+    }
   }
-  else if( strlen(s) < sizeof(s) )
+  else if( strlen(s) < MAX_LENGTH - 1 )
   {
     *io++ = c;
   }
@@ -538,6 +553,7 @@ void coloring(unsigned char c)
         repaint(COLOR_KEYWORD);
         if(!strcasecmp(s, "route")) return;
         if(!strcasecmp(s, "system")) return;
+        if(!strcasecmp(s, "host")) return;
         break;
       case HL_COND:
         repaint(COLOR_COND);
@@ -552,6 +568,9 @@ void coloring(unsigned char c)
       case HL_STRING:
         repaint(COLOR_STRING);
         break;
+      //case HL_EMPHASIS:
+      //  repaint(COLOR_EMPHASIS);
+      //  break;
       case HL_INTERFACE:
         repaint(COLOR_INTERFACE);
         break;
@@ -572,7 +591,7 @@ void coloring(unsigned char c)
         break;
       case HL_IPV6:
         repaint(COLOR_IPV6);
-        if( (*(io-1)>0x29 || *(io-1)<0x3a)
+        if( (*(io-1)>0x29 || *(io-1)<0x3b)
          || (*(io-1)>0x40 || *(io-1)<0x47)
          || (*(io-1)>0x60 || *(io-1)<0x67)
          ) return;
