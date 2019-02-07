@@ -7,7 +7,7 @@
 // Various syntax
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1.6"
+#define VERSION      "1.1.7"
 
 #include <string.h>
 #include <stdlib.h>
@@ -630,6 +630,7 @@ void coloring(unsigned char c)
         break;
       case HL_INTERFACE:
         repaint(COLOR_INTERFACE);
+        if( '/' == s[strlen(s)-2] ) return;
         break;
       //case HL_COMMENT:
       //  repaint(COLOR_COMMENT);
