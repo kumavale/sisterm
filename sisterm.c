@@ -7,7 +7,7 @@
 // Various syntax
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1.7"
+#define VERSION      "1.1.9"
 
 #include <string.h>
 #include <stdlib.h>
@@ -174,6 +174,9 @@ int main(int argc, char **argv)
       if( !strcmp(argv[i], "--version") ) {
         version(); return EXIT_SUCCESS;
       }
+
+      printf("%s: %s: System not found\n", argv[0], argv[i]);
+      return EXIT_FAILURE;
     }
     else
     {
@@ -681,14 +684,14 @@ void usage(char *v)
   printf("https://github.com/yorimoi/sisterm\n\n");
 
   printf("Options:\n");
-  printf("  -h,--help   Show this help message and exit\n");
-  printf("  -v          Show %s version and exit\n", PROGRAM);
-  printf("  -l port     Use named device   (e.g. /dev/ttyS0)\n");
-  printf("  -s speed    Use given speed    (default 9600)\n");
-  printf("  -r path     Output config file (e.g. /tmp/config.txt)\n");
-  printf("  -w path     Saved log          (e.g. /tmp/sist.log)\n");
-  printf("  -t          Add timestamp to log\n");
-  printf("  -a          Append to log      (default overwrite)\n\n");
+  printf("  -h,--help     Show this help message and exit\n");
+  printf("  -v,--version  Show %s version and exit\n", PROGRAM);
+  printf("  -l port       Use named device   (e.g. /dev/ttyS0)\n");
+  printf("  -s speed      Use given speed    (default 9600)\n");
+  printf("  -r path       Output config file (e.g. /tmp/config.txt)\n");
+  printf("  -w path       Saved log          (e.g. /tmp/sist.log)\n");
+  printf("  -t            Add timestamp to log\n");
+  printf("  -a            Append to log      (default overwrite)\n\n");
 
   printf("Commands:\n");
   printf("  ~           Terminate the conversation\n");
