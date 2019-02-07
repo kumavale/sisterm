@@ -18,8 +18,8 @@
 //#define RED               "\e[38;5;009m"
 #define RED               "\e[38;2;255;75;0m"
 #define LIME              "\e[38;5;010m"
-//#define YELLOW            "\e[38;5;011m"
-#define YELLOW            "\e[38;2;242;170;0m"
+#define YELLOW            "\e[38;5;011m"
+//#define YELLOW            "\e[38;2;242;170;0m"
 //#define BLUE              "\e[38;5;012m"
 #define BLUE              "\e[38;2;25;113;255m"
 #define FUCHSIA           "\e[38;5;013m"
@@ -89,9 +89,13 @@ enum BackGround {
 
 #define COMMAND "^()$"
 
+//#define POSITIVE "^(up|enable|enabled|active)$"
+//#define NEGATIVE "^(down|no)$"
+
 #define STRING "^(\".*\"|\'.*\')$"
 
-#define EMPHASIS "^(no|(\[?confirm]?)|warning|failed|error|crash)$"
+//#define EMPHASIS "^(no|(\[?confirm]?)|warning|failed|error|crash)$"
+#define EMPHASIS "^(no|not|[[]?confirm[]]?|warning|failed|error|crash)$"
 
 //#define INTERFACE "^\(interface|vlan|line|router|track\).*[0-9]$"
 //#define INTERFACE "^ip\s\(sla\|vrf\)\s.*[0-9]$"

@@ -7,7 +7,7 @@
 // Various syntax
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1.5"
+#define VERSION      "1.1.6"
 
 #include <string.h>
 #include <stdlib.h>
@@ -50,7 +50,7 @@ regex_t reg_keyword;
 regex_t reg_cond;
 regex_t reg_interface;
 regex_t reg_command;
-//regex_t reg_emphasis;
+regex_t reg_emphasis;
 //regex_t reg_comment;
 
 
@@ -166,11 +166,17 @@ int main(int argc, char **argv)
           return EXIT_FAILURE;
       }
     }
-    else
+    else if(*argv[i]=='-' && *(argv[i]+1)=='-')
     {
-      if( !strcmp(argv[i], "--help") ){
+      if( !strcmp(argv[i], "--help") ) {
         usage(argv[0]); return EXIT_SUCCESS;
       }
+      if( !strcmp(argv[i], "--version") ) {
+        version(); return EXIT_SUCCESS;
+      }
+    }
+    else
+    {
       printf("%s: %s: System not found\n", argv[0], argv[i]);
       return EXIT_FAILURE;
     }
@@ -511,7 +517,7 @@ int regcompAll()
   if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regcomp(&reg_command  , COMMAND  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  //if(regcomp(&reg_emphasis , EMPHASIS , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_emphasis , EMPHASIS , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   //if(regcomp(&reg_comment  , COMMENT  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
   return 0;
@@ -533,7 +539,7 @@ int syntaxCheck(unsigned char *str)
   if( regexec(&reg_cond     , str, 0, 0, 0) == 0 ) return HL_COND;
   if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
   if( regexec(&reg_command  , str, 0, 0, 0) == 0 ) return HL_COMMAND;
-  //if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
+  if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
   //if( regexec(&reg_comment  , str, 0, 0, 0) == 0 ) return HL_COMMENT;
   return -1;
 }
@@ -617,9 +623,11 @@ void coloring(unsigned char c)
       case HL_STRING:
         repaint(COLOR_STRING);
         break;
-      //case HL_EMPHASIS:
-      //  repaint(COLOR_EMPHASIS);
-      //  break;
+      case HL_EMPHASIS:
+        repaint(COLOR_EMPHASIS);
+        if(!strcasecmp(s, "no")) return;
+        if(!strcasecmp(s, "[confirm")) return;
+        break;
       case HL_INTERFACE:
         repaint(COLOR_INTERFACE);
         break;
