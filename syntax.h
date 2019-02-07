@@ -89,7 +89,7 @@ enum BackGround {
 #define COMMAND "^()$"
 
 //#define POSITIVE "^(up|enable|enabled|active)$"
-//#define NEGATIVE "^(down|disable|disabled|no)$"
+//#define NEGATIVE "^(down|disable|disabled|no|invalid)$"
 
 #define STRING "^(\".*\"|\'.*\')$"
 
@@ -97,7 +97,7 @@ enum BackGround {
 
 //#define INTERFACE "^\(interface|vlan|line|router|track\).*[0-9]$"
 //#define INTERFACE "^ip\s\(sla\|vrf\)\s.*[0-9]$"
-#define INTERFACE "^((Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9]?[0-9])$"
+#define INTERFACE "^((Tengigabit|Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9]?[0-9])$"
 //INTERFACE = /^monitor\ssession\s[0-9]\+$/
 //INTERFACE = /^\(class\|policy\|route\)\-map\s.*$/
 //INTERFACE = /^ip\saccess\-list\s\(standard\|extended\)\s.*$/

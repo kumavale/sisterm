@@ -344,7 +344,7 @@ int main(int argc, char **argv)
       {
         prflag  = 1;
         excflag = 0;
-        write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+        write(STDOUT_FILENO, comm, sprintf(comm, "%c%s", 0x0d, RESET));
       }
 
       coloring(c);
