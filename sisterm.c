@@ -1,13 +1,13 @@
 /* -------------------------
  Release Date  2019-02-04
- Update  Date  2019-02-06
+ Update  Date  2019-02-07
 ------------------------- */
 // ToDo
 // -b light, dark
 // Various syntax
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1.4"
+#define VERSION      "1.1.5"
 
 #include <string.h>
 #include <stdlib.h>
@@ -34,6 +34,7 @@
 
 unsigned char s[MAX_LENGTH];
 unsigned char *io = s;
+int  excflag      = 0;        // Exclamation mark flag for comment
 
 regex_t reg_prompt;
 regex_t reg_vendors;
@@ -55,20 +56,21 @@ regex_t reg_command;
 
 int main(int argc, char **argv)
 {
-  const char *sPort = NULL;     // SerialPort
-  const char *B     = NULL;     // BaudRate
-  const char *R     = NULL;     // File path to load
-  const char *W     = NULL;     // File path to save
-  speed_t baudRate  = B9600;    // Default BaudRate
-  int  existsflag   = 0;        // Whether to log file
-  int  logflag      = 0;        // Whether to take a log
-  int  excflag      = 0;        // Exclamation mark flag
-  int  bsflag       = 0;        // BackSpace Flag
-  int  prflag       = 0;        // Prompt Flag
-  int  rflag        = 0;        // Read file Flag
-  int  ts           = 0;        // Whether to timestamp
-  unsigned char     comm[32];   // For comment
-  unsigned char     date[32];   // Buffer to set timestamp
+  const char *sPort = NULL;             // SerialPort
+  const char *B     = NULL;             // BaudRate
+  const char *R     = NULL;             // File path to load
+  const char *W     = NULL;             // File path to save
+  speed_t baudRate  = B9600;            // Default BaudRate
+  int  existsflag   = 0;                // Whether to log file
+  int  logflag      = 0;                // Whether to take a log
+  int  bsflag       = 0;                // BackSpace Flag
+  int  prflag       = 0;                // Prompt Flag
+  int  rflag        = 0;                // Read file Flag
+  int  ts           = 0;                // Whether to timestamp
+  unsigned char     logbuf[MAX_LENGTH]; // Log buffer
+  unsigned char     *lb = logbuf;       // Log buffer pointer
+  unsigned char     comm[32];           // For comment
+  unsigned char     date[32];           // Buffer to set timestamp
   struct timespec   now;
   struct tm         tm;
   FILE              *log;
@@ -256,8 +258,8 @@ int main(int argc, char **argv)
 
     logflag = 1;
   }
-  else
-    ts = 0;
+  //else
+  //  ts = 0;
 
   struct termios tio;
   struct termios stdio;
@@ -341,9 +343,6 @@ int main(int argc, char **argv)
 
       coloring(c);
 
-      if( excflag )
-        memset( io = s, '\0', MAX_LENGTH );
-
       if( prflag )
       {
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0)
@@ -359,6 +358,9 @@ int main(int argc, char **argv)
         write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
       }
 
+      if( excflag )
+        memset( io = s, '\0', MAX_LENGTH );
+
       if(read(STDIN_FILENO, &c, 1) > 0)
       {
         if(c == endcode) break;
@@ -367,7 +369,7 @@ int main(int argc, char **argv)
 
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
     fclose(fr);
-    printf("%s\n", RESET);
+    printf("%s", RESET);
 
     return EXIT_SUCCESS;
   }
@@ -383,15 +385,31 @@ int main(int argc, char **argv)
     if(read(fd, &c, 1) > 0)
     {
       write(STDOUT_FILENO, &c, 1);
-      if(logflag) fwrite(&c, 1, 1, log);
 
       if( 0x08==c && 0==bsflag )
       {
         bsflag = 3;
-        if( s[1] == '\0' )
+        if( '\0' == s[1] )
         {
           excflag = 0;
           write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+        }
+      }
+
+      if( logflag )
+      {
+        if( 3 == bsflag )
+        {
+          if( strlen(logbuf) > 0 )
+          {
+            *lb--;
+            logbuf[strlen(logbuf)-1] = '\0';
+          }
+        }
+        else if( 0 == bsflag )
+        {
+          if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c )
+            *lb++ = c;
         }
       }
 
@@ -400,30 +418,23 @@ int main(int argc, char **argv)
         prflag  = 1;
         excflag = 0;
         write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
-        if( ts )
+
+        if ( logflag )
         {
-          clock_gettime(CLOCK, &now);
-          localtime_r(&now.tv_sec, &tm);
-          sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-              tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-              tm.tm_hour, tm.tm_min, tm.tm_sec,
-              (int) now.tv_nsec / 1000000
-              );
-          fwrite(date, strlen(date), 1, log);
-        }
-      }
+          if( ts )
+          {
+            clock_gettime(CLOCK, &now);
+            localtime_r(&now.tv_sec, &tm);
+            sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+                tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+                tm.tm_hour, tm.tm_min, tm.tm_sec,
+                (int) now.tv_nsec / 1000000
+                );
+            fwrite(date, strlen(date), 1, log);
+          }
 
-      if     ( 0 == bsflag )   coloring(c);
-      else if( 3 == bsflag-- ) coloring(c);
-
-      if( excflag )
-        memset( io = s, '\0', MAX_LENGTH );
-
-      if( prflag ) {
-        if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 )
-        {
-          memset( io = s, '\0', MAX_LENGTH );
-          prflag = 0;
+          fwrite(logbuf, strlen(logbuf), 1, log);
+          memset( lb = logbuf, '\0', MAX_LENGTH );
         }
       }
 
@@ -433,21 +444,47 @@ int main(int argc, char **argv)
         write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
       }
 
+      if     ( 0 == bsflag   ) coloring(c);
+      else if( 3 == bsflag-- ) coloring(c);
+
+      if( prflag ) {
+        if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 )
+        {
+          memset( io = s, '\0', MAX_LENGTH );
+          prflag = 0;
+        }
+      }
+
     }
 
     // if new data is available on the console, send it to the serial port
     if(read(STDIN_FILENO, &c, 1) > 0)
     {
-      if(c == endcode) break;
+      if( endcode == c ) break; // hang up
+      if( 0x00 == c ) c = 0x7f; // BS on Vimterminal
+      if( 0x08 == c ) c = 0x7f; // Ctrl + H
+
       write(fd, &c, 1);
+      //write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
     }
   }
 
   close(fd);
   if(logflag)
   {
-    c = '\n';
-    fwrite(&c, 1, 1, log);
+    if( ts )
+    {
+      clock_gettime(CLOCK, &now);
+      localtime_r(&now.tv_sec, &tm);
+      sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+          tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+          tm.tm_hour, tm.tm_min, tm.tm_sec,
+          (int) now.tv_nsec / 1000000
+          );
+      fwrite(date, strlen(date), 1, log);
+    }
+    sprintf(logbuf, "%s%c%c%c%c", logbuf, 0x0d, 0x0a, 0x0d, 0x0a);
+    fwrite(logbuf, strlen(logbuf), 1, log);
     fclose(log);
   }
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
@@ -522,7 +559,8 @@ void coloring(unsigned char c)
 {
   if( (c!=0x08 && c<0x21) )
   {
-    memset( io = s, '\0', sizeof(s) );
+    if( !excflag )
+      memset( io = s, '\0', sizeof(s) );
     return;
   }
 
@@ -544,6 +582,8 @@ void coloring(unsigned char c)
     return;
   }
 
+  if( excflag ) return;
+
   int checked = syntaxCheck(s);
   if(checked >= 0)
   {
@@ -558,6 +598,8 @@ void coloring(unsigned char c)
       case HL_KEYWORD:
         repaint(COLOR_KEYWORD);
         if(!strcasecmp(s, "route")) return;
+        if(!strcasecmp(s, "router")) return;
+        if(!strcasecmp(s, "neighbor")) return;
         if(!strcasecmp(s, "system")) return;
         if(!strcasecmp(s, "host")) return;
         break;

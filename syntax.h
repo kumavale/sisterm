@@ -65,7 +65,7 @@ enum BackGround {
 
 #define COND "match|eq|neq|gt|lt|ge|le|range"
 
-#define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|logging|login|password|username|user|license|host|hostname|system|systems|address|network|route|router|neighbor|redistribute|default[-]gateway|community|version|class|switchport|clock|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
+#define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|logging|login|password|username|user|license|host|hostname|system|systems|address|network|route|router|routers|neighbor|neighbors|redistribute|default[-]gateway|community|version|class|switchport|clock|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
 
 #define PROTOCOL "^(ipv4|ipv6|tcp|udp|icmp|echo|http|https|www|dhcp|domain|nameserver|ssh|telnet|ftp|ftp[-]data|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|login|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|dialog|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
 

@@ -25,8 +25,8 @@ Commands:
 
 
 ## Custom color
-palette.h  
-reinstall
+Rewrite palette.h  
+Reinstall `make && make install`
 
 
 ## Installation
