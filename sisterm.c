@@ -1,6 +1,8 @@
 
-#define PROGRAM      "sisterm"
-#define VERSION      "1.1.10"    /* Update Date  2019-02-08 */
+#define COMMAND_NAME  "sist"
+#define PROGRAM_NAME  "sisterm"
+#define VERSION       "1.1.11"
+#define UPDATE_DATE   "20190208"
 
 #include <string.h>
 #include <stdlib.h>
@@ -45,6 +47,7 @@ regex_t reg_cond;
 regex_t reg_interface;
 regex_t reg_command;
 regex_t reg_emphasis;
+regex_t reg_positive;
 //regex_t reg_comment;
 
 
@@ -513,6 +516,7 @@ int regcompAll()
   if(regcomp(&reg_interface, INTERFACE, REG_FLAGS ) != 0) regmiss=1;
   if(regcomp(&reg_command  , COMMAND  , REG_FLAGS ) != 0) regmiss=1;
   if(regcomp(&reg_emphasis , EMPHASIS , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_positive , POSITIVE , REG_FLAGS ) != 0) regmiss=1;
   //if(regcomp(&reg_comment  , COMMENT  , REG_FLAGS ) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
   return 0;
@@ -535,6 +539,7 @@ int syntaxCheck(unsigned char *str)
   if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
   if( regexec(&reg_command  , str, 0, 0, 0) == 0 ) return HL_COMMAND;
   if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
+  if( regexec(&reg_positive , str, 0, 0, 0) == 0 ) return HL_POSITIVE;
   //if( regexec(&reg_comment  , str, 0, 0, 0) == 0 ) return HL_COMMENT;
   return -1;
 }
@@ -619,6 +624,9 @@ void coloring(unsigned char c)
       case HL_STRING:
         repaint(COLOR_STRING);
         break;
+      case HL_POSITIVE:
+        repaint(COLOR_POSITIVE);
+        break;
       case HL_EMPHASIS:
         repaint(COLOR_EMPHASIS);
         if(!strcasecmp(s, "no")) return;
@@ -669,7 +677,7 @@ void nothingArgs(char *argv0, char op)
 
 void version()
 {
-  printf("%s %s\n", PROGRAM, VERSION);
+  printf("%s (%s) %s %s\n", COMMAND_NAME, PROGRAM_NAME, VERSION, UPDATE_DATE);
 }
 
 void usage(char *v)
@@ -683,7 +691,7 @@ void usage(char *v)
 
   printf("Options:\n");
   printf("  -h,--help     Show this help message and exit\n");
-  printf("  -v,--version  Show %s version and exit\n", PROGRAM);
+  printf("  -v,--version  Show %s version and exit\n", PROGRAM_NAME);
   printf("  -l port       Use named device   (e.g. /dev/ttyS0)\n");
   printf("  -s speed      Use given speed    (default 9600)\n");
   printf("  -r path       Output config file (e.g. /tmp/config.txt)\n");

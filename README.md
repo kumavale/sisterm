@@ -33,8 +33,9 @@ Rewrite palette.h
 Reinstall `make && make install`
 
 
-## Environment
-WSL or Linux
+## Environment[<sup>[1]</sup>](#note-1)
+* Windows10 (WSL,VirtualBox,VMware)  
+* Linux
 
 
 ## License
@@ -42,5 +43,6 @@ MIT
 
 
 ## Note
-1. Even if it is colored, iOS may not support that command.
-2. Hihlight colors are sloppy at the moment.
+1. Verification only WSL(Arch) and Linux(Ubuntu18.04).  
+2. Even if it is colored, iOS may not support that command.  
+3. Hihlight colors are sloppy at the moment.  

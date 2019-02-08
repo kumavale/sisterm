@@ -6,22 +6,22 @@
 
 #define BLACK             "\e[38;5;000m"
 #define MAROON            "\e[38;5;001m"
-//#define GREEN             "\e[38;5;002m"
-#define GREEN             "\e[38;2;0;176;107m"
+#define GREEN             "\e[38;5;002m"
+//#define GREEN             "\e[38;2;0;176;107m"
 #define OLIVE             "\e[38;5;003m"
 #define NAVY              "\e[38;5;004m"
-//#define PURPLE            "\e[38;5;005m"
-#define PURPLE            "\e[38;2;153;0;153m"
+#define PURPLE            "\e[38;5;005m"
+//#define PURPLE            "\e[38;2;153;0;153m"
 #define TEAL              "\e[38;5;006m"
 #define SILVER            "\e[38;5;007m"
 #define GREY              "\e[38;5;008m"
-//#define RED               "\e[38;5;009m"
-#define RED               "\e[38;2;255;75;0m"
+#define RED               "\e[38;5;009m"
+//#define RED               "\e[38;2;255;75;0m"
 #define LIME              "\e[38;5;010m"
 #define YELLOW            "\e[38;5;011m"
 //#define YELLOW            "\e[38;2;242;170;0m"
-//#define BLUE              "\e[38;5;012m"
-#define BLUE              "\e[38;2;25;113;255m"
+#define BLUE              "\e[38;5;012m"
+//#define BLUE              "\e[38;2;25;113;255m"
 #define FUCHSIA           "\e[38;5;013m"
 #define AQUA              "\e[38;5;014m"
 #define WHITE             "\e[38;5;015m"
@@ -31,6 +31,11 @@
 #define YELLOW3           "\e[38;5;148m"
 #define MEDIUMORCHID      "\e[38;5;207m"
 #define ORANGE            "\e[38;5;214m"
+#define DEEPPINK          "\e[38;5;197m"
+#define MIDIUMPURPLE1     "\e[38;5;141m"
+#define STEELBLUE1        "\e[38;5;81m"
+#define DARKORANGE        "\e[38;5;208m"
+#define CORNSILK1         "\e[38;5;230m"
 
 
 enum HiLight {
@@ -52,6 +57,7 @@ enum HiLight {
   HL_IPV6,
   HL_SPACE,
   HL_EMPHASIS,
+  HL_POSITIVE,
   HL_MAX
 };
 
@@ -89,7 +95,7 @@ enum BackGround {
 // CISCO
 #define COMMAND "^(exit|end|configure|interface|show|line|copy|username|hostname|password|login|service|ip|crypt|transport|clock|ntp|logging|snmp[-]server|vtp|vlan|name|switch|switchport|router|channel[-]group|port[-]channel|spanning[-]tree|instance|revision|mac|storm[-]control|cdp|lldp|version|offset[-]list|auto[-]summary|auto[-]cost|area|summary[-]address|distribute[-]list|redistribute|default[-]information|passive[-]interface|vrrp|standby|access[-](list|class)|reload|monitor|mls)$"
 
-//#define POSITIVE "^(up|enable|enabled|active)$"
+#define POSITIVE "^(up|enable|enabled|active)$"
 //#define NEGATIVE "^(down|disable|disabled|no|not|invalid)$"
 
 #define STRING "^(\".*\"|\'.*\')$"
