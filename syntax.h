@@ -63,46 +63,40 @@ enum BackGround {
 }; //*/
 
 
-#define COND "match|eq|neq|gt|lt|ge|le|range"
+#define COND "^(match|eq|neq|gt|lt|ge|le|range)$"
 
-#define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|logging|login|password|username|user|license|host|hostname|system|systems|address|network|route|router|routers|neighbor|neighbors|redistribute|default[-]gateway|community|version|class|switchport|clock|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
+#define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|username|user|license|host|system|systems|address|network|route|routers|neighbor|neighbors|redistribute|default[-]gateway|community|version|class|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
 
 #define PROTOCOL "^(ipv4|ipv6|tcp|udp|icmp|echo|http|https|www|dhcp|domain|nameserver|ssh|telnet|ftp|ftp[-]data|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|login|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|dialog|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
 
-//CONFIGURE = activate set default redundancy prefe ron tag
-//CONFIGURE = inside outside input output static export import
+//#define CONFIGURE  activate set default redundancy prefe ron tag
+//inside outside input output static export import
 
-//FUNCTION = service crypto encapsulation standby mode in out
-//FUNCTION = storm-control snmp-server group nat banner mask seq metric
-//FUNCTION = add-route shape rd route-target as-path remote-as
-//FUNCTION = access-list access-class access-group prefix-list
-//FUNCTION = passive-interface distribute-list permit subnet-zero
-//FUNCTION = /channel\-\(group\|protocol\)/
+//#define FUNCTION  service crypto encapsulation standby mode in out
+// storm-control snmp-server group nat banner mask seq metric
+// add-route shape rd route-target as-path remote-as
+// access-list access-class access-group prefix-list
+// passive-interface distribute-list permit subnet-zero
+// /channel\-\(group\|protocol\)/
 
 #define CONFIRM  "^(y|yes)$"
 
 //#define COMMENT  "^(!.*)$"
-//COMMENT = description.*$
-//COMMENT = remark.*$
-//COMMENT = *#.*$
+// description.*$
+// remark.*$
+// *#.*$
 
-#define COMMAND "^()$"
+// CISCO
+#define COMMAND "^(exit|end|configure|interface|show|line|copy|username|hostname|password|login|service|ip|crypt|transport|clock|ntp|logging|snmp[-]server|vtp|vlan|name|switch|switchport|router|channel[-]group|port[-]channel|spanning[-]tree|instance|revision|mac|storm[-]control|cdp|lldp|version|offset[-]list|auto[-]summary|auto[-]cost|area|summary[-]address|distribute[-]list|redistribute|default[-]information|passive[-]interface|vrrp|standby|access[-](list|class)|reload|monitor|mls)$"
 
 //#define POSITIVE "^(up|enable|enabled|active)$"
-//#define NEGATIVE "^(down|disable|disabled|no|invalid)$"
+//#define NEGATIVE "^(down|disable|disabled|no|not|invalid)$"
 
 #define STRING "^(\".*\"|\'.*\')$"
 
 #define EMPHASIS "^(no|not|[[]?confirm[]]?|warning|failed|error|crash)$"
 
-//#define INTERFACE "^\(interface|vlan|line|router|track\).*[0-9]$"
-//#define INTERFACE "^ip\s\(sla\|vrf\)\s.*[0-9]$"
 #define INTERFACE "^((Tengigabit|Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9]?[0-9])$"
-//INTERFACE = /^monitor\ssession\s[0-9]\+$/
-//INTERFACE = /^\(class\|policy\|route\)\-map\s.*$/
-//INTERFACE = /^ip\saccess\-list\s\(standard\|extended\)\s.*$/
-//INTERFACE = /^vrf\s\(definition\|context\)\s.*$/
-//INTERFACE = /^address\-family\sipv.*$/
 
 #define ACTION  "^(disable|deny|shutdown|down|administratively|none)$"
 

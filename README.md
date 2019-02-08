@@ -9,14 +9,14 @@ sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.
 Usage: sist [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]
             [-w /path/to/LOG] [-t] [-a] [-h] [-v]
 Options:
-  -h,--help   Show this help message and exit
-  -v          Show sisterm version and exit
-  -l port     Use named device    (e.g. /dev/ttyS0)
-  -s speed    Use given speed     (default 9600)
-  -r path     Output config file  (e.g. /tmp/config.txt)
-  -w path     Saved log           (e.g. /tmp/sist.log)
-  -t          Add timestamp to log
-  -a          Append to log       (default overwrite)
+  -h,--help     Show this help message and exit
+  -v,--version  Show sisterm version and exit
+  -l port       Use named device    (e.g. /dev/ttyS0)
+  -s speed      Use given speed     (default 9600)
+  -r path       Output config file  (e.g. /tmp/config.txt)
+  -w path       Saved log           (e.g. /tmp/sist.log)
+  -t            Add timestamp to log
+  -a            Append to log       (default overwrite)
 
 Commands:
   ~           Terminate the conversation
@@ -24,10 +24,23 @@ Commands:
 (e.g. `sist -l /dev/ttyS0 -s 9600 -t -a -w /tmp/sist.log`)  
 
 
+## Installation
+Once you have it set up, a simple `make && make install` will compile sisterm and install it into `/usr/local/bin`.  
+
+
 ## Custom color
 Rewrite palette.h  
 Reinstall `make && make install`
 
 
-## Installation
-Once you have it set up, a simple `make && make install` will compile sisterm and install it into `/usr/local/bin`.  
+## Environment
+WSL or Linux
+
+
+## License
+MIT
+
+
+## Note
+1. Even if it is colored, iOS may not support that command.
+2. Hihlight colors are sloppy at the moment.

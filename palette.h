@@ -5,7 +5,7 @@
 #define COLOR_PROTOCOL     OLIVE
 #define COLOR_STRING       YELLOW
 #define COLOR_INTERFACE    BLUE
-#define COLOR_ACTION       FUCHSIA
+#define COLOR_ACTION       UNDERLINE FUCHSIA
 #define COLOR_VAR          TEAL
 #define COLOR_IPV4_NET     RED
 #define COLOR_IPV4_SUB     YELLOW3

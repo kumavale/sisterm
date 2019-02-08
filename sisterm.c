@@ -1,13 +1,6 @@
-/* -------------------------
- Release Date  2019-02-04
- Update  Date  2019-02-07
-------------------------- */
-// ToDo
-// -b light, dark
-// Various syntax
 
 #define PROGRAM      "sisterm"
-#define VERSION      "1.1.9"
+#define VERSION      "1.1.10"    /* Update Date  2019-02-08 */
 
 #include <string.h>
 #include <stdlib.h>
@@ -25,12 +18,13 @@
 
 
 #ifdef __linux__
-#define CLOCK CLOCK_REALTIME_COARSE
+#define              CLOCK CLOCK_REALTIME_COARSE
 #else
-#define CLOCK CLOCK_REALTIME
+#define              CLOCK CLOCK_REALTIME
 #endif
 
-#define MAX_LENGTH 256
+#define MAX_LENGTH   256
+#define REG_FLAGS    REG_EXTENDED | REG_NOSUB | REG_ICASE
 
 unsigned char s[MAX_LENGTH];
 unsigned char *io = s;
@@ -74,7 +68,7 @@ int main(int argc, char **argv)
   struct timespec   now;
   struct tm         tm;
   FILE              *log;
-  char mode[3]      = "w+";
+  char mode[3]      = "w+";             // Log file open mode
 
 
   for (int i=1; i<argc; i++)
@@ -267,8 +261,6 @@ int main(int argc, char **argv)
 
     logflag = 1;
   }
-  //else
-  //  ts = 0;
 
   struct termios tio;
   struct termios stdio;
@@ -378,7 +370,7 @@ int main(int argc, char **argv)
 
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
     fclose(fr);
-    printf("%s", RESET);
+    printf("\n%s", RESET);
 
     return EXIT_SUCCESS;
   }
@@ -506,22 +498,22 @@ int main(int argc, char **argv)
 int regcompAll()
 {
   int regmiss = 0 ;
-  if(regcomp(&reg_prompt   , "#|>"    , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_vendors  , VENDORS  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_net , IPV4_NET , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_sub , IPV4_SUB , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv4_wild, IPV4_WILD, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_ipv6     , IPV6     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_var      , VAR      , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_string   , STRING   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_action   , ACTION   , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_protocol , PROTOCOL , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_keyword  , KEYWORD  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_cond     , COND     , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_interface, INTERFACE, REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_command  , COMMAND  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  if(regcomp(&reg_emphasis , EMPHASIS , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
-  //if(regcomp(&reg_comment  , COMMENT  , REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0) regmiss=1;
+  if(regcomp(&reg_prompt   , "#|>"    , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_vendors  , VENDORS  , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_net , IPV4_NET , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_sub , IPV4_SUB , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_ipv4_wild, IPV4_WILD, REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_ipv6     , IPV6     , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_var      , VAR      , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_string   , STRING   , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_action   , ACTION   , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_protocol , PROTOCOL , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_keyword  , KEYWORD  , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_cond     , COND     , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_interface, INTERFACE, REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_command  , COMMAND  , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_emphasis , EMPHASIS , REG_FLAGS ) != 0) regmiss=1;
+  //if(regcomp(&reg_comment  , COMMENT  , REG_FLAGS ) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
   return 0;
 }
@@ -622,6 +614,7 @@ void coloring(unsigned char c)
       case HL_VAR:
         repaint(COLOR_VAR);
         if(!strcasecmp(s, "enable")) return;
+        if(!strcasecmp(s, "access")) return;
         break;
       case HL_STRING:
         repaint(COLOR_STRING);
@@ -638,6 +631,11 @@ void coloring(unsigned char c)
       //case HL_COMMENT:
       //  repaint(COLOR_COMMENT);
       //  break;
+      case HL_COMMAND:
+        repaint(COLOR_COMMAND);
+        if(!strcasecmp(s, "access")) return;
+        if(!strcasecmp(s, "switch")) return;
+        break;
       case HL_IPV4_NET:
         repaint(COLOR_IPV4_NET);
         if(*(io-1)>0x29 || *(io-1)<0x3a) return;
@@ -655,7 +653,7 @@ void coloring(unsigned char c)
         if( (*(io-1)>0x29 || *(io-1)<0x3b)
          || (*(io-1)>0x40 || *(io-1)<0x47)
          || (*(io-1)>0x60 || *(io-1)<0x67)
-         ) return;
+        ) return;
         break;
       default: break;
     }
