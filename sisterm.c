@@ -48,6 +48,7 @@ regex_t reg_interface;
 regex_t reg_command;
 regex_t reg_emphasis;
 regex_t reg_positive;
+//regex_t reg_url;
 //regex_t reg_comment;
 
 
@@ -413,7 +414,12 @@ int main(int argc, char **argv)
         else if( 0 == bsflag )
         {
           if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c )
-            *lb++ = c;
+          {
+            if( strlen(logbuf) < MAX_LENGTH - 1 )
+            {
+              *lb++ = c;
+            }
+          }
         }
       }
 
@@ -517,6 +523,7 @@ int regcompAll()
   if(regcomp(&reg_command  , COMMAND  , REG_FLAGS ) != 0) regmiss=1;
   if(regcomp(&reg_emphasis , EMPHASIS , REG_FLAGS ) != 0) regmiss=1;
   if(regcomp(&reg_positive , POSITIVE , REG_FLAGS ) != 0) regmiss=1;
+  //if(regcomp(&reg_url      , URL      , REG_FLAGS ) != 0) regmiss=1;
   //if(regcomp(&reg_comment  , COMMENT  , REG_FLAGS ) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
   return 0;
@@ -540,6 +547,7 @@ int syntaxCheck(unsigned char *str)
   if( regexec(&reg_command  , str, 0, 0, 0) == 0 ) return HL_COMMAND;
   if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
   if( regexec(&reg_positive , str, 0, 0, 0) == 0 ) return HL_POSITIVE;
+  //if( regexec(&reg_url      , str, 0, 0, 0) == 0 ) return HL_URL;
   //if( regexec(&reg_comment  , str, 0, 0, 0) == 0 ) return HL_COMMENT;
   return -1;
 }
@@ -624,8 +632,12 @@ void coloring(unsigned char c)
       case HL_STRING:
         repaint(COLOR_STRING);
         break;
+      //case HL_URL:
+      //  repaint(COLOR_URL);
+      //  break;
       case HL_POSITIVE:
         repaint(COLOR_POSITIVE);
+        if(!strcasecmp(s, "enable")) return;
         break;
       case HL_EMPHASIS:
         repaint(COLOR_EMPHASIS);

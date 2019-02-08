@@ -58,6 +58,7 @@ enum HiLight {
   HL_SPACE,
   HL_EMPHASIS,
   HL_POSITIVE,
+  HL_URL,
   HL_MAX
 };
 
@@ -73,7 +74,7 @@ enum BackGround {
 
 #define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|username|user|license|host|system|systems|address|network|route|routers|neighbor|neighbors|redistribute|default[-]gateway|community|version|class|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
 
-#define PROTOCOL "^(ipv4|ipv6|tcp|udp|icmp|echo|http|https|www|dhcp|domain|nameserver|ssh|telnet|ftp|ftp[-]data|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|login|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|dialog|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
+#define PROTOCOL "^(ipv4|ipv6|tcp|udp|icmp|echo|dhcp|domain|nameserver|ssh|telnet|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|dialog|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
 
 //#define CONFIGURE  activate set default redundancy prefe ron tag
 //inside outside input output static export import
@@ -100,13 +101,15 @@ enum BackGround {
 
 #define STRING "^(\".*\"|\'.*\')$"
 
+//#define URL "^(((([A-Za-z]{3,9}:(?:[/][/])?)(?:[-;:&=[+][ ],[0-9A-Fa-f]]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=[+][ ],[0-9A-Fa-f_]]+@)[A-Za-z0-9.-]+)((?:[/][[+~\%[/].[0-9A-Fa-f_]-_]*)?[?]?(?:[-[+]=&;%@.[0-9A-Fa-f_]_]*)#?(?:[0-9A-Fa-f]*))?))$"
+
 #define EMPHASIS "^(no|not|[[]?confirm[]]?|warning|failed|error|crash)$"
 
 #define INTERFACE "^((Tengigabit|Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9]?[0-9])$"
 
 #define ACTION  "^(disable|deny|shutdown|down|administratively|none)$"
 
-#define VAR     "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|active|monitor|any|enable|enabled|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
+#define VAR     "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|monitor|any|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
 
 #define VENDORS "^(cisco|juniper|yamaha|mellanox)$"
 
