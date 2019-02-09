@@ -15,6 +15,7 @@
 #define COLOR_EMPHASIS     ORANGE
 #define COLOR_POSITIVE     DARKORANGE
 #define COLOR_URL          STEELBLUE1
+#define COLOR_SLASH        DEEPPINK
 // ToDo
 //#define COLOR_CONFIGURE
 //#define COLOR_FUNCTION

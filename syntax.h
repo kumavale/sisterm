@@ -59,6 +59,7 @@ enum HiLight {
   HL_EMPHASIS,
   HL_POSITIVE,
   HL_URL,
+  HL_SLASH,
   HL_MAX
 };
 
@@ -96,7 +97,7 @@ enum BackGround {
 // CISCO
 #define COMMAND "^(exit|end|configure|interface|show|line|copy|username|hostname|password|login|service|ip|crypt|transport|clock|ntp|logging|snmp[-]server|vtp|vlan|name|switch|switchport|router|channel[-]group|port[-]channel|spanning[-]tree|instance|revision|mac|storm[-]control|cdp|lldp|version|offset[-]list|auto[-]summary|auto[-]cost|area|summary[-]address|distribute[-]list|redistribute|default[-]information|passive[-]interface|vrrp|standby|access[-](list|class)|reload|monitor|mls)$"
 
-#define POSITIVE "^(up|enable|enabled|active)$"
+#define POSITIVE "^([[]?up[]]?|enable|enabled|active)$"
 //#define NEGATIVE "^(down|disable|disabled|no|not|invalid)$"
 
 #define STRING "^(\".*\"|\'.*\')$"
@@ -105,9 +106,12 @@ enum BackGround {
 
 #define EMPHASIS "^(no|not|[[]?confirm[]]?|warning|failed|error|crash)$"
 
-#define INTERFACE "^((Tengigabit|Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9]?[0-9])$"
+//#define INTERFACE "^((Tengigabit|Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9]?[0-9])$"
+#define INTERFACE "^((Tengigabit|Gigabit|Fast|)Ethernet|(Fa|Gi))$"
 
-#define ACTION  "^(disable|deny|shutdown|down|administratively|none)$"
+//#define NUMBER
+
+#define ACTION  "^(disable|deny|shutdown|[[]?down[]]?|[[]?administratively[]]?|none)$"
 
 #define VAR     "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|monitor|any|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
 

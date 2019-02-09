@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.1.13"
+#define VERSION       "1.1.14"
 #define UPDATE_DATE   "20190209"
 
 #include <string.h>
@@ -48,6 +48,7 @@ regex_t reg_interface;
 regex_t reg_command;
 regex_t reg_emphasis;
 regex_t reg_positive;
+regex_t reg_slash;
 //regex_t reg_url;
 //regex_t reg_comment;
 
@@ -524,6 +525,7 @@ int regcompAll()
   if(regcomp(&reg_command  , COMMAND  , REG_FLAGS ) != 0) regmiss=1;
   if(regcomp(&reg_emphasis , EMPHASIS , REG_FLAGS ) != 0) regmiss=1;
   if(regcomp(&reg_positive , POSITIVE , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_slash    , "/"      , REG_FLAGS ) != 0) regmiss=1;
   //if(regcomp(&reg_url      , URL      , REG_FLAGS ) != 0) regmiss=1;
   //if(regcomp(&reg_comment  , COMMENT  , REG_FLAGS ) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
@@ -548,6 +550,7 @@ int syntaxCheck(unsigned char *str)
   if( regexec(&reg_command  , str, 0, 0, 0) == 0 ) return HL_COMMAND;
   if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
   if( regexec(&reg_positive , str, 0, 0, 0) == 0 ) return HL_POSITIVE;
+  if( regexec(&reg_slash    , str, 0, 0, 0) == 0 ) return HL_SLASH;
   //if( regexec(&reg_url      , str, 0, 0, 0) == 0 ) return HL_URL;
   //if( regexec(&reg_comment  , str, 0, 0, 0) == 0 ) return HL_COMMENT;
   return -1;
@@ -572,7 +575,7 @@ void repaint(unsigned char *color)
 
 void coloring(unsigned char c)
 {
-  if( (c!=0x08 && c<0x21) )
+  if( (0x08!=c && 0x21>c) )
   {
     if( !excflag )
       memset( io = s, '\0', sizeof(s) );
@@ -581,7 +584,7 @@ void coloring(unsigned char c)
 
   if( '\b'==c )
   {
-    if( s[0]!='\0' )
+    if( '\0'!=s[0] )
     {
       *io--;
       s[strlen(s)-1] = '\0';
@@ -624,6 +627,11 @@ void coloring(unsigned char c)
         break;
       case HL_STRING:
         repaint(COLOR_STRING);
+        break;
+      case HL_SLASH:
+        sprintf(s, "/");
+        repaint(COLOR_SLASH);
+        memset( io = s, '\0', sizeof(s) );
         break;
       //case HL_URL:
       //  repaint(COLOR_URL);
