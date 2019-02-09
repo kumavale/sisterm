@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.1.11"
-#define UPDATE_DATE   "20190208"
+#define VERSION       "1.1.13"
+#define UPDATE_DATE   "20190209"
 
 #include <string.h>
 #include <stdlib.h>
@@ -73,9 +73,10 @@ int main(int argc, char **argv)
   struct tm         tm;
   FILE              *log;
   char mode[3]      = "w+";             // Log file open mode
+  int  i;
 
 
-  for (int i=1; i<argc; i++)
+  for (i = 1; i<argc; i++)
   {
     if(*argv[i]=='-' && *(argv[i]+2)=='\0')
     {
@@ -129,9 +130,9 @@ int main(int argc, char **argv)
             nothingArgs(argv[0], *argv[i]);
             return EXIT_FAILURE;
           }
-          if( !strcasecmp(argv[++i], "light") )
+          if( !strcmp(argv[++i], "light") )
             bg = LIGHT;
-          else if( !strcasecmp(argv[i], "dark") )
+          else if( !strcmp(argv[i], "dark") )
             bg = DARK;
           else
             bg = NONE;
@@ -311,13 +312,13 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if( cfsetspeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
+  if( cfsetispeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
+  if( cfsetospeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
 
   if( regcompAll() != 0 ) return EXIT_FAILURE;
 
   if( rflag )
   {
-    int  i;
     FILE *fr;
     fr = fopen(R, "r");
     if(fr == NULL)
@@ -611,23 +612,15 @@ void coloring(unsigned char c)
         break;
       case HL_KEYWORD:
         repaint(COLOR_KEYWORD);
-        if(!strcasecmp(s, "route")) return;
-        if(!strcasecmp(s, "router")) return;
-        if(!strcasecmp(s, "neighbor")) return;
-        if(!strcasecmp(s, "system")) return;
-        if(!strcasecmp(s, "host")) return;
         break;
       case HL_COND:
         repaint(COLOR_COND);
         break;
       case HL_PROTOCOL:
         repaint(COLOR_PROTOCOL);
-        if(!strcasecmp(s, "dial")) return;
         break;
       case HL_VAR:
         repaint(COLOR_VAR);
-        if(!strcasecmp(s, "enable")) return;
-        if(!strcasecmp(s, "access")) return;
         break;
       case HL_STRING:
         repaint(COLOR_STRING);
@@ -637,47 +630,41 @@ void coloring(unsigned char c)
       //  break;
       case HL_POSITIVE:
         repaint(COLOR_POSITIVE);
-        if(!strcasecmp(s, "enable")) return;
         break;
       case HL_EMPHASIS:
         repaint(COLOR_EMPHASIS);
-        if(!strcasecmp(s, "no")) return;
-        if(!strcasecmp(s, "[confirm")) return;
         break;
       case HL_INTERFACE:
         repaint(COLOR_INTERFACE);
-        if( '/' == s[strlen(s)-2] ) return;
         break;
       //case HL_COMMENT:
       //  repaint(COLOR_COMMENT);
       //  break;
       case HL_COMMAND:
         repaint(COLOR_COMMAND);
-        if(!strcasecmp(s, "access")) return;
-        if(!strcasecmp(s, "switch")) return;
         break;
       case HL_IPV4_NET:
         repaint(COLOR_IPV4_NET);
-        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
+        //if(*(io-1)>0x29 || *(io-1)<0x3a) return;
         break;
       case HL_IPV4_SUB:
         repaint(COLOR_IPV4_SUB);
-        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
+        //if(*(io-1)>0x29 || *(io-1)<0x3a) return;
         break;
       case HL_IPV4_WILD:
         repaint(COLOR_IPV4_WILD);
-        if(*(io-1)>0x29 || *(io-1)<0x3a) return;
+        //if(*(io-1)>0x29 || *(io-1)<0x3a) return;
         break;
       case HL_IPV6:
         repaint(COLOR_IPV6);
-        if( (*(io-1)>0x29 || *(io-1)<0x3b)
-         || (*(io-1)>0x40 || *(io-1)<0x47)
-         || (*(io-1)>0x60 || *(io-1)<0x67)
-        ) return;
+        //if( (*(io-1)>0x29 || *(io-1)<0x3b)
+        // || (*(io-1)>0x40 || *(io-1)<0x47)
+        // || (*(io-1)>0x60 || *(io-1)<0x67)
+        //) return;
         break;
       default: break;
     }
-    memset( io = s, '\0', sizeof(s) );
+    //memset( io = s, '\0', sizeof(s) );
   }
 
 }
