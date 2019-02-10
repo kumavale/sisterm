@@ -7,7 +7,7 @@ sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.
 `chmod 666 /path/to/port`  
 ```
 Usage: sist [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]
-            [-w /path/to/LOG] [-t] [-a] [-h] [-v]
+            [-w /path/to/LOG] [-t] [-a] [-n] [-h] [-v]
 Options:
   -h,--help     Show this help message and exit
   -v,--version  Show sisterm version and exit
@@ -17,6 +17,7 @@ Options:
   -w path       Saved log           (e.g. /tmp/sist.log)
   -t            Add timestamp to log
   -a            Append to log       (default overwrite)
+  -n            Without color
 
 Commands:
   ~           Terminate the conversation

@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.1.14"
-#define UPDATE_DATE   "20190209"
+#define VERSION       "1.1.15"
+#define UPDATE_DATE   "20190210"
 
 #include <string.h>
 #include <stdlib.h>
@@ -65,6 +65,7 @@ int main(int argc, char **argv)
   int  bsflag       = 0;                // BackSpace Flag
   int  prflag       = 0;                // Prompt Flag
   int  rflag        = 0;                // Read file Flag
+  int  cflag        = 1;                // Color Flag
   int  ts           = 0;                // Whether to timestamp
   unsigned char     logbuf[MAX_LENGTH]; // Log buffer
   unsigned char     *lb = logbuf;       // Log buffer pointer
@@ -148,6 +149,11 @@ int main(int argc, char **argv)
         case 'a':
         // Append log
           strcpy(mode, "a+");
+          break;
+
+        case 'n':
+        // Without color
+          cflag = 0;
           break;
 
         case 'h':
@@ -304,9 +310,9 @@ int main(int argc, char **argv)
       printf("%s: open (%s): No such file or directory\n", argv[0], sPort);
     else if(access( sPort, (R_OK | W_OK) ) < 0)
       printf("%s: open (%s): Permission denied\n", argv[0], sPort);
-    // en route
-    //else if(fcntl(fd, F_GETFL) == (F_RDLCK | F_WRLCK) )
-    //  printf("%s: Line in use\n", sPort);
+    // unstable
+    else if(fcntl(fd, F_GETFL) == -1)
+      printf("%s: %s: Line in use\n", argv[0], sPort);
     else
       printf("%s: open (%s): Failure\n", argv[0], sPort);
     close(fd);
@@ -348,7 +354,8 @@ int main(int argc, char **argv)
         write(STDOUT_FILENO, comm, sprintf(comm, "%c%s", 0x0d, RESET));
       }
 
-      coloring(c);
+      if( cflag )
+        coloring(c);
 
       if( prflag )
       {
@@ -361,8 +368,11 @@ int main(int argc, char **argv)
 
       if( 0x21==c )
       {
-        excflag = 1;
-        write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+        if( cflag )
+        {
+          excflag = 1;
+          write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+        }
       }
 
       if( excflag )
@@ -452,12 +462,21 @@ int main(int argc, char **argv)
 
       if( 0x21==c )
       {
-        excflag = 1;
-        write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+        if( cflag )
+        {
+          excflag = 1;
+          write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+        }
       }
 
-      if     ( 0 == bsflag   ) coloring(c);
-      else if( 3 == bsflag-- ) coloring(c);
+      if     ( 0 == bsflag   )
+      {
+        if( cflag ) coloring(c);
+      }
+      else if( 3 == bsflag-- )
+      {
+        if( cflag ) coloring(c);
+      }
 
       if( prflag ) {
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 )
@@ -690,7 +709,7 @@ void version()
 void usage(char *v)
 {
   printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]\n"
-         "            [-w /path/to/LOG] [-t] [-a] [-h] [-v]\n\n", v);
+         "            [-w /path/to/LOG] [-t] [-a] [-n] [-h] [-v]\n\n", v);
 
   printf("Command line interface for Serial Console by Network device.\n");
   printf("------------------------------------------------------------\n");
@@ -704,7 +723,8 @@ void usage(char *v)
   printf("  -r path       Output config file (e.g. /tmp/config.txt)\n");
   printf("  -w path       Saved log          (e.g. /tmp/sist.log)\n");
   printf("  -t            Add timestamp to log\n");
-  printf("  -a            Append to log      (default overwrite)\n\n");
+  printf("  -a            Append to log      (default overwrite)\n");
+  printf("  -n            Without color\n\n");
 
   printf("Commands:\n");
   printf("  ~           Terminate the conversation\n");
