@@ -1,3 +1,5 @@
+// Keyboard Hit Check
+int kbhit();
 
 // All regcomp
 int regcompAll();

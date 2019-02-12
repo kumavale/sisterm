@@ -14,6 +14,11 @@
 #include <time.h>
 #include <regex.h>
 
+// for telnet
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "sisterm.h"
 #include "syntax.h"
 #include "palette.h"
@@ -62,6 +67,7 @@ int main(int argc, char **argv)
   speed_t baudRate  = B9600;            // Default BaudRate
   int  existsflag   = 0;                // Whether to log file
   int  logflag      = 0;                // Whether to take a log
+  int  tcpflag      = 0;                // TCP
   int  bsflag       = 0;                // BackSpace Flag
   int  prflag       = 0;                // Prompt Flag
   int  rflag        = 0;                // Read file Flag
@@ -75,7 +81,10 @@ int main(int argc, char **argv)
   struct tm         tm;
   FILE              *log;
   char mode[3]      = "w+";             // Log file open mode
+  char dstaddr[16];
   int  i;
+  int escflag       = 0;
+  int arrflag       = 0;
 
 
   for (i = 1; i<argc; i++)
@@ -156,6 +165,22 @@ int main(int argc, char **argv)
           cflag = 0;
           break;
 
+        case 'p':
+        // Telnet test
+          tcpflag = 1;
+          if(NULL==argv[i+1])
+          {
+            nothingArgs(argv[0], *argv[i]);
+            return EXIT_FAILURE;
+          }
+          if(strlen(argv[i+1]) > 15)
+          {
+            printf("(%s) Invalid IP Address\n", argv[i+1]);
+            return EXIT_FAILURE;
+          }
+          strcpy(dstaddr, argv[++i]);
+          break;
+
         case 'h':
         // Show help
           usage(argv[0]);
@@ -195,14 +220,14 @@ int main(int argc, char **argv)
   if( R != NULL ) rflag = 1;
 
 
-  if( sPort == NULL && !rflag )
+  if( sPort == NULL && !rflag && !tcpflag )
   {
     printf("%s: must specify Serial Port\n", argv[0]);
     return EXIT_FAILURE;
   }
 
 
-  if( B != NULL && !rflag )
+  if( B != NULL && !rflag && !tcpflag )
   {
     if     (!strcmp(B, "0"))      baudRate = B0;      // hang up
     else if(!strcmp(B, "50"))     baudRate = B50;
@@ -231,7 +256,7 @@ int main(int argc, char **argv)
   }
 
 
-  if( W != NULL && !rflag )
+  if( W != NULL && !rflag && !tcpflag )
   {
     if(!access(W, F_OK))
       existsflag = 1;
@@ -303,7 +328,7 @@ int main(int argc, char **argv)
   tio.c_cc[VTIME]   = 5;
 
   fd = open(sPort, O_RDWR | O_NONBLOCK);
-  if( fd < 0 && !rflag )
+  if( fd < 0 && !rflag && !tcpflag )
   {
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
     if(access( sPort, F_OK ) < 0)
@@ -324,7 +349,7 @@ int main(int argc, char **argv)
 
   if( regcompAll() != 0 ) return EXIT_FAILURE;
 
-  if( rflag )
+  if( rflag && !tcpflag )
   {
     FILE *fr;
     fr = fopen(R, "r");
@@ -391,19 +416,87 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
   }
 
+  /* ---------------------------------------------------------------------- */
+  if( tcpflag )
+  {
+    // for Telnet
+    // without termios
+    //tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+
+    struct sockaddr_in sa;
+    size_t port = 23;
+
+    if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
+    {
+      perror("socket error\n");
+      return EXIT_FAILURE;
+    }
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = inet_addr(dstaddr);
+    sa.sin_port = htons(port);
+
+    if( sa.sin_addr.s_addr == 0xffffffff ) return EXIT_FAILURE;
+
+    if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) > 0)
+    {
+      perror("connect eror\n");
+      close(fd);
+      return EXIT_FAILURE;
+    }
+
+    printf("Connected.\n");
+
+    tcsetattr(fd, TCSANOW, &tio);
+
+    for(;;)
+    {
+      if(read(fd, &c, 1) > 0)
+      {
+        if( 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
+          write(STDOUT_FILENO, &c, 1);
+      }
+
+      if(read(STDIN_FILENO, &c, 1) > 0)
+      //if(kbhit())
+      {
+        //c = getchar();
+        //write(STDOUT_FILENO, &c, 1);
+        if( endcode == c ) break; // hang up
+        write(fd, &c, 1);
+        //send(fd, &c, 1, 0);
+      }
+    }
+
+    tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+    printf("%s\nDisconnected.\n", RESET);
+    close(fd);
+    return EXIT_SUCCESS;
+  }
+  /* ---------------------------------------------------------------------- */
+
   printf("Connected.\n");
 
   tcsetattr(fd, TCSANOW, &tio);
 
-  while (1)
+  for(;;)
   {
     // if new data is available on the serial port, print it out
     // ToDo Parallel processing
     if(read(fd, &c, 1) > 0)
     {
-      write(STDOUT_FILENO, &c, 1);
+      if( 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
+        write(STDOUT_FILENO, &c, 1);
+//      write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
 
-      if( 0x08==c && 0==bsflag )
+      //if( arrflag )
+      //{
+      //  escflag = arrflag = 0;
+      //  continue;
+      //}
+
+      if( 0x08==c && 0==bsflag && !arrflag )
       {
         bsflag = 3;
         if( '\0' == s[1] )
@@ -469,13 +562,16 @@ int main(int argc, char **argv)
         }
       }
 
-      if     ( 0 == bsflag   )
+      if( !arrflag )
       {
-        if( cflag ) coloring(c);
-      }
-      else if( 3 == bsflag-- )
-      {
-        if( cflag ) coloring(c);
+        if     ( 0 == bsflag   )
+        {
+          if( cflag ) coloring(c);
+        }
+        else if( 3 == bsflag-- )
+        {
+          if( cflag ) coloring(c);
+        }
       }
 
       if( prflag ) {
@@ -486,6 +582,9 @@ int main(int argc, char **argv)
         }
       }
 
+      if( arrflag )
+        escflag = arrflag = 0;
+
     }
 
     // if new data is available on the console, send it to the serial port
@@ -494,6 +593,10 @@ int main(int argc, char **argv)
       if( endcode == c ) break; // hang up
       if( 0x00 == c ) c = 0x7f; // BS on Vimterminal
       if( 0x08 == c ) c = 0x7f; // Ctrl + H
+      //write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
+      if( 0x1b == c )          escflag = 1;
+      if( escflag && 0x5b==c ) arrflag = 1;
+      else                     escflag = 0;
 
       write(fd, &c, 1);
       //write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
@@ -525,6 +628,31 @@ int main(int argc, char **argv)
   return EXIT_SUCCESS;
 }
 
+
+int kbhit()
+{
+  struct termios oldt, newt;
+  int ch;
+  int oldf;
+
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+  ch = getchar();
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+  if (ch != EOF) {
+  ungetc(ch, stdin);
+  return 1;
+  }
+}
+
 int regcompAll()
 {
   int regmiss = 0 ;
@@ -544,7 +672,7 @@ int regcompAll()
   if(regcomp(&reg_command  , COMMAND  , REG_FLAGS ) != 0) regmiss=1;
   if(regcomp(&reg_emphasis , EMPHASIS , REG_FLAGS ) != 0) regmiss=1;
   if(regcomp(&reg_positive , POSITIVE , REG_FLAGS ) != 0) regmiss=1;
-  if(regcomp(&reg_slash    , "/"      , REG_FLAGS ) != 0) regmiss=1;
+  if(regcomp(&reg_slash    , "/$"      , REG_FLAGS ) != 0) regmiss=1;
   //if(regcomp(&reg_url      , URL      , REG_FLAGS ) != 0) regmiss=1;
   //if(regcomp(&reg_comment  , COMMENT  , REG_FLAGS ) != 0) regmiss=1;
   if(regmiss) return EXIT_FAILURE;
@@ -594,7 +722,7 @@ void repaint(unsigned char *color)
 
 void coloring(unsigned char c)
 {
-  if( (0x08!=c && 0x21>c) )
+  if( (0x08!=c && 0x21>c) )  // Add yajirushi key
   {
     if( !excflag )
       memset( io = s, '\0', sizeof(s) );
@@ -689,7 +817,9 @@ void coloring(unsigned char c)
         // || (*(io-1)>0x60 || *(io-1)<0x67)
         //) return;
         break;
-      default: break;
+      default:
+        repaint(RESET);
+        break;
     }
     //memset( io = s, '\0', sizeof(s) );
   }

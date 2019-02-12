@@ -73,7 +73,7 @@ enum BackGround {
 
 #define COND "^(match|eq|neq|gt|lt|ge|le|range)$"
 
-#define KEYWORD "^(speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|username|user|license|host|system|systems|address|network|route|routers|neighbor|neighbors|redistribute|default[-]gateway|community|version|class|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
+#define KEYWORD "^(giants|speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|username|user|license|host|system|systems|address|network|route|routers|neighbor|neighbors|redistribute|default[-]gateway|community|version|class|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
 
 #define PROTOCOL "^(ipv4|ipv6|tcp|udp|icmp|echo|dhcp|domain|nameserver|ssh|telnet|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|dialog|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
 
@@ -104,7 +104,7 @@ enum BackGround {
 
 //#define URL "^(((([A-Za-z]{3,9}:(?:[/][/])?)(?:[-;:&=[+][ ],[0-9A-Fa-f]]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=[+][ ],[0-9A-Fa-f_]]+@)[A-Za-z0-9.-]+)((?:[/][[+~\%[/].[0-9A-Fa-f_]-_]*)?[?]?(?:[-[+]=&;%@.[0-9A-Fa-f_]_]*)#?(?:[0-9A-Fa-f]*))?))$"
 
-#define EMPHASIS "^(no|not|[[]?confirm[]]?|warning|failed|error|crash)$"
+#define EMPHASIS "^(no|not|[[]?confirm[]]?|warning|warnings|failed|failures|error|errors|crash)$"
 
 //#define INTERFACE "^((Tengigabit|Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9]?[0-9])$"
 #define INTERFACE "^((Tengigabit|Gigabit|Fast|)Ethernet|(Fa|Gi))$"
