@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.1.15"
-#define UPDATE_DATE   "20190210"
+#define VERSION       "1.1.16"
+#define UPDATE_DATE   "20190213"
 
 #include <string.h>
 #include <stdlib.h>
@@ -488,13 +488,6 @@ int main(int argc, char **argv)
     {
       if( 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
         write(STDOUT_FILENO, &c, 1);
-//      write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
-
-      //if( arrflag )
-      //{
-      //  escflag = arrflag = 0;
-      //  continue;
-      //}
 
       if( 0x08==c && 0==bsflag && !arrflag )
       {
@@ -590,16 +583,17 @@ int main(int argc, char **argv)
     // if new data is available on the console, send it to the serial port
     if(read(STDIN_FILENO, &c, 1) > 0)
     {
-      if( endcode == c ) break; // hang up
-      if( 0x00 == c ) c = 0x7f; // BS on Vimterminal
-      if( 0x08 == c ) c = 0x7f; // Ctrl + H
-      //write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
-      if( 0x1b == c )          escflag = 1;
-      if( escflag && 0x5b==c ) arrflag = 1;
-      else                     escflag = 0;
+      if( endcode == c )            break;      // hang up
+      if( 0x00 == c )               c = 0x7f;   // BS on Vimterminal
+      if( 0x08 == c )               c = 0x7f;   // Ctrl + H
+
+      if( 0x1b == c )               escflag = 1;
+      else if( escflag && 0x5b==c ) arrflag = 1;
+      else                          escflag = 0;
 
       write(fd, &c, 1);
       //write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
+      //write(STDOUT_FILENO, comm, sprintf(comm, "[%d]", arrflag));
     }
   }
 
