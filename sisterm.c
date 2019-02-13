@@ -85,6 +85,7 @@ int main(int argc, char **argv)
   int  i;
   int escflag       = 0;
   int arrflag       = 0;
+  int arrcnt        = 0;
 
 
   for (i = 1; i<argc; i++)
@@ -165,6 +166,7 @@ int main(int argc, char **argv)
           cflag = 0;
           break;
 
+/* -------------------------------------------------------------
         case 'p':
         // Telnet test
           tcpflag = 1;
@@ -180,6 +182,7 @@ int main(int argc, char **argv)
           }
           strcpy(dstaddr, argv[++i]);
           break;
+-------------------------------------------------------------- */
 
         case 'h':
         // Show help
@@ -509,8 +512,30 @@ int main(int argc, char **argv)
             logbuf[strlen(logbuf)-1] = '\0';
           }
         }
-        else if( 0 == bsflag )
+        else if( 0 == bsflag && !arrflag)
         {
+          if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c )
+          {
+            if( strlen(logbuf) < MAX_LENGTH - 1 )
+            {
+              *lb++ = c;
+            }
+          }
+        }
+        else if( arrflag )
+        {
+          if( 0x44==c ) //left
+          {
+            if( arrcnt > 0 )
+              arrcnt--;
+          }
+          if( 0x43==c ) //right
+          {
+            if( arrcnt < strlen(logbuf) + 1 )
+              arrcnt++;
+          }
+
+          // 途中に挿入
           if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c )
           {
             if( strlen(logbuf) < MAX_LENGTH - 1 )
@@ -525,6 +550,7 @@ int main(int argc, char **argv)
       {
         prflag  = 1;
         excflag = 0;
+        arrcnt  = 0;
         write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
 
         if ( logflag )
@@ -576,7 +602,12 @@ int main(int argc, char **argv)
       }
 
       if( arrflag )
-        escflag = arrflag = 0;
+      {
+        arrflag = 0;
+        escflag = 0;
+        memset( io = s, '\0', MAX_LENGTH );
+      }
+      //write(STDOUT_FILENO, comm, sprintf(comm, "[%s]", s));
 
     }
 
@@ -719,7 +750,7 @@ void coloring(unsigned char c)
   if( (0x08!=c && 0x21>c) )  // Add yajirushi key
   {
     if( !excflag )
-      memset( io = s, '\0', sizeof(s) );
+      memset( io = s, '\0', MAX_LENGTH );
     return;
   }
 
