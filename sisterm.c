@@ -83,9 +83,13 @@ int main(int argc, char **argv)
   char mode[3]      = "w+";             // Log file open mode
   char dstaddr[16];
   int  i;
-  int escflag       = 0;
-  int arrflag       = 0;
-  int arrcnt        = 0;
+  int  escflag      = 0;
+  int  arrflag      = 0;
+  int  leftflag     = 0;
+  int  rightflag    = 0;
+  int  arrcnt       = 0;
+  int  trlen;
+  int  PS1len;
 
 
   for (i = 1; i<argc; i++)
@@ -518,31 +522,31 @@ int main(int argc, char **argv)
           {
             if( strlen(logbuf) < MAX_LENGTH - 1 )
             {
-              *lb++ = c;
+              if( 0 == arrcnt )
+                *lb++ = c;
+              else
+              {
+                // en route
+                trlen = strlen(logbuf) - arrcnt;
+                memmove(&logbuf[trlen+arrcnt], &logbuf[trlen], strlen(&logbuf[trlen]));
+                memcpy(&logbuf[trlen], &c, 1);
+              }
             }
           }
         }
         else if( arrflag )
         {
-          if( 0x44==c ) //left
+          if( leftflag )
+          {
+            if( arrcnt < strlen(logbuf) - PS1len)
+              arrcnt++;
+          }
+          else if( rightflag )
           {
             if( arrcnt > 0 )
               arrcnt--;
           }
-          if( 0x43==c ) //right
-          {
-            if( arrcnt < strlen(logbuf) + 1 )
-              arrcnt++;
-          }
-
-          // 途中に挿入
-          if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c )
-          {
-            if( strlen(logbuf) < MAX_LENGTH - 1 )
-            {
-              *lb++ = c;
-            }
-          }
+          leftflag = rightflag = 0;
         }
       }
 
@@ -596,6 +600,7 @@ int main(int argc, char **argv)
       if( prflag ) {
         if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 )
         {
+          PS1len = strlen(s);
           memset( io = s, '\0', MAX_LENGTH );
           prflag = 0;
         }
@@ -618,9 +623,11 @@ int main(int argc, char **argv)
       if( 0x00 == c )               c = 0x7f;   // BS on Vimterminal
       if( 0x08 == c )               c = 0x7f;   // Ctrl + H
 
-      if( 0x1b == c )               escflag = 1;
-      else if( escflag && 0x5b==c ) arrflag = 1;
-      else                          escflag = 0;
+      if( 0x1b == c )               escflag   = 1;
+      else if( escflag && 0x5b==c ) arrflag   = 1;
+      else if( arrflag && 0x44==c ) leftflag  = 1;
+      else if( arrflag && 0x43==c ) rightflag = 1;
+      else                          escflag   = 0;
 
       write(fd, &c, 1);
       //write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
