@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.1.16"
+#define VERSION       "1.1.17"
 #define UPDATE_DATE   "20190216"
 
 
@@ -497,143 +497,151 @@ int main(int argc, char **argv)
       if( 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
         write(STDOUT_FILENO, &c, 1);
       //DebugLog("[%02x]", c);
+
       if( 0 < arrbuf )
+      {
         arrbuf--;
+      }
       else
       {
 
-      if( 0x08==c && 0==bsflag && !arrflag )
-      {
-        bsflag = 3;
-        if( '\0' == s[1] )
+        if( 0x08==c && 0==bsflag && !arrflag )
         {
+          bsflag = 3;
+          if( '\0' == s[1] )
+          {
+            excflag = 0;
+            write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+          }
+        }
+
+        if( logflag )
+        {
+          if( 3 == bsflag )
+          {
+            if( strlen(logbuf) > 0 )
+            {
+              if( 0 == arrcnt )
+              {
+                *lb--;
+                logbuf[strlen(logbuf)-1] = '\0';
+              }
+              else
+              {
+                //ToDo
+                *lb--;
+                //arrbuf = arrcnt * 2;
+                arrbuf = 0;
+                for( i=1; i<arrcnt+1; i++ )
+                {
+                  arrbuf += i * 2;
+                }
+                trlen = strlen(logbuf) - arrcnt;
+                memmove(&logbuf[trlen-1], &logbuf[trlen], strlen(&logbuf[trlen]));
+              }
+            }
+          }
+          else if( 0 == bsflag && !arrflag)
+          {
+            if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c
+                || strlen(logbuf) < MAX_LENGTH - 1 )
+            {
+              if( 0 == arrcnt || 0x0d == c || 0x0a == c )
+              {
+                *lb++ = c;
+              }
+              else
+              {
+                // en route
+                *lb++;
+                arrbuf = arrcnt * 2;
+                trlen = strlen(logbuf) - arrcnt;
+                memmove(&logbuf[trlen+1], &logbuf[trlen], strlen(&logbuf[trlen]));
+                memcpy(&logbuf[trlen], &c, 1);
+
+                //DebugLog("[%s]", logbuf);
+              }
+              //DebugLog("[%d]", arrcnt);
+            }
+          }
+          else if( arrflag )
+          {
+            if( leftflag )
+            {
+              if( arrcnt < strlen(logbuf) - PS1len)
+                arrcnt++;
+            }
+            else if( rightflag )
+            {
+              if( arrcnt > 0 )
+                arrcnt--;
+            }
+            leftflag = rightflag = 0;
+          }
+        }
+
+        if( 0x0a==c )
+        {
+          prflag  = 1;
           excflag = 0;
+          arrcnt  = 0;
           write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
-        }
-      }
 
-      if( logflag )
-      {
-        if( 3 == bsflag )
-        {
-          if( strlen(logbuf) > 0 )
+          if ( logflag )
           {
-            if( 0 == arrcnt )
+            if( ts )
             {
-              *lb--;
-              logbuf[strlen(logbuf)-1] = '\0';
+              clock_gettime(CLOCK, &now);
+              localtime_r(&now.tv_sec, &tm);
+              sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+                  tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+                  tm.tm_hour, tm.tm_min, tm.tm_sec,
+                  (int) now.tv_nsec / 1000000
+                  );
+              fwrite(date, strlen(date), 1, log);
             }
-            else
-            {
-              //ToDo
-            }
+
+            fwrite(logbuf, strlen(logbuf), 1, log);
+            memset( lb = logbuf, '\0', MAX_LENGTH );
           }
         }
-        else if( 0 == bsflag && !arrflag)
-        {
-          if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c
-              || strlen(logbuf) < MAX_LENGTH - 1 )
-          {
-            if( 0 < arrbuf )
-            {
-              arrbuf--;
-            }
-            else if( 0 == arrcnt || 0x0d == c || 0x0a == c )
-            {
-              *lb++ = c;
-            }
-            else
-            {
-              // en route
-              *lb++;
-              arrbuf = arrcnt * 2;
-              trlen = strlen(logbuf) - arrcnt;
-              memmove(&logbuf[trlen+1], &logbuf[trlen], strlen(&logbuf[trlen]));
-              memcpy(&logbuf[trlen], &c, 1);
 
-              //DebugLog("[%s]", logbuf);
-            }
-            //DebugLog("[%d]", arrcnt);
+        if( 0x21==c )
+        {
+          if( cflag )
+          {
+            excflag = 1;
+            write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
           }
         }
-        else if( arrflag )
+
+        if( !arrflag )
         {
-          if( leftflag )
+          if     ( 0 == bsflag   )
           {
-            if( arrcnt < strlen(logbuf) - PS1len)
-              arrcnt++;
+            if( cflag ) coloring(c);
           }
-          else if( rightflag )
+          else if( 3 == bsflag-- )
           {
-            if( arrcnt > 0 )
-              arrcnt--;
+            if( cflag ) coloring(c);
           }
-          leftflag = rightflag = 0;
         }
-      }
 
-      if( 0x0a==c )
-      {
-        prflag  = 1;
-        excflag = 0;
-        arrcnt  = 0;
-        write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
-
-        if ( logflag )
-        {
-          if( ts )
+        if( prflag ) {
+          if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 )
           {
-            clock_gettime(CLOCK, &now);
-            localtime_r(&now.tv_sec, &tm);
-            sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-                tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                tm.tm_hour, tm.tm_min, tm.tm_sec,
-                (int) now.tv_nsec / 1000000
-                );
-            fwrite(date, strlen(date), 1, log);
+            PS1len = strlen(s);
+            memset( io = s, '\0', MAX_LENGTH );
+            prflag = 0;
           }
-
-          fwrite(logbuf, strlen(logbuf), 1, log);
-          memset( lb = logbuf, '\0', MAX_LENGTH );
         }
-      }
 
-      if( 0x21==c )
-      {
-        if( cflag )
+        if( arrflag )
         {
-          excflag = 1;
-          write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+          arrflag = escflag = 0;
+          //memset( io = s, '\0', MAX_LENGTH );
         }
-      }
-
-      if( !arrflag )
-      {
-        if     ( 0 == bsflag   )
-        {
-          if( cflag ) coloring(c);
-        }
-        else if( 3 == bsflag-- )
-        {
-          if( cflag ) coloring(c);
-        }
-      }
-
-      if( prflag ) {
-        if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 )
-        {
-          PS1len = strlen(s);
-          memset( io = s, '\0', MAX_LENGTH );
-          prflag = 0;
-        }
-      }
-
-      if( arrflag )
-      {
-        arrflag = escflag = 0;
-        //memset( io = s, '\0', MAX_LENGTH );
-      }
-      //DebugLog("[%s]", s);
+        //DebugLog("[%s]", s);
       }
 
     }
