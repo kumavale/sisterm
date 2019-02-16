@@ -2,7 +2,7 @@
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
 #define VERSION       "1.1.16"
-#define UPDATE_DATE   "20190214"
+#define UPDATE_DATE   "20190216"
 
 
 #include "sisterm.h"
@@ -496,6 +496,11 @@ int main(int argc, char **argv)
     {
       if( 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
         write(STDOUT_FILENO, &c, 1);
+      //DebugLog("[%02x]", c);
+      if( 0 < arrbuf )
+        arrbuf--;
+      else
+      {
 
       if( 0x08==c && 0==bsflag && !arrflag )
       {
@@ -533,23 +538,20 @@ int main(int argc, char **argv)
             {
               arrbuf--;
             }
+            else if( 0 == arrcnt || 0x0d == c || 0x0a == c )
+            {
+              *lb++ = c;
+            }
             else
             {
-              if( 0 == arrcnt || 0x0d == c || 0x0a == c )
-              {
-                *lb++ = c;
-              }
-              else
-              {
-                // en route
-                *lb++;
-                arrbuf = arrcnt;
-                trlen = strlen(logbuf) - arrcnt;
-                memmove(&logbuf[trlen+1], &logbuf[trlen], strlen(&logbuf[trlen]));
-                memcpy(&logbuf[trlen], &c, 1);
+              // en route
+              *lb++;
+              arrbuf = arrcnt * 2;
+              trlen = strlen(logbuf) - arrcnt;
+              memmove(&logbuf[trlen+1], &logbuf[trlen], strlen(&logbuf[trlen]));
+              memcpy(&logbuf[trlen], &c, 1);
 
-                //DebugLog("[%s]", logbuf);
-              }
+              //DebugLog("[%s]", logbuf);
             }
             //DebugLog("[%d]", arrcnt);
           }
@@ -632,6 +634,7 @@ int main(int argc, char **argv)
         //memset( io = s, '\0', MAX_LENGTH );
       }
       //DebugLog("[%s]", s);
+      }
 
     }
 
