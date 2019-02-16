@@ -1,3 +1,20 @@
+//For serial
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
+
+//For telnet
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <stdio.h>
+#include <time.h>
+#include <regex.h>
+
+
 // Keyboard Hit Check
 int kbhit();
 

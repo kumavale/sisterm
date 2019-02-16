@@ -2,26 +2,15 @@
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
 #define VERSION       "1.1.16"
-#define UPDATE_DATE   "20190213"
+#define UPDATE_DATE   "20190214"
 
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
-
-#include <stdio.h>
-#include <time.h>
-#include <regex.h>
-
-// for telnet
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include "sisterm.h"
 #include "syntax.h"
 #include "palette.h"
+
+//Debug
+#include <stdarg.h>
 
 
 #ifdef __linux__
@@ -58,6 +47,17 @@ regex_t reg_slash;
 //regex_t reg_comment;
 
 
+//For debug
+void DebugLog(const char *_format, ... )
+{
+  va_list argList;
+	va_start(argList, _format);
+	char str[MAX_LENGTH];
+	int len = vsprintf(str, _format, argList);
+	va_end(argList);
+  write(STDOUT_FILENO, str, len);
+}
+
 int main(int argc, char **argv)
 {
   const char *sPort = NULL;             // SerialPort
@@ -88,6 +88,7 @@ int main(int argc, char **argv)
   int  leftflag     = 0;
   int  rightflag    = 0;
   int  arrcnt       = 0;
+  int  arrbuf       = 0;
   int  trlen;
   int  PS1len;
 
@@ -343,8 +344,8 @@ int main(int argc, char **argv)
     else if(access( sPort, (R_OK | W_OK) ) < 0)
       printf("%s: open (%s): Permission denied\n", argv[0], sPort);
     // unstable
-    else if(fcntl(fd, F_GETFL) == -1)
-      printf("%s: %s: Line in use\n", argv[0], sPort);
+    //else if(fcntl(fd, F_GETFL) == -1)
+    //  printf("%s: %s: Line in use\n", argv[0], sPort);
     else
       printf("%s: open (%s): Failure\n", argv[0], sPort);
     close(fd);
@@ -512,26 +513,45 @@ int main(int argc, char **argv)
         {
           if( strlen(logbuf) > 0 )
           {
-            *lb--;
-            logbuf[strlen(logbuf)-1] = '\0';
+            if( 0 == arrcnt )
+            {
+              *lb--;
+              logbuf[strlen(logbuf)-1] = '\0';
+            }
+            else
+            {
+              //ToDo
+            }
           }
         }
         else if( 0 == bsflag && !arrflag)
         {
-          if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c )
+          if( (0x1f<c && 0x7f>c) || 0x0d==c || 0x0a==c
+              || strlen(logbuf) < MAX_LENGTH - 1 )
           {
-            if( strlen(logbuf) < MAX_LENGTH - 1 )
+            if( 0 < arrbuf )
             {
-              if( 0 == arrcnt )
+              arrbuf--;
+            }
+            else
+            {
+              if( 0 == arrcnt || 0x0d == c || 0x0a == c )
+              {
                 *lb++ = c;
+              }
               else
               {
                 // en route
+                *lb++;
+                arrbuf = arrcnt;
                 trlen = strlen(logbuf) - arrcnt;
-                memmove(&logbuf[trlen+arrcnt], &logbuf[trlen], strlen(&logbuf[trlen]));
+                memmove(&logbuf[trlen+1], &logbuf[trlen], strlen(&logbuf[trlen]));
                 memcpy(&logbuf[trlen], &c, 1);
+
+                //DebugLog("[%s]", logbuf);
               }
             }
+            //DebugLog("[%d]", arrcnt);
           }
         }
         else if( arrflag )
@@ -608,11 +628,10 @@ int main(int argc, char **argv)
 
       if( arrflag )
       {
-        arrflag = 0;
-        escflag = 0;
-        memset( io = s, '\0', MAX_LENGTH );
+        arrflag = escflag = 0;
+        //memset( io = s, '\0', MAX_LENGTH );
       }
-      //write(STDOUT_FILENO, comm, sprintf(comm, "[%s]", s));
+      //DebugLog("[%s]", s);
 
     }
 
@@ -630,8 +649,8 @@ int main(int argc, char **argv)
       else                          escflag   = 0;
 
       write(fd, &c, 1);
-      //write(STDOUT_FILENO, comm, sprintf(comm, "[0x%02x]", c));
-      //write(STDOUT_FILENO, comm, sprintf(comm, "[%d]", arrflag));
+      //DebugLog("[0x%02x]", c);
+      //DebugLog("[%d]", arrflag);
     }
   }
 
