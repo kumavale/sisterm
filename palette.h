@@ -19,7 +19,6 @@
 // ToDo
 //#define COLOR_CONFIGURE
 //#define COLOR_FUNCTION
-//#define COLOR_SPACE
 
 
 /* --------------------------------------

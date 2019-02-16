@@ -115,7 +115,7 @@ enum BackGround {
 
 #define VAR     "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|monitor|any|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
 
-#define VENDORS "^(cisco|juniper|yamaha|mellanox)$"
+#define VENDORS "^(cisco|aruba|juniper|huawei|arista|riverbed|netscout|yamaha|mellanox)$"
 
 #define IPV4_NET  "^(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
 #define IPV4_SUB  "^((25[0-5]|24[89])[.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
