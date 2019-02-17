@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.0"
+#define VERSION       "1.2.1"
 #define UPDATE_DATE   "20190217"
 
 
@@ -66,6 +66,10 @@ int main(int argc, char **argv)
   speed_t baudRate  = B9600;            // Default BaudRate
   int  existsflag   = 0;                // Whether to log file
   int  excflag      = 0;                // Exclamation mark flag for comment
+  int  comlen       = 0;                // Comment length
+  int  escflag      = 0;                // '^'
+  int  spflag       = 0;                // '['
+  int  tilflag      = 0;                // Del key -> BS key
   int  logflag      = 0;                // Whether to take a log
   int  tcpflag      = 0;                // TCP
   int  prflag       = 0;                // Prompt Flag
@@ -491,11 +495,6 @@ int main(int argc, char **argv)
         if( 0x08==c )
         {
           *lb--;
-          if( 0x21==*lb )
-          {
-            write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
-            excflag = 0;
-          }
         }
         else if( 0x1f<c && 0x7f>c )
         {
@@ -530,10 +529,23 @@ int main(int argc, char **argv)
         write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
       }
 
-      if( 0x21==c && cflag )
+      if( 0x21==c && cflag && !excflag )
       {
+        comlen = 0;
         excflag = 1;
         write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+      }
+
+      if( excflag && 0x07!=c ) comlen++;
+
+      if( 0x08==c )
+      {
+        if( excflag ) comlen-=2;
+        if( excflag && 0>=comlen )
+        {
+          write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+          excflag = 0;
+        }
       }
 
       if( !excflag && cflag ) coloring(c);
@@ -551,12 +563,24 @@ int main(int argc, char **argv)
     // if new data is available on the console, send it to the serial port
     if(read(STDIN_FILENO, &c, 1) > 0)
     {
-      if( endcode == c )            break;      // hang up
-      if( 0x00 == c )               c = 0x7f;   // BS on Vimterminal
-      //if( 0x08 == c )               c = 0x7f;   // Ctrl + H
+      if( 0x1b==c )                 escflag = 1;  // ^
+      else if( 0x5b==c && escflag ) spflag  = 1;  // ^[
+      else if( 0x33==c && spflag )  tilflag = 1;  // ^[3
+      else if( 0x7e==c && tilflag )               // ^[3~
+      {
+        c = 0x7f;
+        escflag = spflag = tilflag = 0;
+      }
+      else
+      {
+        escflag = spflag = 0;
+      }
 
-      write(fd, &c, 1);
+      if( endcode == c )                  break;  // hang up
+      if( 0x00 == c )                  c = 0x7f;  // BS on Vimterminal
+
       //DebugLog("[0x%02x]", c);
+      write(fd, &c, 1);
     }
   }
 
