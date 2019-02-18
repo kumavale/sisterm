@@ -5,6 +5,7 @@ sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.
 
 ## Usage
 If using WSL, execute `specificCOM.bat` with cmd or check with the device manager.  
+If using Linux, execute `dmesg | grep USB`. by way of example only.  
 After that `chmod 666 /path/to/port`.  
 ```
 Usage: sist [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]
