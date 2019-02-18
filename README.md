@@ -4,7 +4,8 @@ sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.
 
 
 ## Usage
-`chmod 666 /path/to/port`  
+If using WSL, execute `FOR /L %a in (1,1,9) do ( MODE COM%a /STATUS | FIND "COM" | FIND "Status" )` with cmd or check with the device manager.  
+After that `chmod 666 /path/to/port`.  
 ```
 Usage: sist [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]
             [-w /path/to/LOG] [-t] [-a] [-n] [-h] [-v]
