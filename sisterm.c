@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.2"
+#define VERSION       "1.2.3"
 #define UPDATE_DATE   "20190219"
 
 
@@ -77,10 +77,11 @@ int main(int argc, char **argv)
   int  rflag        = 0;                // Read file Flag
   int  cflag        = 1;                // Color Flag
   int  ts           = 0;                // Whether to timestamp
-  //unsigned char     logbuf[MAX_LENGTH]; // Log buffer
   unsigned char     *logbuf;
+  unsigned char     *lb;                // Log buffer pointer
   logbuf            = (unsigned char*)malloc(MAX_LENGTH);
-  unsigned char     *lb = logbuf;       // Log buffer pointer
+  lb                = logbuf;
+  int  lblen        = MAX_LENGTH - 2;
   unsigned char     comm[32];           // For comment
   unsigned char     date[32];           // Buffer to set timestamp
   struct timespec   now;
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
           cflag = 0;
           break;
 
-/* ---------------------------------------------------------------- 
+/* ----------------------------------------------------------------
         case 'p':
         // Telnet test
           tcpflag = 1;
@@ -168,7 +169,7 @@ int main(int argc, char **argv)
           }
           strcpy(dstaddr, argv[++i]);
           break;
-///* -------------------------------------------------------------- */
+// -------------------------------------------------------------- */
 
         case 'h':
         // Show help
@@ -358,8 +359,9 @@ int main(int argc, char **argv)
 
     while((i=fgetc(fr)) != EOF)
     {
-      c = (char)i;
-      write(STDOUT_FILENO, &c, 1);
+      c = (unsigned char)i;
+      if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
+        write(STDOUT_FILENO, &c, 1);
 
       if( 0x0a==c )
       {
@@ -461,10 +463,44 @@ int main(int argc, char **argv)
         if( recv(fd, &c, 1, 0) > 0 )
         {
           if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
-            //printf("%c", c);
-            //write(STDOUT_FILENO, &c, 1);
             write(STDOUT_FILENO, &c, 1);
-            //DebugLog("[%c]", c);
+
+          if( 0x0a==c )
+          {
+            prflag  = 1;
+            excflag = 0;
+            write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+          }
+
+          if( 0x21==c && cflag && !excflag )
+          {
+            comlen = 0;
+            excflag = 1;
+            write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+          }
+
+          if( excflag && 0x07!=c ) comlen++;
+
+          if( 0x08==c )
+          {
+            if( excflag ) comlen-=2;
+            if( excflag && 0>=comlen )
+            {
+              write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+              excflag = 0;
+            }
+          }
+
+          if( !excflag && cflag ) coloring(c);
+
+          if( prflag ) {
+            if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 )
+            {
+              memset( io = s, '\0', MAX_LENGTH );
+              prflag = 0;
+            }
+          }
+          //DebugLog("[%s]", s);
         }
         else if( recv(fd, &c, 1, 0) == 0) break;
 
@@ -480,13 +516,24 @@ int main(int argc, char **argv)
         if( kbhit() )
     //if(read(STDIN_FILENO, &c, 1) > 0)
         {
-          //DebugLog("\b");
           c = getchar();
-          if( endcode == c )
+          if( 0x1b==c )                 escflag = 1;  // ^
+          else if( 0x5b==c && escflag ) spflag  = 1;  // ^[
+          else if( 0x33==c && spflag )  tilflag = 1;  // ^[3
+          else if( 0x7e==c && tilflag )               // ^[3~
           {
-            //kill(p_pid, SIGTERM);
-            break; // hang up
+            c = 0x7f;
+            escflag = spflag = tilflag = 0;
           }
+          else
+          {
+            escflag = spflag = 0;
+          }
+
+          if( endcode == c )                  break;  // hang up
+          if( 0x00 == c )                  c = 0x7f;  // BS on Vimterminal
+
+          //DebugLog("[0x%02x]", c);
           send(fd, &c, 1, 0);
         }
       }
@@ -517,27 +564,26 @@ int main(int argc, char **argv)
       if( logflag )
       {
         // Unstable
-        if( strlen(logbuf) > MAX_LENGTH - 2 )
+        if( strlen(logbuf) > lblen )
         {
-          logbuf = (char *)realloc(logbuf,sizeof(char) * MAX_LENGTH * 2);
+          lb = logbuf = (unsigned char*)realloc(
+              logbuf, sizeof(unsigned char) * (lblen += MAX_LENGTH));
           //free(logbuf);
-          //memset(lb = logbuf, '\0', MAX_LENGTH);
         }
 
         if( 0x08==c )
         {
-          //*logbuf--;
-          logbuf[strlen(logbuf)-1] = '\0';
+          //if( lb != logbuf ) // Sent 0x07 from device
+          *lb--;
         }
         else if( 0x1f<c && 0x7f>c )
         {
-          //*logbuf++ = c;
-          logbuf[strlen(logbuf)] = c;
+          *lb++ = c;
         }
-        else if( 0x0d==c || 0x0a==c )
+        else if( /*0x0d==c ||*/ 0x0a==c )
         {
-          logbuf[strlen(logbuf)] = c;
-          if( 0x0a==c )
+          logbuf[strlen(logbuf)] = '\n';
+          //if( 0x0a==c )
           {
             if( ts )
             {
@@ -548,10 +594,20 @@ int main(int argc, char **argv)
                   tm.tm_hour, tm.tm_min, tm.tm_sec,
                   (int) now.tv_nsec / 1000000
                   );
-              fwrite(date, strlen(date), 1, log);
+              fwrite(date, 1, strlen(date), log);
             }
-            fwrite(logbuf, strlen(logbuf), 1, log);
-            memset( logbuf = lb, '\0', MAX_LENGTH );
+
+            fwrite(logbuf, 1, strlen(logbuf), log);
+
+            if( lblen > MAX_LENGTH - 2 )
+            {
+              lblen = MAX_LENGTH - 2;
+              free(logbuf);
+              //lb = logbuf = (unsigned char *)realloc(
+              //    logbuf, sizeof(unsigned char) * (MAX_LENGTH));
+              lb = logbuf = (unsigned char*)malloc(MAX_LENGTH);
+            }
+            memset( lb = logbuf, '\0', MAX_LENGTH );
           }
         }
       }
@@ -613,6 +669,7 @@ int main(int argc, char **argv)
       if( endcode == c )                  break;  // hang up
       if( 0x00 == c )                  c = 0x7f;  // BS on Vimterminal
 
+      //if( '$' == c ) DebugLog("[lblen:%d]", lblen);
       //DebugLog("[0x%02x]", c);
       write(fd, &c, 1);
     }
@@ -630,10 +687,10 @@ int main(int argc, char **argv)
           tm.tm_hour, tm.tm_min, tm.tm_sec,
           (int) now.tv_nsec / 1000000
           );
-      fwrite(date, strlen(date), 1, log);
+      fwrite(date, 1, strlen(date), log);
     }
-    sprintf(logbuf, "%s%c%c%c%c", logbuf, 0x0d, 0x0a, 0x0d, 0x0a);
-    fwrite(logbuf, strlen(logbuf), 1, log);
+    sprintf(logbuf, "%s%c", logbuf, 0x0a);
+    fwrite(logbuf, 1, strlen(logbuf), log);
     fclose(log);
   }
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
@@ -661,7 +718,7 @@ int kbhit()
   fcntl(STDIN_FILENO, F_SETFL, oldf);
 
   if (ch != EOF) {
-    //ungetc(ch, stdin);
+    ungetc(ch, stdin);
     return 1;
   }
   //*/
