@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.1"
-#define UPDATE_DATE   "20190217"
+#define VERSION       "1.2.2"
+#define UPDATE_DATE   "20190219"
 
 
 #include "sisterm.h"
@@ -11,6 +11,7 @@
 
 //Debug
 #include <stdarg.h>
+#include <signal.h>
 
 
 #ifdef __linux__
@@ -19,7 +20,7 @@
 #define              CLOCK CLOCK_REALTIME
 #endif
 
-#define MAX_LENGTH   256
+#define MAX_LENGTH   512
 #define REG_FLAGS    REG_EXTENDED | REG_NOSUB | REG_ICASE
 
 unsigned char s[MAX_LENGTH];
@@ -76,7 +77,9 @@ int main(int argc, char **argv)
   int  rflag        = 0;                // Read file Flag
   int  cflag        = 1;                // Color Flag
   int  ts           = 0;                // Whether to timestamp
-  unsigned char     logbuf[MAX_LENGTH]; // Log buffer
+  //unsigned char     logbuf[MAX_LENGTH]; // Log buffer
+  unsigned char     *logbuf;
+  logbuf            = (unsigned char*)malloc(MAX_LENGTH);
   unsigned char     *lb = logbuf;       // Log buffer pointer
   unsigned char     comm[32];           // For comment
   unsigned char     date[32];           // Buffer to set timestamp
@@ -134,23 +137,6 @@ int main(int argc, char **argv)
           W = argv[++i];
           break;
 
-/* ------------------------------------------------
-        case 'b':
-        // /path/to/log.txt
-          if(NULL==argv[i+1])
-          {
-            nothingArgs(argv[0], *argv[i]);
-            return EXIT_FAILURE;
-          }
-          if( !strcmp(argv[++i], "light") )
-            bg = LIGHT;
-          else if( !strcmp(argv[i], "dark") )
-            bg = DARK;
-          else
-            bg = NONE;
-          break;
------------------------------------------------- */
-
         case 't':
         // Add timestamp to log
           ts = 1;
@@ -166,7 +152,7 @@ int main(int argc, char **argv)
           cflag = 0;
           break;
 
-/* -------------------------------------------------------------
+/* ---------------------------------------------------------------- 
         case 'p':
         // Telnet test
           tcpflag = 1;
@@ -182,7 +168,7 @@ int main(int argc, char **argv)
           }
           strcpy(dstaddr, argv[++i]);
           break;
--------------------------------------------------------------- */
+///* -------------------------------------------------------------- */
 
         case 'h':
         // Show help
@@ -416,32 +402,37 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
   }
 
-  /* ---------------------------------------------------------------------- */
+  /* ----------------------------------------------------------------------- */
   if( tcpflag )
   {
     // for Telnet
     // without termios
-    //tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+    tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
     struct sockaddr_in sa;
     size_t port = 23;
+    char buf[MAX_LENGTH];
 
     if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
     {
-      perror("socket error\n");
+      perror("socket error");
       return EXIT_FAILURE;
     }
 
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
-    sa.sin_addr.s_addr = inet_addr(dstaddr);
     sa.sin_port = htons(port);
+    sa.sin_addr.s_addr = inet_addr(dstaddr);
 
-    if( sa.sin_addr.s_addr == 0xffffffff ) return EXIT_FAILURE;
+    if( sa.sin_addr.s_addr == 0xffffffff )
+    {
+      perror("invalid IP Address");
+      return EXIT_FAILURE;
+    }
 
     if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) > 0)
     {
-      perror("connect eror\n");
+      perror("connect eror");
       close(fd);
       return EXIT_FAILURE;
     }
@@ -450,23 +441,56 @@ int main(int argc, char **argv)
 
     tcsetattr(fd, TCSANOW, &tio);
 
-    for(;;)
+    ///*
+    pid_t pid;
+    pid_t p_pid = getpid();
+    pid = fork();
+
+    if( 0 > pid )
     {
-      if(read(fd, &c, 1) > 0)
+      perror("fork() failure");
+      return EXIT_FAILURE;
+    } //*/
+
+    //for(;;)
+    {
+      if( 0 == pid )
+      for(;;)
       {
-        if( 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
-          write(STDOUT_FILENO, &c, 1);
+        //if( recv(fd, &c, 1, MSG_DONTWAIT) > 0 )
+        if( recv(fd, &c, 1, 0) > 0 )
+        {
+          if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
+            //printf("%c", c);
+            //write(STDOUT_FILENO, &c, 1);
+            write(STDOUT_FILENO, &c, 1);
+            //DebugLog("[%c]", c);
+        }
+        else if( recv(fd, &c, 1, 0) == 0) break;
+
+        if( kbhit() )
+        {
+          DebugLog("\b");
+        }
       }
 
-      if(read(STDIN_FILENO, &c, 1) > 0)
-      //if(kbhit())
+      if( 0 != pid )
+      for(;;)
       {
-        //c = getchar();
-        //write(STDOUT_FILENO, &c, 1);
-        if( endcode == c ) break; // hang up
-        write(fd, &c, 1);
-        //send(fd, &c, 1, 0);
+        if( kbhit() )
+    //if(read(STDIN_FILENO, &c, 1) > 0)
+        {
+          //DebugLog("\b");
+          c = getchar();
+          if( endcode == c )
+          {
+            //kill(p_pid, SIGTERM);
+            break; // hang up
+          }
+          send(fd, &c, 1, 0);
+        }
       }
+      //*/
     }
 
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
@@ -474,7 +498,7 @@ int main(int argc, char **argv)
     close(fd);
     return EXIT_SUCCESS;
   }
-  /* ---------------------------------------------------------------------- */
+  /* ----------------------------------------------------------------------- */
 
   printf("Connected.\n");
 
@@ -492,13 +516,23 @@ int main(int argc, char **argv)
 
       if( logflag )
       {
+        // Unstable
+        if( strlen(logbuf) > MAX_LENGTH - 2 )
+        {
+          logbuf = (char *)realloc(logbuf,sizeof(char) * MAX_LENGTH * 2);
+          //free(logbuf);
+          //memset(lb = logbuf, '\0', MAX_LENGTH);
+        }
+
         if( 0x08==c )
         {
-          *lb--;
+          //*logbuf--;
+          logbuf[strlen(logbuf)-1] = '\0';
         }
         else if( 0x1f<c && 0x7f>c )
         {
-          *lb++ = c;
+          //*logbuf++ = c;
+          logbuf[strlen(logbuf)] = c;
         }
         else if( 0x0d==c || 0x0a==c )
         {
@@ -517,7 +551,7 @@ int main(int argc, char **argv)
               fwrite(date, strlen(date), 1, log);
             }
             fwrite(logbuf, strlen(logbuf), 1, log);
-            memset( lb = logbuf, '\0', MAX_LENGTH );
+            memset( logbuf = lb, '\0', MAX_LENGTH );
           }
         }
       }
@@ -610,12 +644,10 @@ int main(int argc, char **argv)
 }
 
 
+struct termios oldt, newt;
+int ch, oldf;
 int kbhit()
 {
-  struct termios oldt, newt;
-  int ch;
-  int oldf;
-
   tcgetattr(STDIN_FILENO, &oldt);
   newt = oldt;
   newt.c_lflag &= ~(ICANON | ECHO);
@@ -629,9 +661,10 @@ int kbhit()
   fcntl(STDIN_FILENO, F_SETFL, oldf);
 
   if (ch != EOF) {
-  ungetc(ch, stdin);
-  return 1;
+    //ungetc(ch, stdin);
+    return 1;
   }
+  //*/
 }
 
 int regcompAll()
