@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.4"
+#define VERSION       "1.2.5"
 #define UPDATE_DATE   "20190220"
 
 
@@ -25,6 +25,8 @@
 
 char s[MAX_LENGTH];
 char *io = s;
+int  bsflag = 0;
+
 
 regex_t reg_prompt;
 regex_t reg_vendors;
@@ -87,7 +89,7 @@ int main(int argc, char **argv)
   char              date[81];           // Buffer to set timestamp
   struct timespec   now;
   struct tm         tm;
-  FILE              *log;
+  FILE              *lf;
   char mode[3]      = "w+";             // Log file open mode
   char dstaddr[16];
   int  i;
@@ -266,9 +268,9 @@ int main(int argc, char **argv)
         return EXIT_SUCCESS;
     }
 
-    log = fopen(W, mode);
+    lf = fopen(W, mode);
 
-    if(log == NULL)
+    if(lf == NULL)
     {
       if(access(W, F_OK))
       {
@@ -288,6 +290,8 @@ int main(int argc, char **argv)
 
     logflag = 1;
   }
+
+  //if( !logflag && ts ) ts = 0;
 
   struct termios tio;
   struct termios stdio;
@@ -574,7 +578,8 @@ int main(int argc, char **argv)
         if( 0x08==c )
         {
           //if( lb != logbuf ) // Sent 0x07 from device
-          *lb--;
+          //*lb--;
+          lb--;
         }
         else if( 0x1f<c && 0x7f>c )
         {
@@ -594,10 +599,10 @@ int main(int argc, char **argv)
                   tm.tm_hour, tm.tm_min, tm.tm_sec,
                   (int) now.tv_nsec / 1000000
                   );
-              fwrite(date, 1, strlen(date), log);
+              fwrite(date, 1, strlen(date), lf);
             }
 
-            fwrite(logbuf, 1, strlen(logbuf), log);
+            fwrite(logbuf, 1, strlen(logbuf), lf);
 
             if( lblen > MAX_LENGTH - 2 )
             {
@@ -666,8 +671,10 @@ int main(int argc, char **argv)
         escflag = spflag = 0;
       }
 
-      if( endcode == c )                  break;  // hang up
+      if( endcode == c )                   break; // hang up
       if( 0x00 == c )                  c = 0x7f;  // BS on Vimterminal
+
+      if( 0x7f == c )             bsflag = 3;     // BS on Vimterminal
 
       //if( '$' == c ) DebugLog("[lblen:%d]", lblen);
       //DebugLog("[0x%02x]", c);
@@ -676,6 +683,7 @@ int main(int argc, char **argv)
   }
 
   close(fd);
+
   if(logflag)
   {
     if( ts )
@@ -687,15 +695,15 @@ int main(int argc, char **argv)
           tm.tm_hour, tm.tm_min, tm.tm_sec,
           (int) now.tv_nsec / 1000000
           );
-      fwrite(date, 1, strlen(date), log);
+      fwrite(date, 1, strlen(date), lf);
     }
     char loglast[strlen(logbuf)+1];
     sprintf(loglast, "%s%c", logbuf, 0x0a);
-    fwrite(loglast, 1, strlen(loglast), log);
-    fclose(log);
+    fwrite(loglast, 1, strlen(loglast), lf);
+    fclose(lf);
   }
-  tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
+  tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
   printf("%s\nDisconnected.\n", RESET);
 
   return EXIT_SUCCESS;
@@ -796,19 +804,22 @@ void repaint(char *color)
 
 void coloring(char c)
 {
-  if( (0x08!=c && 0x21>c) )  // Add yajirushi key
+  if( 0x08!=c && 0x21>c && !bsflag )  // Add yajirushi key
   {
     memset( io = s, '\0', MAX_LENGTH );
     return;
   }
 
-  if( 0x08==c )
+  //if( 0x08==c )
+  if( bsflag && 0x07!=c )
   {
-    if( '\0'!=s[0] )
-    {
-      *io--;
-      s[strlen(s)-1] = '\0';
-    }
+    if( 2==bsflag-- /*&& '\0'!=s[0]*/ )
+      *io++ = '\0';
+    else
+      io--;
+
+    if( bsflag )
+      return;
   }
   else if( strlen(s) < MAX_LENGTH - 1 )
   {
