@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.3"
-#define UPDATE_DATE   "20190219"
+#define VERSION       "1.2.4"
+#define UPDATE_DATE   "20190220"
 
 
 #include "sisterm.h"
@@ -23,8 +23,8 @@
 #define MAX_LENGTH   512
 #define REG_FLAGS    REG_EXTENDED | REG_NOSUB | REG_ICASE
 
-unsigned char s[MAX_LENGTH];
-unsigned char *io = s;
+char s[MAX_LENGTH];
+char *io = s;
 
 regex_t reg_prompt;
 regex_t reg_vendors;
@@ -74,16 +74,17 @@ int main(int argc, char **argv)
   int  logflag      = 0;                // Whether to take a log
   int  tcpflag      = 0;                // TCP
   int  prflag       = 0;                // Prompt Flag
+  int  wflag        = 0;                // Write file Flag
   int  rflag        = 0;                // Read file Flag
   int  cflag        = 1;                // Color Flag
   int  ts           = 0;                // Whether to timestamp
-  unsigned char     *logbuf;
-  unsigned char     *lb;                // Log buffer pointer
-  logbuf            = (unsigned char*)malloc(MAX_LENGTH);
+  char              *logbuf;
+  char              *lb;                // Log buffer pointer
+  logbuf            = (char*)malloc(MAX_LENGTH);
   lb                = logbuf;
   int  lblen        = MAX_LENGTH - 2;
-  unsigned char     comm[32];           // For comment
-  unsigned char     date[32];           // Buffer to set timestamp
+  char              comm[32];           // For comment
+  char              date[81];           // Buffer to set timestamp
   struct timespec   now;
   struct tm         tm;
   FILE              *log;
@@ -126,6 +127,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
           }
           R = argv[++i];
+          rflag = 1;
           break;
 
         case 'w':
@@ -136,6 +138,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
           }
           W = argv[++i];
+          wflag = 1;
           break;
 
         case 't':
@@ -207,9 +210,6 @@ int main(int argc, char **argv)
   }
 
 
-  if( R != NULL ) rflag = 1;
-
-
   if( sPort == NULL && !rflag && !tcpflag )
   {
     printf("%s: must specify Serial Port\n", argv[0]);
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
   }
 
 
-  if( W != NULL && !rflag && !tcpflag )
+  if( wflag && !rflag && !tcpflag )
   {
     if(!access(W, F_OK))
       existsflag = 1;
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
     {
       printf("\a%s already exists!\n", W);
       printf("Do you want to overwrite?[confirm]");
-      unsigned char con = getchar();
+      char con = getchar();
       if( !(con=='\n' || con=='y' || con=='Y') )
         return EXIT_SUCCESS;
     }
@@ -294,8 +294,8 @@ int main(int argc, char **argv)
   struct termios old_stdio;
   int fd;
 
-  unsigned char c             = '0';
-  const unsigned char endcode = '~';
+  char c             = '0';
+  const char endcode = '~';
   tcgetattr(STDOUT_FILENO, &old_stdio);
 
   memset(&stdio, 0, sizeof(stdio));
@@ -359,7 +359,7 @@ int main(int argc, char **argv)
 
     while((i=fgetc(fr)) != EOF)
     {
-      c = (unsigned char)i;
+      c = (char)i;
       if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
         write(STDOUT_FILENO, &c, 1);
 
@@ -413,7 +413,7 @@ int main(int argc, char **argv)
 
     struct sockaddr_in sa;
     size_t port = 23;
-    char buf[MAX_LENGTH];
+    //char buf[MAX_LENGTH];
 
     if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
     {
@@ -445,7 +445,7 @@ int main(int argc, char **argv)
 
     ///*
     pid_t pid;
-    pid_t p_pid = getpid();
+    //pid_t p_pid = getpid();
     pid = fork();
 
     if( 0 > pid )
@@ -566,8 +566,8 @@ int main(int argc, char **argv)
         // Unstable
         if( strlen(logbuf) > lblen )
         {
-          lb = logbuf = (unsigned char*)realloc(
-              logbuf, sizeof(unsigned char) * (lblen += MAX_LENGTH));
+          lb = logbuf = (char*)realloc(
+              logbuf, sizeof(char) * (lblen += MAX_LENGTH));
           //free(logbuf);
         }
 
@@ -603,9 +603,9 @@ int main(int argc, char **argv)
             {
               lblen = MAX_LENGTH - 2;
               free(logbuf);
-              //lb = logbuf = (unsigned char *)realloc(
-              //    logbuf, sizeof(unsigned char) * (MAX_LENGTH));
-              lb = logbuf = (unsigned char*)malloc(MAX_LENGTH);
+              //lb = logbuf = (char *)realloc(
+              //    logbuf, sizeof(char) * (MAX_LENGTH));
+              lb = logbuf = (char*)malloc(MAX_LENGTH);
             }
             memset( lb = logbuf, '\0', MAX_LENGTH );
           }
@@ -689,8 +689,9 @@ int main(int argc, char **argv)
           );
       fwrite(date, 1, strlen(date), log);
     }
-    sprintf(logbuf, "%s%c", logbuf, 0x0a);
-    fwrite(logbuf, 1, strlen(logbuf), log);
+    char loglast[strlen(logbuf)+1];
+    sprintf(loglast, "%s%c", logbuf, 0x0a);
+    fwrite(loglast, 1, strlen(loglast), log);
     fclose(log);
   }
   tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
@@ -721,6 +722,7 @@ int kbhit()
     ungetc(ch, stdin);
     return 1;
   }
+  return 0;
   //*/
 }
 
@@ -751,7 +753,7 @@ int regcompAll()
 }
 
 
-int syntaxCheck(unsigned char *str)
+int syntaxCheck(char *str)
 {
   if( regexec(&reg_vendors  , str, 0, 0, 0) == 0 ) return HL_VENDORS;
   if( regexec(&reg_ipv4_net , str, 0, 0, 0) == 0 ) return HL_IPV4_NET;
@@ -775,23 +777,24 @@ int syntaxCheck(unsigned char *str)
 }
 
 
-void repaint(unsigned char *color)
+void repaint(char *color)
 {
   io = s;
   size_t i = 0;
-  unsigned char str[MAX_LENGTH];
-  unsigned char tmp[MAX_LENGTH];
+  char bs[4];
+  char tmp[MAX_LENGTH];
+  char str[MAX_LENGTH + 32];
   while(*io)
   {
     tmp[i++] = *io++;
-    write(STDOUT_FILENO, str, sprintf(str, "\b \b"));
+    write(STDOUT_FILENO, bs, sprintf(bs, "\b \b"));
   }
   if(tmp[i]!='\0') tmp[i]='\0';
   write(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
 }
 
 
-void coloring(unsigned char c)
+void coloring(char c)
 {
   if( (0x08!=c && 0x21>c) )  // Add yajirushi key
   {
@@ -799,7 +802,7 @@ void coloring(unsigned char c)
     return;
   }
 
-  if( '\b'==c )
+  if( 0x08==c )
   {
     if( '\0'!=s[0] )
     {

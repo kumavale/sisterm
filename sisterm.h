@@ -23,13 +23,13 @@ int kbhit();
 int regcompAll();
 
 // Check syntax
-int syntaxCheck(unsigned char *str);
+int syntaxCheck(char *str);
 
 // Syntax OK -> repaint
-void repaint(unsigned char *color);
+void repaint(char *color);
 
 // Control coloring
-void coloring(unsigned char c);
+void coloring(char c);
 
 // Warning with no argments
 void nothingArgs(char *argv0, char op);
