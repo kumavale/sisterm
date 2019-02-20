@@ -73,6 +73,7 @@ int main(int argc, char **argv)
   int  escflag      = 0;                // '^'
   int  spflag       = 0;                // '['
   int  tilflag      = 0;                // Del key -> BS key
+  int  arrflag      = 0;                // Arrow keys flag
   int  logflag      = 0;                // Whether to take a log
   int  tcpflag      = 0;                // TCP
   int  prflag       = 0;                // Prompt Flag
@@ -80,16 +81,14 @@ int main(int argc, char **argv)
   int  rflag        = 0;                // Read file Flag
   int  cflag        = 1;                // Color Flag
   int  ts           = 0;                // Whether to timestamp
-  char              *logbuf;
-  char              *lb;                // Log buffer pointer
-  logbuf            = (char*)malloc(MAX_LENGTH);
-  lb                = logbuf;
+  char* logbuf      = (char*)malloc(MAX_LENGTH);
+  char* lb          = logbuf;           // Log buffer pointer
   int  lblen        = MAX_LENGTH - 2;
   char              comm[32];           // For comment
   char              date[81];           // Buffer to set timestamp
   struct timespec   now;
   struct tm         tm;
-  FILE              *lf;
+  FILE *lf          = NULL;
   char mode[3]      = "w+";             // Log file open mode
   char dstaddr[16];
   int  i;
@@ -248,7 +247,7 @@ int main(int argc, char **argv)
   }
 
 
-  if( wflag && !rflag && !tcpflag )
+  if( wflag && !rflag )
   {
     if(!access(W, F_OK))
       existsflag = 1;
@@ -290,8 +289,6 @@ int main(int argc, char **argv)
 
     logflag = 1;
   }
-
-  //if( !logflag && ts ) ts = 0;
 
   struct termios tio;
   struct termios stdio;
@@ -469,6 +466,57 @@ int main(int argc, char **argv)
           if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
             write(STDOUT_FILENO, &c, 1);
 
+          if( logflag )
+          {
+            // Unstable
+            if( strlen(logbuf) > lblen )
+            {
+              lb = logbuf = (char*)realloc(
+                  logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+              //free(logbuf);
+            }
+
+            if( 0x08==c )
+            {
+              //if( lb != logbuf ) // Sent 0x07 from device
+              lb--;
+            }
+            else if( 0x1f<c && 0x7f>c )
+            {
+              *lb++ = c;
+            }
+            else if( /*0x0d==c ||*/ 0x0a==c )
+            {
+              logbuf[strlen(logbuf)] = '\n';
+              //if( 0x0a==c )
+              {
+                if( ts )
+                {
+                  clock_gettime(CLOCK, &now);
+                  localtime_r(&now.tv_sec, &tm);
+                  sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+                      tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+                      tm.tm_hour, tm.tm_min, tm.tm_sec,
+                      (int) now.tv_nsec / 1000000
+                      );
+                  fwrite(date, 1, strlen(date), lf);
+                }
+
+                fwrite(logbuf, 1, strlen(logbuf), lf);
+
+                if( lblen > MAX_LENGTH - 2 )
+                {
+                  lblen = MAX_LENGTH - 2;
+                  free(logbuf);
+                  //lb = logbuf = (char *)realloc(
+                  //    logbuf, sizeof(char) * (MAX_LENGTH));
+                  lb = logbuf = (char*)malloc(MAX_LENGTH);
+                }
+                memset( lb = logbuf, '\0', MAX_LENGTH );
+              }
+            }
+          }
+
           if( 0x0a==c )
           {
             prflag  = 1;
@@ -521,10 +569,11 @@ int main(int argc, char **argv)
     //if(read(STDIN_FILENO, &c, 1) > 0)
         {
           c = getchar();
-          if( 0x1b==c )                 escflag = 1;  // ^
-          else if( 0x5b==c && escflag ) spflag  = 1;  // ^[
-          else if( 0x33==c && spflag )  tilflag = 1;  // ^[3
-          else if( 0x7e==c && tilflag )               // ^[3~
+          if( 0x1b==c )                           escflag = 1;  // ^
+          else if( escflag  && 0x5b==c )          spflag  = 1;  // ^[
+          else if( spflag   && 0x33==c )          tilflag = 1;  // ^[3
+          else if( spflag   && 0x40<c && 0x45>c ) arrflag = 1;  // ^[[ABCD]
+          else if( tilflag  && 0x7e==c )                        // ^[3~
           {
             c = 0x7f;
             escflag = spflag = tilflag = 0;
@@ -538,17 +587,45 @@ int main(int argc, char **argv)
           if( 0x00 == c )                  c = 0x7f;  // BS on Vimterminal
 
           //DebugLog("[0x%02x]", c);
-          send(fd, &c, 1, 0);
+          if( !escflag )
+            send(fd, &c, 1, 0);
+          if( arrflag )
+          {
+            char* arrow = (char*)malloc(4);
+            sprintf(arrow, "%c%c%c", 0x1b, 0x5b, c);
+            send(fd, arrow, 3, 0);
+            free(arrow);
+            arrflag = 0;
+          }
         }
       }
       //*/
     }
 
-    tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
-    printf("%s\nDisconnected.\n", RESET);
-    close(fd);
-    return EXIT_SUCCESS;
-  }
+    if(logflag)
+    {
+      if( ts )
+      {
+        clock_gettime(CLOCK, &now);
+        localtime_r(&now.tv_sec, &tm);
+        sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+            tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec,
+            (int) now.tv_nsec / 1000000
+            );
+        fwrite(date, 1, strlen(date), lf);
+      }
+      char loglast[strlen(logbuf)+1];
+      sprintf(loglast, "%s%c", logbuf, 0x0a);
+      fwrite(loglast, 1, strlen(loglast), lf);
+      fclose(lf);
+    }
+
+      tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+      printf("%s\nDisconnected.\n", RESET);
+      close(fd);
+      return EXIT_SUCCESS;
+    }
   /* ----------------------------------------------------------------------- */
 
   printf("Connected.\n");
@@ -578,7 +655,6 @@ int main(int argc, char **argv)
         if( 0x08==c )
         {
           //if( lb != logbuf ) // Sent 0x07 from device
-          //*lb--;
           lb--;
         }
         else if( 0x1f<c && 0x7f>c )
@@ -948,6 +1024,8 @@ void usage(char *v)
   printf("  -t            Add timestamp to log\n");
   printf("  -a            Append to log      (default overwrite)\n");
   printf("  -n            Without color\n\n");
+  //printf("  -p IPAddress  Telnet !!!Beta version!!!\n\n");
+  // rear printf("  -p portnumber [IPAddress]  \n");
 
   printf("Commands:\n");
   printf("  ~           Terminate the conversation\n");

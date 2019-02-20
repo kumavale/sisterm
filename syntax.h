@@ -111,7 +111,7 @@ enum BackGround {
 
 //#define NUMBER
 
-#define ACTION  "^(disable|deny|shutdown|[[]?down[]]?|[[]?administratively[]]?|none)$"
+#define ACTION  "^(disable|disabled|deny|shutdown|[[]?down[]]?|[[]?administratively[]]?|none)$"
 
 #define VAR     "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|monitor|any|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
 
