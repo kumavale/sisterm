@@ -633,6 +633,8 @@ int main(int argc, char **argv)
 
       if( excflag && 0x07!=c ) comlen++;
 
+      if( 0x07==c ) bsflag = 0;
+
       if( 0x08==c )
       {
         if( excflag ) comlen-=2;
@@ -804,27 +806,32 @@ void repaint(char *color)
 
 void coloring(char c)
 {
-  if( 0x08!=c && 0x21>c && !bsflag )
+  if( (/*0x08!=c &&*/ 0x21>c && !bsflag) )
   {
     memset( io = s, '\0', MAX_LENGTH );
     return;
   }
 
-  if( bsflag && 0x07!=c )
+  //en route
+  if( bsflag )
   {
-    if( 2==bsflag-- /*&& '\0'!=s[0]*/ )
+    if( 2==bsflag-- //&& '\0'!=s[0] )
+      )
       *io++ = '\0';
+      //*io++ = 0x20;
     else
       io--;
 
     if( bsflag )
       return;
   }
-  else if( 0x08==c )
+  /*else if( 0x08==c )
   {
     io--;
+    if( '\0'==s )
+      memset( io = s, '\0', MAX_LENGTH );
     return;
-  }
+  } //*/
   else if( strlen(s) < MAX_LENGTH - 1 )
   {
     *io++ = c;
