@@ -1,6 +1,6 @@
 # sisterm
 ![stable](https://img.shields.io/badge/build-passing-success.svg)
-![version](https://img.shields.io/badge/version-1.2.5-success.svg)
+![version](https://img.shields.io/badge/version-1.2.6-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
 sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.  

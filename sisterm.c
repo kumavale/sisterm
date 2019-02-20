@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.5"
+#define VERSION       "1.2.6"
 #define UPDATE_DATE   "20190220"
 
 
@@ -804,13 +804,12 @@ void repaint(char *color)
 
 void coloring(char c)
 {
-  if( 0x08!=c && 0x21>c && !bsflag )  // Add yajirushi key
+  if( 0x08!=c && 0x21>c && !bsflag )
   {
     memset( io = s, '\0', MAX_LENGTH );
     return;
   }
 
-  //if( 0x08==c )
   if( bsflag && 0x07!=c )
   {
     if( 2==bsflag-- /*&& '\0'!=s[0]*/ )
@@ -821,13 +820,18 @@ void coloring(char c)
     if( bsflag )
       return;
   }
+  else if( 0x08==c )
+  {
+    io--;
+    return;
+  }
   else if( strlen(s) < MAX_LENGTH - 1 )
   {
     *io++ = c;
   }
   else
   {
-    memset( io = s, '\0', sizeof(s) );
+    memset( io = s, '\0', MAX_LENGTH );
     return;
   }
 
