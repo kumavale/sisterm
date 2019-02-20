@@ -16,6 +16,9 @@
 #include <sys/types.h>
 
 
+// Alternative to write()
+void transmission(int, const void*, size_t);
+
 // Keyboard Hit Check
 int kbhit();
 

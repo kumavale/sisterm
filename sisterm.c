@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.6"
+#define VERSION       "1.2.7"
 #define UPDATE_DATE   "20190220"
 
 
@@ -52,12 +52,13 @@ regex_t reg_slash;
 //For debug
 void DebugLog(const char *_format, ... )
 {
+  int len;
   va_list argList;
 	va_start(argList, _format);
 	char str[MAX_LENGTH];
-	int len = vsprintf(str, _format, argList);
+	len = vsprintf(str, _format, argList);
 	va_end(argList);
-  write(STDOUT_FILENO, str, len);
+  transmission(STDOUT_FILENO, str, len);
 }
 
 int main(int argc, char **argv)
@@ -362,13 +363,13 @@ int main(int argc, char **argv)
     {
       c = (char)i;
       if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
-        write(STDOUT_FILENO, &c, 1);
+        transmission(STDOUT_FILENO, &c, 1);
 
       if( 0x0a==c )
       {
         prflag  = 1;
         excflag = 0;
-        write(STDOUT_FILENO, comm, sprintf(comm, "%c%s", 0x0d, RESET));
+        transmission(STDOUT_FILENO, comm, sprintf(comm, "%c%s", 0x0d, RESET));
       }
 
       if( cflag )
@@ -386,7 +387,7 @@ int main(int argc, char **argv)
       if( 0x21==c && cflag)
       {
         excflag = 1;
-        write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+        transmission(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
       }
 
       if( excflag )
@@ -413,7 +414,7 @@ int main(int argc, char **argv)
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
     struct sockaddr_in sa;
-    size_t port = 23;
+    int port = 23;
     //char buf[MAX_LENGTH];
 
     if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
@@ -464,12 +465,12 @@ int main(int argc, char **argv)
         if( recv(fd, &c, 1, 0) > 0 )
         {
           if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
-            write(STDOUT_FILENO, &c, 1);
+            transmission(STDOUT_FILENO, &c, 1);
 
           if( logflag )
           {
             // Unstable
-            if( strlen(logbuf) > lblen )
+            if( (int)strlen(logbuf) > lblen )
             {
               lb = logbuf = (char*)realloc(
                   logbuf, sizeof(char) * (lblen += MAX_LENGTH));
@@ -521,14 +522,14 @@ int main(int argc, char **argv)
           {
             prflag  = 1;
             excflag = 0;
-            write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+            transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
           }
 
           if( 0x21==c && cflag && !excflag )
           {
             comlen = 0;
             excflag = 1;
-            write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+            transmission(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
           }
 
           if( excflag && 0x07!=c ) comlen++;
@@ -538,7 +539,7 @@ int main(int argc, char **argv)
             if( excflag ) comlen-=2;
             if( excflag && 0>=comlen )
             {
-              write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+              transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
               excflag = 0;
             }
           }
@@ -639,13 +640,13 @@ int main(int argc, char **argv)
     if(read(fd, &c, 1) > 0)
     {
       if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
-        write(STDOUT_FILENO, &c, 1);
+        transmission(STDOUT_FILENO, &c, 1);
       //DebugLog("[%02x]", c);
 
       if( logflag )
       {
         // Unstable
-        if( strlen(logbuf) > lblen )
+        if( (int)strlen(logbuf) > lblen )
         {
           lb = logbuf = (char*)realloc(
               logbuf, sizeof(char) * (lblen += MAX_LENGTH));
@@ -697,14 +698,14 @@ int main(int argc, char **argv)
       {
         prflag  = 1;
         excflag = 0;
-        write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+        transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
       }
 
       if( 0x21==c && cflag && !excflag )
       {
         comlen = 0;
         excflag = 1;
-        write(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+        transmission(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
       }
 
       if( excflag && 0x07!=c ) comlen++;
@@ -716,7 +717,7 @@ int main(int argc, char **argv)
         if( excflag ) comlen-=2;
         if( excflag && 0>=comlen )
         {
-          write(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+          transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
           excflag = 0;
         }
       }
@@ -756,7 +757,7 @@ int main(int argc, char **argv)
 
       //if( '$' == c ) DebugLog("[lblen:%d]", lblen);
       //DebugLog("[0x%02x]", c);
-      write(fd, &c, 1);
+      transmission(fd, &c, 1);
     }
   }
 
@@ -785,6 +786,13 @@ int main(int argc, char **argv)
   printf("%s\nDisconnected.\n", RESET);
 
   return EXIT_SUCCESS;
+}
+
+
+void transmission(int _fd, const void* _buf, size_t _len)
+{
+  if( -1 == write(_fd, _buf, _len) )
+    perror("write() error");
 }
 
 
@@ -866,17 +874,17 @@ int syntaxCheck(char *str)
 void repaint(char *color)
 {
   io = s;
-  size_t i = 0;
+  int i = 0;
   char bs[4];
   char tmp[MAX_LENGTH];
   char str[MAX_LENGTH + 32];
   while(*io)
   {
     tmp[i++] = *io++;
-    write(STDOUT_FILENO, bs, sprintf(bs, "\b \b"));
+    transmission(STDOUT_FILENO, bs, sprintf(bs, "\b \b"));
   }
   if(tmp[i]!='\0') tmp[i]='\0';
-  write(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
+  transmission(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
 }
 
 
