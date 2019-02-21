@@ -1057,7 +1057,7 @@ void usage(char *v)
   printf("  -v,--version  Show %s version and exit\n", PROGRAM_NAME);
   printf("  -l port       Use named device   (e.g. /dev/ttyS0)\n");
   printf("  -s speed      Use given speed    (default 9600)\n");
-  printf("  -r path       Output config file (e.g. /tmp/config.txt)\n");
+  printf("  -r path       Output log file    (e.g. /tmp/config.txt)\n");
   printf("  -w path       Saved log          (e.g. /tmp/sist.log)\n");
   printf("  -t            Add timestamp to log\n");
   printf("  -a            Append to log      (default overwrite)\n");

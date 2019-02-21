@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
 sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.  
-![demo](https://user-images.githubusercontent.com/29778890/52197792-2c084d80-28a4-11e9-8674-7e6cc652d955.gif)
+![demo](https://user-images.githubusercontent.com/29778890/53171080-183f4400-3625-11e9-8204-83c20dcc6a3f.gif)
 
 
 ## Usage
@@ -19,7 +19,7 @@ Options:
   -v,--version  Show sisterm version and exit
   -l port       Use named device    (e.g. /dev/ttyS0)
   -s speed      Use given speed     (default 9600)
-  -r path       Output config file  (e.g. /tmp/config.txt)
+  -r path       Output log file     (e.g. /tmp/config.txt)
   -w path       Saved log           (e.g. /tmp/sist.log)
   -t            Add timestamp to log
   -a            Append to log       (default overwrite)
