@@ -9,12 +9,17 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include <stdio.h>
 #include <time.h>
 #include <regex.h>
 #include <sys/types.h>
 
+
+// Signal action
+void setSignal(int);
+void sigcatch();
 
 // Alternative to write()
 void transmission(int, const void*, size_t);

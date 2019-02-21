@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.7"
-#define UPDATE_DATE   "20190220"
+#define VERSION       "1.2.8"
+#define UPDATE_DATE   "20190221"
 
 
 #include "sisterm.h"
@@ -11,7 +11,6 @@
 
 //Debug
 #include <stdarg.h>
-#include <signal.h>
 
 
 #ifdef __linux__
@@ -158,7 +157,7 @@ int main(int argc, char **argv)
           cflag = 0;
           break;
 
-/* ----------------------------------------------------------------
+///* ----------------------------------------------------------------
         case 'p':
         // Telnet test
           tcpflag = 1;
@@ -410,12 +409,10 @@ int main(int argc, char **argv)
   if( tcpflag )
   {
     // for Telnet
-    // without termios
     tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
     struct sockaddr_in sa;
     int port = 23;
-    //char buf[MAX_LENGTH];
 
     if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
     {
@@ -447,7 +444,7 @@ int main(int argc, char **argv)
 
     ///*
     pid_t pid;
-    //pid_t p_pid = getpid();
+    pid_t p_pid = getpid();
     pid = fork();
 
     if( 0 > pid )
@@ -555,7 +552,11 @@ int main(int argc, char **argv)
           }
           //DebugLog("[%s]", s);
         }
-        else if( recv(fd, &c, 1, 0) == 0) break;
+        else if( recv(fd, &c, 1, 0) == 0)
+        {
+          kill(p_pid, SIGINT);
+          break;  // hang up
+        }
 
         if( kbhit() )
         {
@@ -570,11 +571,11 @@ int main(int argc, char **argv)
     //if(read(STDIN_FILENO, &c, 1) > 0)
         {
           c = getchar();
-          if( 0x1b==c )                           escflag = 1;  // ^
-          else if( escflag  && 0x5b==c )          spflag  = 1;  // ^[
-          else if( spflag   && 0x33==c )          tilflag = 1;  // ^[3
-          else if( spflag   && 0x40<c && 0x45>c ) arrflag = 1;  // ^[[ABCD]
-          else if( tilflag  && 0x7e==c )                        // ^[3~
+          if( 0x1b==c )                          escflag = 1;  // ^
+          else if( escflag && 0x5b==c )          spflag  = 1;  // ^[
+          else if( spflag  && 0x33==c )          tilflag = 1;  // ^[3
+          else if( spflag  && 0x40<c && 0x45>c ) arrflag = 1;  // ^[[ABCD]
+          else if( tilflag && 0x7e==c )                        // ^[3~
           {
             c = 0x7f;
             escflag = spflag = tilflag = 0;
@@ -584,7 +585,13 @@ int main(int argc, char **argv)
             escflag = spflag = 0;
           }
 
-          if( endcode == c )                  break;  // hang up
+          if( endcode == c )
+          {
+            //kill(p_pid, SIGINT);
+            kill(pid, SIGINT);
+            break;  // hang up
+          }
+
           if( 0x00 == c )                  c = 0x7f;  // BS on Vimterminal
 
           //DebugLog("[0x%02x]", c);
@@ -599,6 +606,9 @@ int main(int argc, char **argv)
             arrflag = 0;
           }
         }
+
+        // 100 microsecond
+        usleep(100);
       }
       //*/
     }
@@ -759,6 +769,9 @@ int main(int argc, char **argv)
       //DebugLog("[0x%02x]", c);
       transmission(fd, &c, 1);
     }
+
+    // 100 microsecond
+    usleep(100);
   }
 
   close(fd);
@@ -792,7 +805,10 @@ int main(int argc, char **argv)
 void transmission(int _fd, const void* _buf, size_t _len)
 {
   if( -1 == write(_fd, _buf, _len) )
+  {
     perror("write() error");
+    //exit(EXIT_FAILURE);
+  }
 }
 
 
@@ -1003,6 +1019,20 @@ void coloring(char c)
 
 }
 
+void setSignal(int p_signame)
+{
+  if( signal(p_signame, sigcatch) == SIG_ERR )
+  {
+    perror("SIG_ERR");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void sigcatch()
+{
+  exit(EXIT_SUCCESS);
+}
+
 void nothingArgs(char *argv0, char op)
 {
   printf("%s: option `-%c` requires an argument\n", argv0, op);
@@ -1032,7 +1062,7 @@ void usage(char *v)
   printf("  -t            Add timestamp to log\n");
   printf("  -a            Append to log      (default overwrite)\n");
   printf("  -n            Without color\n\n");
-  //printf("  -p IPAddress  Telnet !!!Beta version!!!\n\n");
+  printf("  -p IPAddress  Telnet !!!Beta version!!! Many bugs!\n\n");
   // rear printf("  -p portnumber [IPAddress]  \n");
 
   printf("Commands:\n");
