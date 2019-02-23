@@ -33,8 +33,11 @@ int regcompAll();
 // Check syntax
 int syntaxCheck(char *str);
 
+// Check define color length
+int chdefcolorlen();
+
 // Syntax OK -> repaint
-void repaint(char *color);
+void repaint(const char *color);
 
 // Control coloring
 void coloring(char c);

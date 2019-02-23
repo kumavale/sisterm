@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.8"
-#define UPDATE_DATE   "20190221"
+#define VERSION       "1.2.9"
+#define UPDATE_DATE   "20190224"
 
 
 #include "sisterm.h"
@@ -19,7 +19,7 @@
 #define              CLOCK CLOCK_REALTIME
 #endif
 
-#define MAX_LENGTH   512
+#define MAX_LENGTH   256
 #define REG_FLAGS    REG_EXTENDED | REG_NOSUB | REG_ICASE
 
 char s[MAX_LENGTH];
@@ -338,7 +338,9 @@ int main(int argc, char **argv)
   if( cfsetispeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
   if( cfsetospeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
 
-  if( regcompAll() != 0 ) return EXIT_FAILURE;
+  if( regcompAll() != 0 )                return EXIT_FAILURE;
+
+  if( chdefcolorlen() != 0 )             return EXIT_FAILURE;
 
   if( rflag && !tcpflag )
   {
@@ -886,8 +888,29 @@ int syntaxCheck(char *str)
   return -1;
 }
 
+int chdefcolorlen()
+{
+  const char *defcolor[] =
+  {
+    RESET, UNDERLINE, DEFAULT_F, DEFAULT_B,
+    BLACK, MAROON, GREEN, OLIVE, NAVY, PURPLE, TEAL, SILVER,
+    GREY, RED, LIME, YELLOW, BLUE, FUCHSIA, AQUA, WHITE,
+    SPRINGGREEN, STEELBLUE, CORNFLOWERBLUE, YELLOW3, MEDIUMORCHID,
+    ORANGE, DEEPPINK, MIDIUMPURPLE1, STEELBLUE1, DARKORANGE, CORNSILK1
+    ,NULL
+  };
 
-void repaint(char *color)
+  const char **each = defcolor;
+
+  while( *each )
+  {
+    if( strlen(*each++) > 11 ) return 1;
+  }
+
+  return 0;
+}
+
+void repaint(const char *color)
 {
   io = s;
   int i = 0;

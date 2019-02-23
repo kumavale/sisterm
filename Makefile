@@ -1,12 +1,12 @@
-DESTDIR =
-PREFIX  = /usr/local
-PROGRAM = sist
+PREFIX  ?= /usr/local/bin
+PROGRAM := sist
+CFLAGS  ?= -Wall -Wextra -Wwrite-strings -pedantic -Ofast -march=native -s
 
 $(PROGRAM): sisterm.c
-	@gcc -Ofast -march=native -s -o sist sisterm.c
+	@gcc $(CFLAGS) -o $(PROGRAM) sisterm.c
 
 install: $(PROGRAM)
-	@install -s $(PROGRAM) $(PREFIX)/bin
+	@install -s $(PROGRAM) $(PREFIX)/
 
 uninstall:
-	@rm -f $(PREFIX)/bin/sist
+	@rm -f $(PREFIX)/$(PROGRAM)
