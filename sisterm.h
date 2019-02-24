@@ -34,7 +34,7 @@ int regcompAll();
 int syntaxCheck(char *str);
 
 // Check define color length
-int chdefcolorlen();
+int checkDefColorLen();
 
 // Syntax OK -> repaint
 void repaint(const char *color);

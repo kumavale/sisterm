@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME  "sist"
 #define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.9"
+#define VERSION       "1.2.10"
 #define UPDATE_DATE   "20190224"
 
 
@@ -340,7 +340,7 @@ int main(int argc, char **argv)
 
   if( regcompAll() != 0 )                return EXIT_FAILURE;
 
-  if( chdefcolorlen() != 0 )             return EXIT_FAILURE;
+  if( checkDefColorLen() != 0 )          return EXIT_FAILURE;
 
   if( rflag && !tcpflag )
   {
@@ -539,6 +539,7 @@ int main(int argc, char **argv)
             if( excflag && 0>=comlen )
             {
               transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+              io++;
               excflag = 0;
             }
           }
@@ -730,6 +731,8 @@ int main(int argc, char **argv)
         if( excflag && 0>=comlen )
         {
           transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+          //memset( io = s, '\0', MAX_LENGTH );
+          io++;
           excflag = 0;
         }
       }
@@ -888,7 +891,7 @@ int syntaxCheck(char *str)
   return -1;
 }
 
-int chdefcolorlen()
+int checkDefColorLen()
 {
   const char *defcolor[] =
   {
@@ -913,16 +916,19 @@ int chdefcolorlen()
 void repaint(const char *color)
 {
   io = s;
-  int i = 0;
-  char bs[4];
+  int  i  = 0;
+  char bs = 0x08;
   char tmp[MAX_LENGTH];
   char str[MAX_LENGTH + 32];
   while(*io)
   {
     tmp[i++] = *io++;
-    transmission(STDOUT_FILENO, bs, sprintf(bs, "\b \b"));
+    transmission(STDOUT_FILENO, &bs, 1);
   }
-  if(tmp[i]!='\0') tmp[i]='\0';
+  if(tmp[i]!='\0')
+  {
+    tmp[i]='\0';
+  }
   transmission(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
 }
 
