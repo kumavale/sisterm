@@ -1,4 +1,4 @@
-#define COLOR_VENDORS      AQUA
+#define COLOR_VENDORS      BOLD AQUA
 #define COLOR_COMMAND      CORNSILK1
 #define COLOR_COND         SILVER
 #define COLOR_KEYWORD      MAROON

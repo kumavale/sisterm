@@ -15,6 +15,7 @@
 #include <time.h>
 #include <regex.h>
 #include <sys/types.h>
+#include <getopt.h>
 
 
 // Signal action
@@ -42,12 +43,9 @@ void repaint(const char *color);
 // Control coloring
 void coloring(char c);
 
-// Warning with no argments
-void nothingArgs(char *argv0, char op);
-
 // Show version
 // ( major.minor.tweak )
 void version();
 
 // Show usage
-void usage(char *v);
+void usage(char *argv[]);

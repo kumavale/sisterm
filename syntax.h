@@ -1,5 +1,6 @@
 
 #define RESET             "\033[0m"
+#define BOLD              "\033[1m"
 #define UNDERLINE         "\033[4m"
 #define DEFAULT_F         "\033[39m"
 #define DEFAULT_B         "\033[49m"
