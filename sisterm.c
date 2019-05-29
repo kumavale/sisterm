@@ -1,10 +1,11 @@
 
-#define COMMAND_NAME  "sist"
-#define PROGRAM_NAME  "sisterm"
-#define VERSION       "1.2.10"
-#define UPDATE_DATE   "20190224"
+#define COMMAND_NAME   "sist"
+#define PROGRAM_NAME   "sisterm"
+#define VERSION        "1.2.10"
+#define UPDATE_DATE    "20190224"
 
-#define CONFIG_FILE ".sistrc"
+#define CONFIG_FILE    ".sistrc"
+#define MAX_PARAM_LEN  2014
 
 #include "sisterm.h"
 #include "syntax.h"
@@ -51,6 +52,26 @@ regex_t reg_positive;
 regex_t reg_slash;
 //regex_t reg_url;
 
+enum {
+    PARAM_VENDORS,
+    PARAM_IPV4_NET,
+    PARAM_IPV4_SUB,
+    PARAM_IPV4_WILD,
+    PARAM_IPV6,
+    PARAM_VAR,
+    PARAM_STRING,
+    PARAM_ACTION,
+    PARAM_PROTOCOL,
+    PARAM_KEYWORD,
+    PARAM_COND,
+    PARAM_INTERFACE,
+    PARAM_COMMAND,
+    PARAM_EMPHASIS,
+    PARAM_POSITIVE,
+    PARAM_MAX,
+};
+
+char *params[PARAM_MAX];
 
 //For debug
 void DebugLog(const char *_format, ... ) {
@@ -192,8 +213,7 @@ int main(int argc, char **argv) {
 
     {
         FILE *cfp;  // Config File Pointer
-        int maxlen  = 2048;
-        char *str   = (char*)malloc(maxlen);
+        char *str   = (char*)malloc(MAX_PARAM_LEN);
         char *path  = (char*)malloc(strlen(getenv("HOME"))
                                   + strlen(CONFIG_FILE) + 1);
         strcat(path, getenv("HOME"));
@@ -207,8 +227,7 @@ int main(int argc, char **argv) {
             (void)getchar();
         }
         else {
-            // valsはダメ
-            const char *vals[] = {
+            const char *params_[] = {
                 "VENDORS",
                 "IPV4_NET",
                 "IPV4_SUB",
@@ -225,43 +244,39 @@ int main(int argc, char **argv) {
                 "EMPHASIS",
                 "POSITIVE"
             };
-            // 提案
-            // 上記を enumで定義. 
-            // params配列として,
-            // for(int i=0; i < vals_max; ++i)
-            //     if(!strcmp(vals.i, key))
-            //         params[i] = val;
-            while(fgets(str, maxlen, cfp) != NULL) {
-                char top[2+1],
-                     key[32],
-                     *val = (char*)malloc(maxlen);
-                sscanf(str, "%2s", top);
-                if(!strncmp(top, "//", 2))
+            while(fgets(str, MAX_PARAM_LEN, cfp) != NULL) {
+                char *top = (char*)malloc(2+1);
+                // ignore comment
+                sscanf(str, " %2s", top);
+                if(!strncmp(top, "//", 2) || top[0] == 0x00)
                     continue;
-                sscanf(str, "%[^=\n]=%s", key, val);
-                //char *p = str;
-                //while(*p) {
-                //    if(isspace(*p) || *p == '\n') {
-                //        ++p;
-                //        continue;
-                //    }
-                //    if(isalpha(*p) || *p == '_') {
-                //        int len = 1;
-                //        while(is_alnum(*(p+len)))
-                //            ++len;
-                //    }
-                //    if(*p == '=') {
 
-                //    }
-                //    printf("%c", *p);
-                //    ++p;
-                //}
-                //printf("\n");
-                printf("%s\n", key);
+                char key[32],
+                     *val = (char*)malloc(MAX_PARAM_LEN);
+                sscanf(str, "%s = \"%[^\n]", key, val);
+                //printf("[%s:%s]\n", key, val), fflush(stdout);
+                for(int i=0; i < PARAM_MAX; ++i)
+                    if(!strcmp(params_[i], key)) {
+                        params[i] = (char*)malloc(strlen(val));
+                        // val - \" - \n
+                        strncpy(params[i], val, strlen(val)-2);
+                        // warning: ‘strncpy’ specified bound depends on the length of the source argument [-Wstringop-overflow=]
+                        //printf("---\n%s\n", params[i]), fflush(stdout);
+                    }
+                free(top);
+                free(val);
             }
             fclose(cfp);
-            return 0;
+            for(int i=0; i < PARAM_MAX; ++i)
+                if(params[i] == NULL) {
+                    params[i] = (char*)malloc(2+1);
+                    strcpy(params[i], "0^");
+                    //printf("%d,", i);
+                }
+            if( cflag && regcompAll() != 0 ) return EXIT_FAILURE;
         }
+        free(str);
+        free(path);
     }
 
 
@@ -382,7 +397,8 @@ int main(int argc, char **argv) {
     if( cfsetispeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
     if( cfsetospeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
 
-    if( cflag && regcompAll() != 0 )       return EXIT_FAILURE;
+    // move to L: 230
+    //if( cflag && regcompAll() != 0 )       return EXIT_FAILURE;
 
     if( checkDefColorLen() != 0 )          return EXIT_FAILURE;
 
@@ -844,26 +860,27 @@ int kbhit() {
 }
 
 int regcompAll() {
-    bool regmiss = false;
-    if(regcomp(&reg_prompt   , "#|>"    , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_vendors  , VENDORS  , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_ipv4_net , IPV4_NET , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_ipv4_sub , IPV4_SUB , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_ipv4_wild, IPV4_WILD, REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_ipv6     , IPV6     , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_var      , VAR      , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_string   , STRING   , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_action   , ACTION   , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_protocol , PROTOCOL , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_keyword  , KEYWORD  , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_cond     , COND     , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_interface, INTERFACE, REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_command  , COMMAND  , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_emphasis , EMPHASIS , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_positive , POSITIVE , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_slash    , "/$"     , REG_FLAGS ) != 0) regmiss=true;
     //if(regcomp(&reg_url      , URL      , REG_FLAGS ) != 0) regmiss=true;
-    if(regmiss) return EXIT_FAILURE;
+    if(regcomp(&reg_vendors  , params[PARAM_VENDORS]  , REG_FLAGS )
+    || regcomp(&reg_ipv4_net , params[PARAM_IPV4_NET] , REG_FLAGS )
+    || regcomp(&reg_ipv4_sub , params[PARAM_IPV4_SUB] , REG_FLAGS )
+    || regcomp(&reg_ipv4_wild, params[PARAM_IPV4_WILD], REG_FLAGS )
+    || regcomp(&reg_ipv6     , params[PARAM_IPV6]     , REG_FLAGS )
+    || regcomp(&reg_var      , params[PARAM_VAR]      , REG_FLAGS )
+    || regcomp(&reg_string   , params[PARAM_STRING]   , REG_FLAGS )
+    || regcomp(&reg_action   , params[PARAM_ACTION]   , REG_FLAGS )
+    || regcomp(&reg_protocol , params[PARAM_PROTOCOL] , REG_FLAGS )
+    || regcomp(&reg_keyword  , params[PARAM_KEYWORD]  , REG_FLAGS )
+    || regcomp(&reg_cond     , params[PARAM_COND]     , REG_FLAGS )
+    || regcomp(&reg_interface, params[PARAM_INTERFACE], REG_FLAGS )
+    || regcomp(&reg_command  , params[PARAM_COMMAND]  , REG_FLAGS )
+    || regcomp(&reg_emphasis , params[PARAM_EMPHASIS] , REG_FLAGS )
+    || regcomp(&reg_positive , params[PARAM_POSITIVE] , REG_FLAGS )
+    || regcomp(&reg_prompt   , "#|>", REG_FLAGS )
+    || regcomp(&reg_slash    , "/$" , REG_FLAGS )) {
+        error("regcomp: error");
+        return EXIT_FAILURE;
+    }
     return 0;
 }
 

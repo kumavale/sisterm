@@ -16,7 +16,6 @@
 #include <regex.h>
 #include <sys/types.h>
 #include <getopt.h>
-#include <ctype.h>
 
 
 // Signal action
