@@ -4,6 +4,7 @@
 #define VERSION       "1.2.10"
 #define UPDATE_DATE   "20190224"
 
+#define CONFIG_FILE ".sistrc"
 
 #include "sisterm.h"
 #include "syntax.h"
@@ -187,6 +188,80 @@ int main(int argc, char **argv) {
                     return EXIT_FAILURE;
               }
          }
+    }
+
+    {
+        FILE *cfp;  // Config File Pointer
+        int maxlen  = 2048;
+        char *str   = (char*)malloc(maxlen);
+        char *path  = (char*)malloc(strlen(getenv("HOME"))
+                                  + strlen(CONFIG_FILE) + 1);
+        strcat(path, getenv("HOME"));
+        strcat(path, "/" CONFIG_FILE);
+
+        cfp = fopen(path, "r");
+        if(cfp == NULL) {
+            cflag = false;
+            error("%s: File open error", path);
+            fprintf(stderr, "Press ENTER to continue of without color mode");
+            (void)getchar();
+        }
+        else {
+            // valsはダメ
+            const char *vals[] = {
+                "VENDORS",
+                "IPV4_NET",
+                "IPV4_SUB",
+                "IPV4_WILD",
+                "IPV6",
+                "VAR",
+                "STRING",
+                "ACTION",
+                "PROTOCOL",
+                "KEYWORD",
+                "COND",
+                "INTERFACE",
+                "COMMAND",
+                "EMPHASIS",
+                "POSITIVE"
+            };
+            // 提案
+            // 上記を enumで定義. 
+            // params配列として,
+            // for(int i=0; i < vals_max; ++i)
+            //     if(!strcmp(vals.i, key))
+            //         params[i] = val;
+            while(fgets(str, maxlen, cfp) != NULL) {
+                char top[2+1],
+                     key[32],
+                     *val = (char*)malloc(maxlen);
+                sscanf(str, "%2s", top);
+                if(!strncmp(top, "//", 2))
+                    continue;
+                sscanf(str, "%[^=\n]=%s", key, val);
+                //char *p = str;
+                //while(*p) {
+                //    if(isspace(*p) || *p == '\n') {
+                //        ++p;
+                //        continue;
+                //    }
+                //    if(isalpha(*p) || *p == '_') {
+                //        int len = 1;
+                //        while(is_alnum(*(p+len)))
+                //            ++len;
+                //    }
+                //    if(*p == '=') {
+
+                //    }
+                //    printf("%c", *p);
+                //    ++p;
+                //}
+                //printf("\n");
+                printf("%s\n", key);
+            }
+            fclose(cfp);
+            return 0;
+        }
     }
 
 
