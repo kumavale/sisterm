@@ -1,11 +1,11 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.2.10"
-#define UPDATE_DATE    "20190224"
+#define VERSION        "1.3.0"
+#define UPDATE_DATE    "20190530"
 
 #define CONFIG_FILE    ".sistrc"
-#define MAX_PARAM_LEN  2014
+#define MAX_PARAM_LEN  2048
 
 #include "sisterm.h"
 #include "syntax.h"
@@ -254,14 +254,15 @@ int main(int argc, char **argv) {
                 char key[32],
                      *val = (char*)malloc(MAX_PARAM_LEN);
                 sscanf(str, "%s = \"%[^\n]", key, val);
-                //printf("[%s:%s]\n", key, val), fflush(stdout);
                 for(int i=0; i < PARAM_MAX; ++i)
                     if(!strcmp(params_[i], key)) {
-                        params[i] = (char*)malloc(strlen(val));
+                        int len = (int)strlen(val);
+                        params[i] = (char*)malloc(len);
                         // val - \" - \n
-                        strncpy(params[i], val, strlen(val)-2);
+                        //strncpy(params[i], val, len-1);
+                        memcpy(params[i], val, len);
                         // warning: ‘strncpy’ specified bound depends on the length of the source argument [-Wstringop-overflow=]
-                        //printf("---\n%s\n", params[i]), fflush(stdout);
+                        params[i][len-2] = '\0';
                     }
                 free(top);
                 free(val);
@@ -271,7 +272,6 @@ int main(int argc, char **argv) {
                 if(params[i] == NULL) {
                     params[i] = (char*)malloc(2+1);
                     strcpy(params[i], "0^");
-                    //printf("%d,", i);
                 }
             if( cflag && regcompAll() != 0 ) return EXIT_FAILURE;
         }
@@ -396,9 +396,6 @@ int main(int argc, char **argv) {
 
     if( cfsetispeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
     if( cfsetospeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
-
-    // move to L: 230
-    //if( cflag && regcompAll() != 0 )       return EXIT_FAILURE;
 
     if( checkDefColorLen() != 0 )          return EXIT_FAILURE;
 
@@ -603,7 +600,7 @@ int main(int argc, char **argv) {
                 }
 
                 if( kbhit() ) {
-                    DebugLog("\b");
+                    //DebugLog("\b");
                 }
             }
 
