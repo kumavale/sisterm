@@ -36,9 +36,12 @@ Commands:
 Once you have it set up, a simple `make && make install` will compile sisterm and install it into `/usr/local/bin`.  
 
 
-## Custom color
-Rewrite palette.h  
-Reinstall `make && make install`
+## Uninstall
+`sudo make uninstall` after remove this directory  
+
+
+## Customizing
+Rewrite ~/.sistrc  
 
 
 ## Environment
