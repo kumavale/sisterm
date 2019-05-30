@@ -1,0 +1,52 @@
+//##############################################################################
+// POSIX Extended Regular Expression Syntax
+//
+// Enabled variables {
+//     VENDORS,   => Network vendors (e.g. cisco)
+//     IPV4_NET,  => Ordinary guy (e.g. 192.0.2.1)
+//     IPV4_SUB,  => Subnet Mask (e.g. 255.255.255.0)
+//     IPV4_WILD, => Wild Mask (e.g. 0.0.16.255)
+//     IPV6,      => All IPv6 address (e.g. 2001:DB8::)
+//     VAR,
+//     STRING,
+//     ACTION,
+//     PROTOCOL,
+//     KEYWORD,
+//     COND,
+//     INTERFACE,
+//     COMMAND,
+//     EMPHASIS,
+//     POSITIVE,
+// }
+//##############################################################################
+
+COND = "^(match|eq|neq|gt|lt|ge|le|range)$"
+
+KEYWORD = "^(giants|speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|username|user|license|host|system|systems|address|network|route|routers|neighbor|neighbors|redistribute|default[-]gateway|community|version|class|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$"
+
+PROTOCOL = "^(ipv4|ipv6|tcp|udp|icmp|echo|dhcp|domain|nameserver|ssh|telnet|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|dialog|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$"
+
+CONFIRM = "^(y|yes)$"
+
+COMMAND = "^(exit|end|configure|interface|show|line|copy|username|hostname|password|login|service|ip|crypt|transport|clock|ntp|logging|snmp[-]server|vtp|vlan|name|switch|switchport|router|channel[-]group|port[-]channel|spanning[-]tree|instance|revision|mac|storm[-]control|cdp|lldp|version|offset[-]list|auto[-]summary|auto[-]cost|area|summary[-]address|distribute[-]list|redistribute|default[-]information|passive[-]interface|vrrp|standby|access[-](list|class)|reload|monitor|mls)$"
+
+POSITIVE = "^([[]?up[]]?|enable|enabled|active)$"
+
+STRING = "^(\".*\"|\'.*\')$"
+
+EMPHASIS = "^(no|not|[[]?confirm[]]?|warning|warnings|failed|failures|error|errors|crash)$"
+
+// INTERFACE = "^((Tengigabit|Gigabit|Fast|)Ethernet[0-9]/[0-9]+|(Fa|Gi)[0-9]/[0-9]?[0-9])$"
+INTERFACE = "^((Tengigabit|Gigabit|Fast|)Ethernet|(Fa|Gi))$"
+
+ACTION = "^(disable|disabled|deny|shutdown|[[]?down[]]?|[[]?administratively[]]?|none)$"
+
+VAR = "^(trunk|access|full[-]duplex|full|auto[-](duplex|speed)|auto|monitor|any|disable|pvst|mst|rapid[-]pvst|transparent|server|client)$"
+
+VENDORS = "^(cisco|aruba|juniper|huawei|arista|riverbed|netscout|yamaha|mellanox)$"
+
+IPV4_NET = "^(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
+IPV4_SUB = "^((25[0-5]|24[89])[.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
+IPV4_WILD = "^(0[.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
+
+IPV6 = "^((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}(:|((25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})([.](25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3})|(:[0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){5}((:((25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})([.](25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3})?)|((:[0-9A-Fa-f]{1,4}){1,2})))|(([0-9A-Fa-f]{1,4}:){4}(:[0-9A-Fa-f]{1,4}){0,1}(:((25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})([.](25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3})?))|(([0-9A-Fa-f]{1,4}:){4}(:[0-9A-Fa-f]{1,4}){0,1}((:[0-9A-Fa-f]{1,4}){1,2}))|(([0-9A-Fa-f]{1,4}:){3}(:[0-9A-Fa-f]{1,4}){0,2}(:((25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})([.](25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3})?))|(([0-9A-Fa-f]{1,4}:){3}(:[0-9A-Fa-f]{1,4}){0,2}((:[0-9A-Fa-f]{1,4}){1,2}))|(([0-9A-Fa-f]{1,4}:){2}(:[0-9A-Fa-f]{1,4}){0,3}(:((25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})([.](25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3})?))|(([0-9A-Fa-f]{1,4}:){2}(:[0-9A-Fa-f]{1,4}){0,3}((:[0-9A-Fa-f]{1,4}){1,2}))|(([0-9A-Fa-f]{1,4}:)(:[0-9A-Fa-f]{1,4}){0,4}(:((25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})([.](25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3})?))|(([0-9A-Fa-f]{1,4}:)(:[0-9A-Fa-f]{1,4}){0,4}((:[0-9A-Fa-f]{1,4}){1,2}))|(:(:[0-9A-Fa-f]{1,4}){0,5}((:((25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})([.](25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})){3})?)|((:[0-9A-Fa-f]{1,4}){1,2}))))$"

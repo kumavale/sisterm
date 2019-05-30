@@ -6,6 +6,7 @@
 
 # Allow
 !.gitignore
+!.sistrc
 !sisterm.c
 !sisterm.h
 !syntax.h
