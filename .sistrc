@@ -1,5 +1,7 @@
 //##############################################################################
 // POSIX Extended Regular Expression Syntax
+// Only lines beginning with '//' are comments.
+// Please enclose in double quotes.
 //
 // Enabled variables {
 //     VENDORS,   => Network vendors (e.g. cisco)
