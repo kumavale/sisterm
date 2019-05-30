@@ -1,10 +1,10 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.3.0"
+#define VERSION        "1.3.1"
 #define UPDATE_DATE    "20190530"
 
-#define CONFIG_FILE    ".sistrc"
+#define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
 
 #include "sisterm.h"

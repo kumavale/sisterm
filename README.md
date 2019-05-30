@@ -1,6 +1,6 @@
 # sisterm
 ![stable](https://img.shields.io/badge/build-passing-success.svg)
-![version](https://img.shields.io/badge/version-1.3.0-success.svg)
+![version](https://img.shields.io/badge/version-1.3.1-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
 sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.  
@@ -33,7 +33,7 @@ Commands:
 
 
 ## Installation
-Once you have it set up, a simple `make && make install` will compile sisterm and install it into `/usr/local/bin`.  
+Once you have it set up, a simple `make && sudo make install` will compile sisterm and install it into `/usr/local/bin`.  
 
 
 ## Uninstall
@@ -41,7 +41,7 @@ Once you have it set up, a simple `make && make install` will compile sisterm an
 
 
 ## Customizing
-Rewrite ~/.sistrc  
+Rewrite ~/sist.conf  
 
 
 ## Environment
