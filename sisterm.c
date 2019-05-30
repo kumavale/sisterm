@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.3.1"
+#define VERSION        "1.3.2"
 #define UPDATE_DATE    "20190530"
 
 #define CONFIG_FILE    "sist.conf"
@@ -274,6 +274,8 @@ int main(int argc, char **argv) {
                     strcpy(params[i], "0^");
                 }
             if( cflag && regcompAll() != 0 ) return EXIT_FAILURE;
+            for(int i=0; i < PARAM_MAX; ++i)
+                free(params[i]);
         }
         free(str);
         free(path);
