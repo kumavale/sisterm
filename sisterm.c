@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.3.2"
-#define UPDATE_DATE    "20190530"
+#define VERSION        "1.4.0-rc1"
+#define UPDATE_DATE    "20190602"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
@@ -33,7 +33,6 @@ char *io = s;
 bool bsflag = false;
 
 
-// 配列
 regex_t reg_prompt;
 regex_t reg_vendors;
 regex_t reg_ipv4_net;
@@ -73,8 +72,16 @@ enum {
     PARAM_MAX,
 };
 
-// **
+// param
+typedef struct {
+    char *name;
+    char *color;
+    regex_t regex;
+} Param;
+
+Param *params2;  // Dynamic array
 char *params[PARAM_MAX];
+int params_len;
 
 //For debug
 void DebugLog(const char *_format, ... ) {
@@ -247,28 +254,94 @@ int main(int argc, char **argv) {
                 "EMPHASIS",
                 "POSITIVE"
             };
+            params2 = (Param*)malloc(sizeof(Param));
+
             while(fgets(str, MAX_PARAM_LEN, cfp) != NULL) {
-                char *top = (char*)malloc(2+1);
-                // ignore comment
+                char *top = (char*)malloc(1+1);
                 sscanf(str, " %1s", top);
+                // ignore comment and blank line
                 if(!strncmp(top, "#", 1) || top[0] == 0x00)
                     continue;
 
-                char key[32],
-                     *val = (char*)malloc(MAX_PARAM_LEN);
-                sscanf(str, "%s = \"%[^\n]", key, val);
-                for(int i=0; i < PARAM_MAX; ++i)
-                    if(!strcmp(params_[i], key)) {
-                        int len = (int)strlen(val);
-                        params[i] = (char*)malloc(len);
-                        // val - \" - \n
-                        //strncpy(params[i], val, len-1);
-                        memcpy(params[i], val, len);
-                        // warning: ‘strncpy’ specified bound depends on the length of the source argument [-Wstringop-overflow=]
-                        params[i][len-2] = '\0';
+                char color_or_regex[5+1],
+                     name_buf[64],
+                     *param_buf = (char*)malloc(MAX_PARAM_LEN);
+
+                sscanf(str, " %63[^ .] . %5[^ =] = %2047[^\n]", name_buf, color_or_regex, param_buf);
+                printf("name:%s, color:%s, regex:%s\n", name_buf, color_or_regex, param_buf);
+
+                bool suffer = false;
+                for(int i=0; i<params_len; ++i)
+                    if(!strcmp(params2[i].name, name_buf)) {
+                        suffer = true;
+                        break;
                     }
+                if(!suffer) {
+                    ++params_len;
+                    params2 = (Param*)realloc(params2, params_len * sizeof(Param));  // 要修正
+                    params2[params_len-1].name = (char*)malloc(strlen(name_buf)+1);
+                    strcpy(params2[params_len-1].name, name_buf);
+                }
+
+                // DOS file format
+                if(param_buf[strlen(param_buf)-1] == 0x0D || param_buf[strlen(param_buf)-1] == 0x0A)
+                    param_buf[strlen(param_buf)-1] = '\0';
+
+                if(!strncmp(color_or_regex, "color", 5)) {
+                    bool color_flug = false;
+                    for(int i=0; i<8; ++i)
+                        if(!strncmp(param_buf, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
+                            color_flug = true;
+                            params2[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
+                            strcpy(params2[params_len-1].color, ansi_colors[i].val);
+                            break;
+                        }
+                    if(!color_flug) {
+                        if(strlen(param_buf) > 6) {
+                            // ""のチェック => error exit
+                            params2[params_len-1].color = (char*)malloc(strlen(param_buf)+1);
+                            strcpy(params2[params_len-1].color, param_buf);
+                        }
+                        else if(strlen(param_buf) == 3) {
+                            char str[11+1];  // \033[38;5;XXXm
+                            snprintf(str, sizeof(str), "\033[38;5;%3sm", param_buf);
+                            params2[params_len-1].color = (char*)malloc(strlen(str)+1);
+                            strcpy(params2[params_len-1].color, str);
+                        }
+                        else if(strlen(param_buf) == 6) {
+                            char hexs[3][2+1] = {
+                                { param_buf[0], param_buf[1], '\0' },
+                                { param_buf[2], param_buf[3], '\0' },
+                                { param_buf[4], param_buf[5], '\0' }};
+                            char str[19+1];  // \033[38;2;XXX;XXX;XXXm
+                            snprintf(str, sizeof(str), "\033[38;2;%03ld;%03ld;%03ldm",
+                            strtol(hexs[0], NULL, 16),
+                            strtol(hexs[1], NULL, 16),
+                            strtol(hexs[2], NULL, 16));
+                            params2[params_len-1].color = (char*)malloc(strlen(str)+1);
+                            strcpy(params2[params_len-1].color, str);
+                        } else {
+                            // error
+                        }
+                    }
+                }
+                else if(!strncmp(color_or_regex, "regex", 5)) {
+                }
+                else {
+                    //error
+                }
+
+                //for(int i=0; i < PARAM_MAX; ++i)
+                //    if(!strcmp(params_[i], params2->name)) {
+                //        int len = (int)strlen(params2->name);
+                //        params[i] = (char*)malloc(len);
+                //        // val - \" - \n
+                //        //strncpy(params[i], val, len-1);
+                //        memcpy(params[i], val, len);
+                //        params[i][len-2] = '\0';
+                //    }
+                free(param_buf);
                 free(top);
-                free(val);
             }
             fclose(cfp);
             for(int i=0; i < PARAM_MAX; ++i)
@@ -282,6 +355,7 @@ int main(int argc, char **argv) {
         }
         free(str);
         free(path);
+        return 0;  // Debug
     }
 
 
@@ -522,8 +596,7 @@ int main(int argc, char **argv) {
                     if( logflag ) {
                         // Unstable
                         if( (int)strlen(logbuf) > lblen ) {
-                            lb = logbuf = (char*)realloc(
-                                logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+                            lb = logbuf = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                             //free(logbuf);
                         }
 
@@ -544,13 +617,13 @@ int main(int argc, char **argv) {
                                     sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
                                         tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
                                         tm.tm_hour, tm.tm_min, tm.tm_sec,
-                                        (int) now.tv_nsec / 1000000
-                                        );
+                                        (int) now.tv_nsec / 1000000);
                                     fwrite(date, 1, strlen(date), lf);
                                 }
 
                                 fwrite(logbuf, 1, strlen(logbuf), lf);
 
+                                // ToDo
                                 if( lblen > MAX_LENGTH - 2 ) {
                                     lblen = MAX_LENGTH - 2;
                                     free(logbuf);
@@ -615,16 +688,16 @@ int main(int argc, char **argv) {
         //  if(read(STDIN_FILENO, &c, 1) > 0)
                 {
                     c = getchar();
-                    if( 0x1b==c )                          escflag = true; // ^
-                    else if( escflag && 0x5b==c )          spflag  = true; // ^[
-                    else if( spflag  && 0x33==c )          tilflag = true; // ^[3
-                    else if( spflag  && 0x40<c && 0x45>c ) arrflag = true; // ^[[ABCD]
-                    else if( tilflag && 0x7e==c ) {                        // ^[3~
-                      c = 0x7f;
-                      escflag = spflag = tilflag = false;
+                    if( 0x1b==c )                          escflag = true;  // ^
+                    else if( escflag && 0x5b==c )          spflag  = true;  // ^[
+                    else if( spflag  && 0x33==c )          tilflag = true;  // ^[3
+                    else if( spflag  && 0x40<c && 0x45>c ) arrflag = true;  // ^[[ABCD]
+                    else if( tilflag && 0x7e==c ) {                         // ^[3~
+                        c = 0x7f;
+                        escflag = spflag = tilflag = false;
                     }
                     else {
-                      escflag = spflag = false;
+                        escflag = spflag = false;
                     }
 
                     if( endcode == c ) {
@@ -661,8 +734,7 @@ int main(int argc, char **argv) {
                 sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
                     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
                     tm.tm_hour, tm.tm_min, tm.tm_sec,
-                    (int) now.tv_nsec / 1000000
-                    );
+                    (int) now.tv_nsec / 1000000);
                 fwrite(date, 1, strlen(date), lf);
             }
             char loglast[strlen(logbuf)+1];
@@ -693,8 +765,7 @@ int main(int argc, char **argv) {
             if( logflag ) {
                 // Unstable
                 if( (int)strlen(logbuf) > lblen ) {
-                    lb = logbuf = (char*)realloc(
-                        logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+                    lb = logbuf = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                     if(lb == NULL) {
                         perror("realloc");
                         exit(EXIT_FAILURE);
@@ -718,13 +789,13 @@ int main(int argc, char **argv) {
                             sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
                                 tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
                                 tm.tm_hour, tm.tm_min, tm.tm_sec,
-                                (int) now.tv_nsec / 1000000
-                                );
+                                (int) now.tv_nsec / 1000000);
                             fwrite(date, 1, strlen(date), lf);
                         }
 
                         fwrite(logbuf, 1, strlen(logbuf), lf);
 
+                        // ToDo
                         if( lblen > MAX_LENGTH - 2 ) {
                             lblen = MAX_LENGTH - 2;
                             free(logbuf);
@@ -814,8 +885,7 @@ int main(int argc, char **argv) {
             sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
                 tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
                 tm.tm_hour, tm.tm_min, tm.tm_sec,
-                (int) now.tv_nsec / 1000000
-                );
+                (int) now.tv_nsec / 1000000);
             fwrite(date, 1, strlen(date), lf);
         }
         char loglast[strlen(logbuf)+1];
@@ -888,41 +958,41 @@ int regcompAll() {
 
 
 int syntaxCheck(char *str) {
-    if( regexec(&reg_vendors  , str, 0, 0, 0) == 0 ) return HL_VENDORS;
-    if( regexec(&reg_ipv4_net , str, 0, 0, 0) == 0 ) return HL_IPV4_NET;
-    if( regexec(&reg_ipv4_sub , str, 0, 0, 0) == 0 ) return HL_IPV4_SUB;
-    if( regexec(&reg_ipv4_wild, str, 0, 0, 0) == 0 ) return HL_IPV4_WILD;
-    if( regexec(&reg_ipv6     , str, 0, 0, 0) == 0 ) return HL_IPV6;
-    if( regexec(&reg_string   , str, 0, 0, 0) == 0 ) return HL_STRING;
-    if( regexec(&reg_var      , str, 0, 0, 0) == 0 ) return HL_VAR;
-    if( regexec(&reg_action   , str, 0, 0, 0) == 0 ) return HL_ACTION;
-    if( regexec(&reg_protocol , str, 0, 0, 0) == 0 ) return HL_PROTOCOL;
-    if( regexec(&reg_keyword  , str, 0, 0, 0) == 0 ) return HL_KEYWORD;
-    if( regexec(&reg_cond     , str, 0, 0, 0) == 0 ) return HL_COND;
-    if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
-    if( regexec(&reg_command  , str, 0, 0, 0) == 0 ) return HL_COMMAND;
-    if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
-    if( regexec(&reg_positive , str, 0, 0, 0) == 0 ) return HL_POSITIVE;
-    if( regexec(&reg_slash    , str, 0, 0, 0) == 0 ) return HL_SLASH;
+    //if( regexec(&reg_vendors  , str, 0, 0, 0) == 0 ) return HL_VENDORS;
+    //if( regexec(&reg_ipv4_net , str, 0, 0, 0) == 0 ) return HL_IPV4_NET;
+    //if( regexec(&reg_ipv4_sub , str, 0, 0, 0) == 0 ) return HL_IPV4_SUB;
+    //if( regexec(&reg_ipv4_wild, str, 0, 0, 0) == 0 ) return HL_IPV4_WILD;
+    //if( regexec(&reg_ipv6     , str, 0, 0, 0) == 0 ) return HL_IPV6;
+    //if( regexec(&reg_string   , str, 0, 0, 0) == 0 ) return HL_STRING;
+    //if( regexec(&reg_var      , str, 0, 0, 0) == 0 ) return HL_VAR;
+    //if( regexec(&reg_action   , str, 0, 0, 0) == 0 ) return HL_ACTION;
+    //if( regexec(&reg_protocol , str, 0, 0, 0) == 0 ) return HL_PROTOCOL;
+    //if( regexec(&reg_keyword  , str, 0, 0, 0) == 0 ) return HL_KEYWORD;
+    //if( regexec(&reg_cond     , str, 0, 0, 0) == 0 ) return HL_COND;
+    //if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
+    //if( regexec(&reg_command  , str, 0, 0, 0) == 0 ) return HL_COMMAND;
+    //if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
+    //if( regexec(&reg_positive , str, 0, 0, 0) == 0 ) return HL_POSITIVE;
+    //if( regexec(&reg_slash    , str, 0, 0, 0) == 0 ) return HL_SLASH;
     //if( regexec(&reg_url      , str, 0, 0, 0) == 0 ) return HL_URL;
     return -1;
 }
 
 int checkDefColorLen() {
-    const char *defcolor[] = {
-        RESET, UNDERLINE, DEFAULT_F, DEFAULT_B,
-        BLACK, MAROON, GREEN, OLIVE, NAVY, PURPLE, TEAL, SILVER,
-        GREY, RED, LIME, YELLOW, BLUE, FUCHSIA, AQUA, WHITE,
-        SPRINGGREEN, STEELBLUE, CORNFLOWERBLUE, YELLOW3, MEDIUMORCHID,
-        ORANGE, DEEPPINK, MIDIUMPURPLE1, STEELBLUE1, DARKORANGE, CORNSILK1
-        ,NULL
-    };
+    //const char *defcolor[] = {
+    //    RESET, UNDERLINE, DEFAULT_F, DEFAULT_B,
+    //    BLACK, MAROON, GREEN, OLIVE, NAVY, PURPLE, TEAL, SILVER,
+    //    GREY, RED, LIME, YELLOW, BLUE, FUCHSIA, AQUA, WHITE,
+    //    SPRINGGREEN, STEELBLUE, CORNFLOWERBLUE, YELLOW3, MEDIUMORCHID,
+    //    ORANGE, DEEPPINK, MIDIUMPURPLE1, STEELBLUE1, DARKORANGE, CORNSILK1
+    //    ,NULL
+    //};
 
-    const char **each = defcolor;
+    //const char **each = defcolor;
 
-    while( *each ) {
-        if( strlen(*each++) > 11 ) return 1;
-    }
+    //while( *each ) {
+    //    if( strlen(*each++) > 11 ) return 1;
+    //}
 
     return 0;
 }

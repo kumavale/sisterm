@@ -43,7 +43,7 @@ Once you have it set up, a simple `make && sudo make install` will compile siste
 
 
 ## Customizing
-Rewrite ~/sist.conf  
+Rewrite $HOME/sist.conf  
 > NAME@COLOR = "REGEX"  
 
 ```(e.g.)  
