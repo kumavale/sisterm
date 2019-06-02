@@ -33,6 +33,7 @@ char *io = s;
 bool bsflag = false;
 
 
+// 配列
 regex_t reg_prompt;
 regex_t reg_vendors;
 regex_t reg_ipv4_net;
@@ -52,6 +53,7 @@ regex_t reg_positive;
 regex_t reg_slash;
 //regex_t reg_url;
 
+// 削除
 enum {
     PARAM_VENDORS,
     PARAM_IPV4_NET,
@@ -71,6 +73,7 @@ enum {
     PARAM_MAX,
 };
 
+// **
 char *params[PARAM_MAX];
 
 //For debug
@@ -247,8 +250,8 @@ int main(int argc, char **argv) {
             while(fgets(str, MAX_PARAM_LEN, cfp) != NULL) {
                 char *top = (char*)malloc(2+1);
                 // ignore comment
-                sscanf(str, " %2s", top);
-                if(!strncmp(top, "//", 2) || top[0] == 0x00)
+                sscanf(str, " %1s", top);
+                if(!strncmp(top, "#", 1) || top[0] == 0x00)
                     continue;
 
                 char key[32],
