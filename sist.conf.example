@@ -2,19 +2,18 @@
 #
 #  POSIX Extended Regular Expression Syntax
 #  Only lines beginning with '#' are comments.
-#  ダブルクォーテーションの有無に注意してください
 #
 #  [NAME].color = [COLOR]
 #  [NAME].regex = [REGEX]
 #  VENDORS.color = RED
-#  VENDORS.regex = ^(cisco|yamaha)$
+#  VENDORS.regex = ^(home|fuga)$
 
 #  // hoge.color += underbar とか対応してみたい
 
 #  If the length is 6 => 24bit color (000000~FFFFFF)
 #  If the length is 3 =>  8bit color (000~255)
-
-#  定義済み色パレット
+#
+#  Predefined colors
 #   * BLACK
 #   * RED
 #   * GREEN
@@ -35,7 +34,8 @@ COND.regex = ^(match|eq|neq|gt|lt|ge|le|range)$
 KEYWORD.color = FF0000
 KEYWORD.regex = ^(giants|speed|duplex|negotiation|delay|bandwidth|preempt|priority|timers|username|user|license|host|system|systems|address|network|route|routers|neighbor|neighbors|redistribute|default[-]gateway|community|version|class|name|minimum|maximum|level|size|established|source|destination|allowed|timeout|threshold|frequency|keepalive|average|weights|mtu|tunnel|privilege|secret)$
 
-PROTOCOL.color = \033[31m
+ PROTOCOL.color = \033[31m
+# PROTOCOL.color = \033[38;5;6;48;5;3m
 PROTOCOL.regex = ^(ipv4|ipv6|tcp|udp|icmp|echo|dhcp|domain|nameserver|ssh|telnet|ntp|snmp|snmptrap|syslog|smtp|pop2|pop3|klogin|kshell|rlogin|sunrpc|mpls|rip|isis|ospf|ospfv3|eigrp|bgp|hsrp|vrrp|ipsla|isdn|dial|dialog|hdlc|frame[-]relay|atm|igmp|multicast|broadcast|rsa|pki|isakmp|ipsec|ike|esp|gre|vpn|mvpn|pppoe|qos|cef|pim|ahp|tacacs|cdp|lldp|vtp|spanning[-]tree|lacp|dot1q|l2tun|ethernet|aaa|aaa[-]server)$
 
 # CONFIRM = RED "^(y|yes)$"
