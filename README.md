@@ -51,8 +51,8 @@ POSIX Extended Regular Expression Syntax
 Only lines beginning with '#' are comments.  
 The maximum length of one line is 2048 characters.  
 
-If the color length is 6 => 24bit color (000000~FFFFFF)  
-If the color length is 3 =>  8bit color (000~255)  
+If the color length is 6 => 24bit color (000000\~FFFFFF)  
+If the color length is 3 =>  8bit color (000\~255)  
 
 ```(e.g.)  
 HOGE.color = RED
