@@ -1,4 +1,6 @@
 #define RESET             "\033[0m"
+#define ERROR_RED         "\033[38;5;196m"
+#define ERROR_BLUE        "\033[38;5;021m"
 #define STEELBLUE         "\033[38;5;067m"
 #define COLOR_COMMENT      STEELBLUE
 

@@ -1,17 +1,14 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.4.0-rc2"
-#define UPDATE_DATE    "20190603"
+#define VERSION        "1.4.0"
+#define UPDATE_DATE    "20190604"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
 
 #include "sisterm.h"
 #include "palette.h"
-
-//Debug
-#include <stdarg.h>
 
 
 #ifdef __linux__
@@ -248,7 +245,7 @@ int main(int argc, char **argv) {
                 if(!strncmp(key, "color", 5)) {
                     bool color_flug = false;
                     for(int i=0; i<8; ++i)
-                        if(!strncmp(param, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
+                        if(!strncasecmp(param, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
                             color_flug = true;
                             params[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
                             strcpy(params[params_len-1].color, ansi_colors[i].val);
@@ -272,6 +269,12 @@ int main(int argc, char **argv) {
                                 ++p;
                             }
                             param_buf[i] = '\0';
+                            if(param_buf[i-1] != 'm') {
+                                error("%serror:%s Invalid color: '%s': expected 'm' in end", ERROR_RED, RESET, param);
+                                error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                                error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                return EXIT_FAILURE;
+                            }
 
                             replace(param_buf, "\\033", "\033");
                             replace(param_buf, "\\e",   "\x1B");
@@ -285,12 +288,33 @@ int main(int argc, char **argv) {
                             strcpy(params[params_len-1].color, param);
                         }
                         else if(strlen(param) == 3) {
+                            for(int i=0; i<3; ++i)
+                                if(!isdigit(param[i])) {
+                                    error("%serror:%s Invalid color: '%s'", ERROR_RED, RESET, param);
+                                    error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                                    error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                    return EXIT_FAILURE;
+                                }
+                            u_int16_t num = strtol(param, NULL, 10);
+                            if(num > 255) {
+                                error("%serror:%s Invalid color: '%s': less than 256", ERROR_RED, RESET, param);
+                                error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                                error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                return EXIT_FAILURE;
+                            }
                             char format[11+1];  // \033[38;5;XXXm
                             snprintf(format, sizeof(format), "\033[38;5;%3sm", param);
                             params[params_len-1].color = (char*)malloc(strlen(format)+1);
                             strcpy(params[params_len-1].color, format);
                         }
                         else if(strlen(param) == 6) {
+                            for(int i=0; i<6; ++i)
+                                if(!ishex(param[i])) {
+                                    error("%serror:%s Invalid color: '%s'", ERROR_RED, RESET, param);
+                                    error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                                    error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                    return EXIT_FAILURE;
+                                }
                             char hexs[3][2+1] = {
                                 { param[0], param[1], '\0' },
                                 { param[2], param[3], '\0' },
@@ -303,9 +327,9 @@ int main(int argc, char **argv) {
                             params[params_len-1].color = (char*)malloc(strlen(format)+1);
                             strcpy(params[params_len-1].color, format);
                         } else {
-                            error("%serror:%s Invalid color: '%s'", ansi_colors[AC_RED].val, RESET, param);
-                            error("  ---> %s:%d", path, line);
-                            error("%d | %s", line, str);
+                            error("%serror:%s Invalid color: '%s'", ERROR_RED, RESET, param);
+                            error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                            error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
                             return EXIT_FAILURE;
                         }
                     }
@@ -316,9 +340,9 @@ int main(int argc, char **argv) {
                     if((rc = regcomp(&params[params_len-1].regex, param, REG_FLAGS))) {
                         char msg[100];
                         regerror(rc, &params[params_len-1].regex, msg, 100);
-                        error("%serror:%s regcomp() failred: %s", ansi_colors[AC_RED].val, RESET, msg);
-                        error("  ---> %s:%d", path, line);
-                        error("%d | %s", line, str);
+                        error("%serror:%s regcomp() failred: %s", ERROR_RED, RESET, msg);
+                        error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                        error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
                         return EXIT_FAILURE;
                     }
                 }
@@ -854,6 +878,11 @@ int main(int argc, char **argv) {
     return EXIT_SUCCESS;
 }
 
+int ishex(char c) {
+    return ('a' <= c && c <= 'f') ||
+           ('A' <= c && c <= 'F') ||
+           ('0' <= c && c <= '9');
+}
 
 void transmission(int _fd, const void* _buf, size_t _len) {
     if( -1 == write(_fd, _buf, _len) ) {

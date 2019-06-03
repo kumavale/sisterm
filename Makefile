@@ -2,7 +2,7 @@ PREFIX  ?= /usr/local/bin
 PROGRAM := sist
 CFLAGS  ?= -Wall -Wextra -Wwrite-strings -pedantic -Ofast -march=native -s
 
-$(PROGRAM): sisterm.c
+$(PROGRAM): sisterm.c sisterm.h palette.h
 	@gcc $(CFLAGS) -o $(PROGRAM) sisterm.c
 
 install: $(PROGRAM)

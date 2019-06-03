@@ -17,11 +17,15 @@
 #include <sys/types.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 
 // Signal action
 void setSignal(int);
 void sigcatch();
+
+// Check hex
+int ishex(char c);
 
 // Alternative to write()
 void transmission(int, const void*, size_t);
