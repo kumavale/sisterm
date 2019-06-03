@@ -36,7 +36,8 @@ Commands:
 
 ## Installation
 Once you have it set up, a simple `make && sudo make install` will compile sisterm and install it into `/usr/local/bin`.  
-`sist.conf` in HOME directory(en route)
+`cp sist.conf.example $HOME/sist.conf`  
+Copy `sist.conf` to HOME directory(en route)
 
 
 ## Uninstall
@@ -44,7 +45,6 @@ Once you have it set up, a simple `make && sudo make install` will compile siste
 
 
 ## Customizing
-Rewrite $HOME/sist.conf  
 > NAME.color = COLOR  
 > NAME.regex = REGEX  
 

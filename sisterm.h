@@ -16,6 +16,7 @@
 #include <regex.h>
 #include <sys/types.h>
 #include <getopt.h>
+#include <ctype.h>
 
 
 // Signal action
@@ -33,6 +34,9 @@ int syntaxCheck(char *str);
 
 // All regcomp
 void regcompAll();
+
+// Replace before to after
+void replace(char *str, const char *before, const char *after);
 
 // Syntax OK -> repaint
 void repaint(const char *color);

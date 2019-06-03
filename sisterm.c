@@ -230,59 +230,79 @@ int main(int argc, char **argv) {
                     continue;
 
                 char *key = (char*)malloc(5+1),
-                     *name_buf = (char*)malloc(64),
-                     *param_buf = (char*)malloc(MAX_PARAM_LEN);
+                     *name = (char*)malloc(64),
+                     *param = (char*)malloc(MAX_PARAM_LEN);
 
-                sscanf(str, " %63[^ .] . %5[^ =] = %2047[^\n]", name_buf, key, param_buf);
-                //printf("[name:%s, key:%s, param:%s]\n", name_buf, key, param_buf);
+                sscanf(str, " %63[^ .] . %5[^ =] = %2047[^\n]", name, key, param);
+                //printf("[name:%s, key:%s, param:%s]\n", name, key, param);
 
                 bool suffer = false;
                 for(int i=0; i<params_len; ++i)
-                    if(!strcmp(params[i].name, name_buf)) {
+                    if(!strcmp(params[i].name, name)) {
                         suffer = true;
                         break;
                     }
                 if(!suffer) {
                     ++params_len;
                     params = (Param*)realloc(params, params_len * sizeof(Param));  // 要修正
-                    params[params_len-1].name = (char*)malloc(strlen(name_buf)+1);
-                    strcpy(params[params_len-1].name, name_buf);
+                    params[params_len-1].name = (char*)malloc(strlen(name)+1);
+                    strcpy(params[params_len-1].name, name);
                 }
 
                 // DOS file format
-                if(param_buf[strlen(param_buf)-1] == 0x0D)
-                    param_buf[strlen(param_buf)-1] = '\0';
+                if(param[strlen(param)-1] == 0x0D)
+                    param[strlen(param)-1] = '\0';
 
                 if(!strncmp(key, "color", 5)) {
                     bool color_flug = false;
                     for(int i=0; i<8; ++i)
-                        if(!strncmp(param_buf, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
+                        if(!strncmp(param, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
                             color_flug = true;
                             params[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
                             strcpy(params[params_len-1].color, ansi_colors[i].val);
                             break;
                         }
                     if(!color_flug) {
-                        if(strlen(param_buf) > 6) {
+                        if(strlen(param) > 6) {
                             // ""のチェック => error exit
-                            // "\033" to '\033'
-                            //if(strstr(param_buf, "\\033")) to '\033'
-                            //if(strcasestr(param_buf, "\\e")) to '\x1B'
-                            //if(strcasestr(param_buf, "\\x1b")) to '\x1B'
-                            params[params_len-1].color = (char*)malloc(strlen(param_buf)+1);
-                            strcpy(params[params_len-1].color, param_buf);
+                            char *p;
+                            char *param_buf = (char*)malloc(strlen(param)+1);
+                            strcpy(param_buf, param);
+                            p = param_buf;
+                            int i = 0;
+                            while(*p) {
+                                if(isspace(*p)) {
+                                    ++p;
+                                    continue;
+                                }
+                                param_buf[i] = *p;
+                                ++i;
+                                ++p;
+                            }
+                            param_buf[i] = '\0';
+
+                            replace(param_buf, "\\033", "\033");
+                            replace(param_buf, "\\e",   "\x1B");
+                            replace(param_buf, "\\x1b", "\x1b");
+                            replace(param_buf, "\\x1B", "\x1B");
+
+                            strcpy(param, param_buf);
+                            free(param_buf);
+
+                            params[params_len-1].color = (char*)malloc(strlen(param)+1);
+                            strcpy(params[params_len-1].color, param);
                         }
-                        else if(strlen(param_buf) == 3) {
+                        else if(strlen(param) == 3) {
                             char format[11+1];  // \033[38;5;XXXm
-                            snprintf(format, sizeof(format), "\033[38;5;%3sm", param_buf);
+                            snprintf(format, sizeof(format), "\033[38;5;%3sm", param);
                             params[params_len-1].color = (char*)malloc(strlen(format)+1);
                             strcpy(params[params_len-1].color, format);
                         }
-                        else if(strlen(param_buf) == 6) {
+                        else if(strlen(param) == 6) {
                             char hexs[3][2+1] = {
-                                { param_buf[0], param_buf[1], '\0' },
-                                { param_buf[2], param_buf[3], '\0' },
-                                { param_buf[4], param_buf[5], '\0' }};
+                                { param[0], param[1], '\0' },
+                                { param[2], param[3], '\0' },
+                                { param[4], param[5], '\0' }};
                             char format[19+1];  // \033[38;2;XXX;XXX;XXXm
                             snprintf(format, sizeof(format), "\033[38;2;%03ld;%03ld;%03ldm",
                             strtol(hexs[0], NULL, 16),
@@ -291,35 +311,35 @@ int main(int argc, char **argv) {
                             params[params_len-1].color = (char*)malloc(strlen(format)+1);
                             strcpy(params[params_len-1].color, format);
                         } else {
-                            error("Invalid color: %s", str);
+                            error("%serror:%s Invalid color: '%s'", ansi_colors[AC_RED].val, RESET, param);
+                            error("  ---> %s:%d", path, line);
+                            error("%d | %s", line, str);
                             return EXIT_FAILURE;
                         }
                     }
                 }
                 else if(!strncmp(key, "regex", 5)) {
                     // ""のチェック => error exit
-                    if(regcomp(&params[params_len-1].regex  , param_buf  , REG_FLAGS )) {
-                        error("regcomp error: %s", str);
+                    int rc;
+                    if((rc = regcomp(&params[params_len-1].regex, param, REG_FLAGS))) {
+                        char msg[100];
+                        regerror(rc, &params[params_len-1].regex, msg, 100);
+                        error("%serror:%s regcomp() failred: %s", ansi_colors[AC_RED].val, RESET, msg);
+                        error("  ---> %s:%d", path, line);
+                        error("%d | %s", line, str);
                         return EXIT_FAILURE;
                     }
                 }
                 else {
-                    error("%d: Neither color nor regex: %s", line, str);
+                    error("%serror:%s Neither color nor regex: '%s'", ansi_colors[AC_RED].val, RESET, key);
+                    error("  ---> %s:%d", path, line);
+                    error("%d | %s", line, str);
                     return EXIT_FAILURE;
                 }
 
-                //for(int i=0; i < PARAM_MAX; ++i)
-                //    if(!strcmp(params_[i], params->name)) {
-                //        int len = (int)strlen(params->name);
-                //        params[i] = (char*)malloc(len);
-                //        // val - \" - \n
-                //        //strncpy(params[i], val, len-1);
-                //        memcpy(params[i], val, len);
-                //        params[i][len-2] = '\0';
-                //    }
                 free(key);
-                free(name_buf);
-                free(param_buf);
+                free(name);
+                free(param);
             }
             fclose(cfp);
             free(str);
@@ -907,6 +927,15 @@ void regcompAll() {
     }
 }
 
+void replace(char *str, const char *before, const char *after) {
+    char *p;
+    while((p = strstr(str, before)) != NULL) {
+        *p = '\0';
+        p += (int)strlen(before);
+        strcat(str, after);
+        strcat(str, p);
+    }
+}
 
 int syntaxCheck(char *str) {
     //if( regexec(&reg_slash, str, 0, 0, 0) == 0 )
