@@ -32,9 +32,6 @@ int kbhit();
 // Check syntax
 int syntaxCheck(char *str);
 
-// All regcomp
-void regcompAll();
-
 // Replace before to after
 void replace(char *str, const char *before, const char *after);
 

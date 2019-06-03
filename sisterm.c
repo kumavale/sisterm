@@ -31,11 +31,6 @@ char s[MAX_LENGTH];
 char *io = s;
 bool bsflag = false;
 
-
-regex_t reg_prompt;
-regex_t reg_slash;
-// IPv4Net ...
-
 // param
 typedef struct {
     char *name;
@@ -80,7 +75,6 @@ int main(int argc, char **argv) {
     bool arrflag      = false;            // Arrow keys flag
     bool logflag      = false;            // Whether to take a log
     bool tcpflag      = false;            // TCP
-    bool prflag       = false;            // Prompt Flag
     bool wflag        = false;            // Write file Flag
     bool rflag        = false;            // Read file Flag
     bool another_conf = false;            // another config file
@@ -205,8 +199,6 @@ int main(int argc, char **argv) {
             strcat(path, getenv("HOME"));
             strcat(path, "/" CONFIG_FILE);
         }
-
-        regcompAll();
 
         cfp = fopen(path, "r");
 
@@ -345,7 +337,6 @@ int main(int argc, char **argv) {
             free(str);
         }
         free(path);
-        //return 0;  // Debug
     }
 
 
@@ -494,20 +485,12 @@ int main(int argc, char **argv) {
                 transmission(STDOUT_FILENO, &c, 1);
 
             if( 0x0a==c ) {
-                prflag  = true;
                 excflag = false;
                 transmission(STDOUT_FILENO, comm, sprintf(comm, "%c%s", 0x0d, RESET));
             }
 
             if( cflag )
                 coloring(c);
-
-            if( cflag && prflag ) {
-                if( regexec(&reg_prompt, &c, 0, 0, 0) == 0) {
-                    memset( io = s, '\0', MAX_LENGTH );
-                    prflag = false;
-                }
-            }
 
             if( 0x21==c && cflag) {
                 excflag = true;
@@ -625,7 +608,6 @@ int main(int argc, char **argv) {
                     }
 
                     if( 0x0a==c ) {
-                        prflag  = true;
                         excflag = false;
                         transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
                     }
@@ -652,13 +634,6 @@ int main(int argc, char **argv) {
                     if( !excflag && cflag )
                         coloring(c);
 
-                    if( cflag && prflag ) {
-                        if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 ) {
-                            memset( io = s, '\0', MAX_LENGTH );
-                            prflag = false;
-                        }
-                    }
-                    //DebugLog("[%s]", s);
                 }
                 else if( recv(fd, &c, 1, 0) == 0) {
                     kill(p_pid, SIGINT);
@@ -797,7 +772,6 @@ int main(int argc, char **argv) {
             }
 
             if( 0x0a==c ) {
-                prflag  = true;
                 excflag = false;
                 transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
             }
@@ -827,14 +801,6 @@ int main(int argc, char **argv) {
 
             if( !excflag && cflag )
                 coloring(c);
-
-            if( cflag && prflag ) {
-                if( regexec(&reg_prompt, &c, 0, 0, 0) == 0 ) {
-                    memset( io = s, '\0', MAX_LENGTH );
-                    prflag = false;
-                }
-            }
-            //DebugLog("[%s]", s);
         }
 
         // if new data is available on the console, send it to the serial port
@@ -919,14 +885,6 @@ int kbhit() {
     return 0;
 }
 
-void regcompAll() {
-    //|| regcomp(&reg_slash    , "/$" , REG_FLAGS )) {
-    if(regcomp(&reg_prompt   , "#|>", REG_FLAGS )) {
-        error("regcomp: error");
-        exit(EXIT_FAILURE);
-    }
-}
-
 void replace(char *str, const char *before, const char *after) {
     char *p;
     while((p = strstr(str, before)) != NULL) {
@@ -938,8 +896,6 @@ void replace(char *str, const char *before, const char *after) {
 }
 
 int syntaxCheck(char *str) {
-    //if( regexec(&reg_slash, str, 0, 0, 0) == 0 )
-    //    return HL_SLASH;
     int hi_num;
     for(hi_num = 0; hi_num < params_len; ++hi_num)
         if( regexec(&params[hi_num].regex, str, 0, 0, 0) == 0 )
