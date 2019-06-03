@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.4.0"
+#define VERSION        "1.4.1"
 #define UPDATE_DATE    "20190604"
 
 #define CONFIG_FILE    "sist.conf"
@@ -233,7 +233,13 @@ int main(int argc, char **argv) {
                     }
                 if(!suffer) {
                     ++params_len;
-                    params = (Param*)realloc(params, params_len * sizeof(Param));  // 要修正
+                    Param *params_tmp = (Param*)realloc(params, params_len * sizeof(Param));
+                    if(params_tmp == NULL) {
+                        free(params);
+                        error("%serror:%s realloc() failed", ERROR_RED, RESET);
+                        return EXIT_FAILURE;
+                    }
+                    params = params_tmp;
                     params[params_len-1].name = (char*)malloc(strlen(name)+1);
                     strcpy(params[params_len-1].name, name);
                 }
@@ -244,7 +250,7 @@ int main(int argc, char **argv) {
 
                 if(!strncmp(key, "color", 5)) {
                     bool color_flug = false;
-                    for(int i=0; i<8; ++i)
+                    for(int i=0; i<AC_MAX; ++i)
                         if(!strncasecmp(param, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
                             color_flug = true;
                             params[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
@@ -253,7 +259,6 @@ int main(int argc, char **argv) {
                         }
                     if(!color_flug) {
                         if(strlen(param) > 6) {
-                            // ""のチェック => error exit
                             char *p;
                             char *param_buf = (char*)malloc(strlen(param)+1);
                             strcpy(param_buf, param);
@@ -269,8 +274,14 @@ int main(int argc, char **argv) {
                                 ++p;
                             }
                             param_buf[i] = '\0';
+                            if(param_buf[0] == '"' || param_buf[i-1] == '"') {
+                                error("%serror:%s Invalid color: '%s%s%s': expected not to require '\"'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                                error("  %s--->%s %s:%d\n", ERROR_BLUE, RESET, path, line);
+                                error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                return EXIT_FAILURE;
+                            }
                             if(param_buf[i-1] != 'm') {
-                                error("%serror:%s Invalid color: '%s': expected 'm' in end", ERROR_RED, RESET, param);
+                                error("%serror:%s Invalid color: '%s%s%s': expected 'm' in end", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
                                 error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
                                 error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
                                 return EXIT_FAILURE;
@@ -290,14 +301,14 @@ int main(int argc, char **argv) {
                         else if(strlen(param) == 3) {
                             for(int i=0; i<3; ++i)
                                 if(!isdigit(param[i])) {
-                                    error("%serror:%s Invalid color: '%s'", ERROR_RED, RESET, param);
+                                    error("%serror:%s Invalid color: '%s%s%s'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
                                     error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
                                     error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
                                     return EXIT_FAILURE;
                                 }
                             u_int16_t num = strtol(param, NULL, 10);
                             if(num > 255) {
-                                error("%serror:%s Invalid color: '%s': less than 256", ERROR_RED, RESET, param);
+                                error("%serror:%s Invalid color: '%s%s%s': less than 256", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
                                 error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
                                 error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
                                 return EXIT_FAILURE;
@@ -310,7 +321,7 @@ int main(int argc, char **argv) {
                         else if(strlen(param) == 6) {
                             for(int i=0; i<6; ++i)
                                 if(!ishex(param[i])) {
-                                    error("%serror:%s Invalid color: '%s'", ERROR_RED, RESET, param);
+                                    error("%serror:%s Invalid color: '%s%s%s'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
                                     error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
                                     error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
                                     return EXIT_FAILURE;
@@ -327,7 +338,7 @@ int main(int argc, char **argv) {
                             params[params_len-1].color = (char*)malloc(strlen(format)+1);
                             strcpy(params[params_len-1].color, format);
                         } else {
-                            error("%serror:%s Invalid color: '%s'", ERROR_RED, RESET, param);
+                            error("%serror:%s Invalid color: '%s%s%s'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
                             error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
                             error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
                             return EXIT_FAILURE;
@@ -335,7 +346,12 @@ int main(int argc, char **argv) {
                     }
                 }
                 else if(!strncmp(key, "regex", 5)) {
-                    // ""のチェック => error exit
+                    if(param[0] == '"' || param[strlen(param)-1] == '"') {
+                        error("%serror:%s Invalid regex: '%s%s%s': expected not to require '\"'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                        error("  %s--->%s %s:%d\n", ERROR_BLUE, RESET, path, line);
+                        error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                        return EXIT_FAILURE;
+                    }
                     int rc;
                     if((rc = regcomp(&params[params_len-1].regex, param, REG_FLAGS))) {
                         char msg[100];
@@ -347,7 +363,7 @@ int main(int argc, char **argv) {
                     }
                 }
                 else {
-                    error("%serror:%s Neither color nor regex: '%s'", ansi_colors[AC_RED].val, RESET, key);
+                    error("%serror:%s Neither color nor regex: '%s%s%s'", ERROR_RED, RESET, ERROR_YELLOW, key, RESET);
                     error("  ---> %s:%d", path, line);
                     error("%d | %s", line, str);
                     return EXIT_FAILURE;
@@ -1023,7 +1039,7 @@ void usage(char *argv[]) {
     printf("  -w path       Saved log          (e.g. /tmp/sist.log)\n");
     printf("  -t            Add timestamp to log\n");
     printf("  -a            Append to log      (default overwrite)\n");
-    printf("  -n            Without color\n\n");
+    printf("  -n            Without color\n");
     printf("  -c path       Specification of config file (e.g. /tmp/for_cisco.conf)\n");
     printf("  -p IPAddress  Telnet !!!Beta version!!! Many bugs!\n\n");
     // rear printf("  -p portnumber [IPAddress]  \n");
