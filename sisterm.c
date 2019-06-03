@@ -34,43 +34,8 @@ bool bsflag = false;
 
 
 regex_t reg_prompt;
-regex_t reg_vendors;
-regex_t reg_ipv4_net;
-regex_t reg_ipv4_sub;
-regex_t reg_ipv4_wild;
-regex_t reg_ipv6;
-regex_t reg_var;
-regex_t reg_string;
-regex_t reg_action;
-regex_t reg_protocol;
-regex_t reg_keyword;
-regex_t reg_cond;
-regex_t reg_interface;
-regex_t reg_command;
-regex_t reg_emphasis;
-regex_t reg_positive;
 regex_t reg_slash;
-//regex_t reg_url;
-
-// 削除
-enum {
-    PARAM_VENDORS,
-    PARAM_IPV4_NET,
-    PARAM_IPV4_SUB,
-    PARAM_IPV4_WILD,
-    PARAM_IPV6,
-    PARAM_VAR,
-    PARAM_STRING,
-    PARAM_ACTION,
-    PARAM_PROTOCOL,
-    PARAM_KEYWORD,
-    PARAM_COND,
-    PARAM_INTERFACE,
-    PARAM_COMMAND,
-    PARAM_EMPHASIS,
-    PARAM_POSITIVE,
-    PARAM_MAX,
-};
+// IPv4Net ...
 
 // param
 typedef struct {
@@ -79,8 +44,7 @@ typedef struct {
     regex_t regex;
 } Param;
 
-Param *params2;  // Dynamic array
-char *params[PARAM_MAX];
+Param *params;  // Dynamic array
 int params_len;
 
 //For debug
@@ -229,6 +193,8 @@ int main(int argc, char **argv) {
         strcat(path, getenv("HOME"));
         strcat(path, "/" CONFIG_FILE);
 
+        regcompAll();
+
         cfp = fopen(path, "r");
         if(cfp == NULL) {
             cflag = false;
@@ -237,24 +203,7 @@ int main(int argc, char **argv) {
             (void)getchar();
         }
         else {
-            const char *params_[] = {
-                "VENDORS",
-                "IPV4_NET",
-                "IPV4_SUB",
-                "IPV4_WILD",
-                "IPV6",
-                "VAR",
-                "STRING",
-                "ACTION",
-                "PROTOCOL",
-                "KEYWORD",
-                "COND",
-                "INTERFACE",
-                "COMMAND",
-                "EMPHASIS",
-                "POSITIVE"
-            };
-            params2 = (Param*)malloc(sizeof(Param));
+            params = (Param*)malloc(sizeof(Param));
 
             while(fgets(str, MAX_PARAM_LEN, cfp) != NULL) {
                 char *top = (char*)malloc(1+1);
@@ -272,15 +221,15 @@ int main(int argc, char **argv) {
 
                 bool suffer = false;
                 for(int i=0; i<params_len; ++i)
-                    if(!strcmp(params2[i].name, name_buf)) {
+                    if(!strcmp(params[i].name, name_buf)) {
                         suffer = true;
                         break;
                     }
                 if(!suffer) {
                     ++params_len;
-                    params2 = (Param*)realloc(params2, params_len * sizeof(Param));  // 要修正
-                    params2[params_len-1].name = (char*)malloc(strlen(name_buf)+1);
-                    strcpy(params2[params_len-1].name, name_buf);
+                    params = (Param*)realloc(params, params_len * sizeof(Param));  // 要修正
+                    params[params_len-1].name = (char*)malloc(strlen(name_buf)+1);
+                    strcpy(params[params_len-1].name, name_buf);
                 }
 
                 // DOS file format
@@ -292,21 +241,21 @@ int main(int argc, char **argv) {
                     for(int i=0; i<8; ++i)
                         if(!strncmp(param_buf, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
                             color_flug = true;
-                            params2[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
-                            strcpy(params2[params_len-1].color, ansi_colors[i].val);
+                            params[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
+                            strcpy(params[params_len-1].color, ansi_colors[i].val);
                             break;
                         }
                     if(!color_flug) {
                         if(strlen(param_buf) > 6) {
                             // ""のチェック => error exit
-                            params2[params_len-1].color = (char*)malloc(strlen(param_buf)+1);
-                            strcpy(params2[params_len-1].color, param_buf);
+                            params[params_len-1].color = (char*)malloc(strlen(param_buf)+1);
+                            strcpy(params[params_len-1].color, param_buf);
                         }
                         else if(strlen(param_buf) == 3) {
                             char str[11+1];  // \033[38;5;XXXm
                             snprintf(str, sizeof(str), "\033[38;5;%3sm", param_buf);
-                            params2[params_len-1].color = (char*)malloc(strlen(str)+1);
-                            strcpy(params2[params_len-1].color, str);
+                            params[params_len-1].color = (char*)malloc(strlen(str)+1);
+                            strcpy(params[params_len-1].color, str);
                         }
                         else if(strlen(param_buf) == 6) {
                             char hexs[3][2+1] = {
@@ -318,22 +267,33 @@ int main(int argc, char **argv) {
                             strtol(hexs[0], NULL, 16),
                             strtol(hexs[1], NULL, 16),
                             strtol(hexs[2], NULL, 16));
-                            params2[params_len-1].color = (char*)malloc(strlen(str)+1);
-                            strcpy(params2[params_len-1].color, str);
+                            params[params_len-1].color = (char*)malloc(strlen(str)+1);
+                            strcpy(params[params_len-1].color, str);
                         } else {
                             // error
+                            error("Invalid color");
+                            return EXIT_FAILURE;
                         }
                     }
                 }
                 else if(!strncmp(color_or_regex, "regex", 5)) {
+                    // ""のチェック => error exit
+                    //params[params_len-1].regex = (regex_t)malloc(strlen(regex_t));
+                    if(regcomp(&params[params_len-1].regex  , param_buf  , REG_FLAGS )) {
+                        //error
+                        perror("regcomp");
+                        return EXIT_FAILURE;
+                    }
                 }
                 else {
                     //error
+                    perror("Neither color nor regex");
+                    return EXIT_FAILURE;
                 }
 
                 //for(int i=0; i < PARAM_MAX; ++i)
-                //    if(!strcmp(params_[i], params2->name)) {
-                //        int len = (int)strlen(params2->name);
+                //    if(!strcmp(params_[i], params->name)) {
+                //        int len = (int)strlen(params->name);
                 //        params[i] = (char*)malloc(len);
                 //        // val - \" - \n
                 //        //strncpy(params[i], val, len-1);
@@ -344,18 +304,10 @@ int main(int argc, char **argv) {
                 free(top);
             }
             fclose(cfp);
-            for(int i=0; i < PARAM_MAX; ++i)
-                if(params[i] == NULL) {
-                    params[i] = (char*)malloc(2+1);
-                    strcpy(params[i], "0^");
-                }
-            if( cflag && regcompAll() != 0 ) return EXIT_FAILURE;
-            for(int i=0; i < PARAM_MAX; ++i)
-                free(params[i]);
         }
         free(str);
         free(path);
-        return 0;  // Debug
+        //return 0;  // Debug
     }
 
 
@@ -475,8 +427,6 @@ int main(int argc, char **argv) {
 
     if( cfsetispeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
     if( cfsetospeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
-
-    if( checkDefColorLen() != 0 )          return EXIT_FAILURE;
 
     if( rflag && !tcpflag ) {
         FILE *fr;
@@ -931,70 +881,23 @@ int kbhit() {
     return 0;
 }
 
-int regcompAll() {
-    //if(regcomp(&reg_url      , URL      , REG_FLAGS ) != 0) regmiss=true;
-    if(regcomp(&reg_vendors  , params[PARAM_VENDORS]  , REG_FLAGS )
-    || regcomp(&reg_ipv4_net , params[PARAM_IPV4_NET] , REG_FLAGS )
-    || regcomp(&reg_ipv4_sub , params[PARAM_IPV4_SUB] , REG_FLAGS )
-    || regcomp(&reg_ipv4_wild, params[PARAM_IPV4_WILD], REG_FLAGS )
-    || regcomp(&reg_ipv6     , params[PARAM_IPV6]     , REG_FLAGS )
-    || regcomp(&reg_var      , params[PARAM_VAR]      , REG_FLAGS )
-    || regcomp(&reg_string   , params[PARAM_STRING]   , REG_FLAGS )
-    || regcomp(&reg_action   , params[PARAM_ACTION]   , REG_FLAGS )
-    || regcomp(&reg_protocol , params[PARAM_PROTOCOL] , REG_FLAGS )
-    || regcomp(&reg_keyword  , params[PARAM_KEYWORD]  , REG_FLAGS )
-    || regcomp(&reg_cond     , params[PARAM_COND]     , REG_FLAGS )
-    || regcomp(&reg_interface, params[PARAM_INTERFACE], REG_FLAGS )
-    || regcomp(&reg_command  , params[PARAM_COMMAND]  , REG_FLAGS )
-    || regcomp(&reg_emphasis , params[PARAM_EMPHASIS] , REG_FLAGS )
-    || regcomp(&reg_positive , params[PARAM_POSITIVE] , REG_FLAGS )
-    || regcomp(&reg_prompt   , "#|>", REG_FLAGS )
-    || regcomp(&reg_slash    , "/$" , REG_FLAGS )) {
+void regcompAll() {
+    //|| regcomp(&reg_slash    , "/$" , REG_FLAGS )) {
+    if(regcomp(&reg_prompt   , "#|>", REG_FLAGS )) {
         error("regcomp: error");
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
-    return 0;
 }
 
 
 int syntaxCheck(char *str) {
-    //if( regexec(&reg_vendors  , str, 0, 0, 0) == 0 ) return HL_VENDORS;
-    //if( regexec(&reg_ipv4_net , str, 0, 0, 0) == 0 ) return HL_IPV4_NET;
-    //if( regexec(&reg_ipv4_sub , str, 0, 0, 0) == 0 ) return HL_IPV4_SUB;
-    //if( regexec(&reg_ipv4_wild, str, 0, 0, 0) == 0 ) return HL_IPV4_WILD;
-    //if( regexec(&reg_ipv6     , str, 0, 0, 0) == 0 ) return HL_IPV6;
-    //if( regexec(&reg_string   , str, 0, 0, 0) == 0 ) return HL_STRING;
-    //if( regexec(&reg_var      , str, 0, 0, 0) == 0 ) return HL_VAR;
-    //if( regexec(&reg_action   , str, 0, 0, 0) == 0 ) return HL_ACTION;
-    //if( regexec(&reg_protocol , str, 0, 0, 0) == 0 ) return HL_PROTOCOL;
-    //if( regexec(&reg_keyword  , str, 0, 0, 0) == 0 ) return HL_KEYWORD;
-    //if( regexec(&reg_cond     , str, 0, 0, 0) == 0 ) return HL_COND;
-    //if( regexec(&reg_interface, str, 0, 0, 0) == 0 ) return HL_INTERFACE;
-    //if( regexec(&reg_command  , str, 0, 0, 0) == 0 ) return HL_COMMAND;
-    //if( regexec(&reg_emphasis , str, 0, 0, 0) == 0 ) return HL_EMPHASIS;
-    //if( regexec(&reg_positive , str, 0, 0, 0) == 0 ) return HL_POSITIVE;
-    //if( regexec(&reg_slash    , str, 0, 0, 0) == 0 ) return HL_SLASH;
-    //if( regexec(&reg_url      , str, 0, 0, 0) == 0 ) return HL_URL;
+    //if( regexec(&reg_slash, str, 0, 0, 0) == 0 )
+    //    return HL_SLASH;
+    int hi_num;
+    for(hi_num = 0; hi_num < params_len; ++hi_num)
+        if( regexec(&params[hi_num].regex, str, 0, 0, 0) == 0 )
+            return hi_num;
     return -1;
-}
-
-int checkDefColorLen() {
-    //const char *defcolor[] = {
-    //    RESET, UNDERLINE, DEFAULT_F, DEFAULT_B,
-    //    BLACK, MAROON, GREEN, OLIVE, NAVY, PURPLE, TEAL, SILVER,
-    //    GREY, RED, LIME, YELLOW, BLUE, FUCHSIA, AQUA, WHITE,
-    //    SPRINGGREEN, STEELBLUE, CORNFLOWERBLUE, YELLOW3, MEDIUMORCHID,
-    //    ORANGE, DEEPPINK, MIDIUMPURPLE1, STEELBLUE1, DARKORANGE, CORNSILK1
-    //    ,NULL
-    //};
-
-    //const char **each = defcolor;
-
-    //while( *each ) {
-    //    if( strlen(*each++) > 11 ) return 1;
-    //}
-
-    return 0;
 }
 
 void repaint(const char *color) {
@@ -1045,74 +948,14 @@ void coloring(char c) {
     }
 
     int checked = syntaxCheck(s);
-    if(checked >= 0) {
-        switch(checked) {
-            case HL_VENDORS:
-                repaint(COLOR_VENDORS);
-                break;
-            case HL_ACTION:
-                repaint(COLOR_ACTION);
-                break;
-            case HL_KEYWORD:
-                repaint(COLOR_KEYWORD);
-                break;
-            case HL_COND:
-                repaint(COLOR_COND);
-                break;
-            case HL_PROTOCOL:
-                repaint(COLOR_PROTOCOL);
-                break;
-            case HL_VAR:
-                repaint(COLOR_VAR);
-                break;
-            case HL_STRING:
-                repaint(COLOR_STRING);
-                break;
-            case HL_SLASH:
-                sprintf(s, "/");
-                repaint(COLOR_SLASH);
-                memset( io = s, '\0', sizeof(s) );
-                break;
-            //case HL_URL:
-            //    repaint(COLOR_URL);
-            //    break;
-            case HL_POSITIVE:
-                repaint(COLOR_POSITIVE);
-                break;
-            case HL_EMPHASIS:
-                repaint(COLOR_EMPHASIS);
-                break;
-            case HL_INTERFACE:
-                repaint(COLOR_INTERFACE);
-                break;
-            case HL_COMMAND:
-                repaint(COLOR_COMMAND);
-                break;
-            case HL_IPV4_NET:
-                repaint(COLOR_IPV4_NET);
-                //if(*(io-1)>0x29 || *(io-1)<0x3a) return;
-                break;
-            case HL_IPV4_SUB:
-                repaint(COLOR_IPV4_SUB);
-                //if(*(io-1)>0x29 || *(io-1)<0x3a) return;
-                break;
-            case HL_IPV4_WILD:
-                repaint(COLOR_IPV4_WILD);
-                //if(*(io-1)>0x29 || *(io-1)<0x3a) return;
-                break;
-            case HL_IPV6:
-                repaint(COLOR_IPV6);
-                //if( (*(io-1)>0x29 || *(io-1)<0x3b)
-                // || (*(io-1)>0x40 || *(io-1)<0x47)
-                // || (*(io-1)>0x60 || *(io-1)<0x67)
-                //) return;
-                break;
-            default:
-                repaint(RESET);
-                break;
-        }
-        //memset( io = s, '\0', sizeof(s) );
-    }
+    if(checked >= 0)
+        repaint(params[checked].color);
+
+    //        case HL_SLASH:
+    //            sprintf(s, "/");
+    //            repaint(COLOR_SLASH);
+    //            memset( io = s, '\0', sizeof(s) );
+    //            break;
 
 }
 

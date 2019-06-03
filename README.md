@@ -44,11 +44,14 @@ Once you have it set up, a simple `make && sudo make install` will compile siste
 
 ## Customizing
 Rewrite $HOME/sist.conf  
-> NAME@COLOR = "REGEX"  
+> NAME.color = COLOR  
+> NAME.regex = REGEX  
 
 ```(e.g.)  
-HOGE@RED = "fuga"
-abc_1 @ 00FF00 = "^(aaa|bbb|ccc)$"
+HOGE.color = RED
+HOGE.regex = fuga
+abc_1.color = 00FF00
+abc_1.regex = ^(aaa|bbb|ccc)$
 ```
 
 

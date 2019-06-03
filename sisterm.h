@@ -28,14 +28,11 @@ void transmission(int, const void*, size_t);
 // Keyboard Hit Check
 int kbhit();
 
-// All regcomp
-int regcompAll();
-
 // Check syntax
 int syntaxCheck(char *str);
 
-// Check define color length
-int checkDefColorLen();
+// All regcomp
+void regcompAll();
 
 // Syntax OK -> repaint
 void repaint(const char *color);
