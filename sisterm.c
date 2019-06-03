@@ -1,14 +1,13 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.4.0-rc1"
-#define UPDATE_DATE    "20190602"
+#define VERSION        "1.4.0-rc2"
+#define UPDATE_DATE    "20190603"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
 
 #include "sisterm.h"
-#include "syntax.h"
 #include "palette.h"
 
 //Debug
@@ -70,6 +69,7 @@ int main(int argc, char **argv) {
     const char *B     = NULL;             // BaudRate
     const char *R     = NULL;             // File path to load
     const char *W     = NULL;             // File path to save
+    const char *C     = NULL;             // File path to config
     speed_t baudRate  = B9600;            // Default BaudRate
     bool existsflag   = false;            // Whether to log file
     bool excflag      = false;            // Exclamation mark flag for comment
@@ -83,6 +83,7 @@ int main(int argc, char **argv) {
     bool prflag       = false;            // Prompt Flag
     bool wflag        = false;            // Write file Flag
     bool rflag        = false;            // Read file Flag
+    bool another_conf = false;            // another config file
     bool cflag        = true;             // Color Flag
     bool ts           = false;            // Whether to timestamp
     char* logbuf      = (char*)malloc(MAX_LENGTH);
@@ -103,6 +104,7 @@ int main(int argc, char **argv) {
 	    	{"speed",     required_argument, 0, 's'},
 	    	{"read",      required_argument, 0, 'r'},
 	    	{"write",     required_argument, 0, 'w'},
+	    	{"config",    required_argument, 0, 'c'},
 	    	{"help",      no_argument,       0, 'h'},
 	    	{"version",   no_argument,       0, 'v'},
 	    	{"timestamp", no_argument,       0, 't'},
@@ -114,7 +116,7 @@ int main(int argc, char **argv) {
         while((opt = getopt_long(
                 argc,
                 argv,
-                "l:s:r:w:tanp:hv",
+                "l:s:r:w:c:tanp:hv",
                 longopts,
                 &idx)
         ) != -1) {
@@ -139,6 +141,12 @@ int main(int argc, char **argv) {
                   // /path/to/log.txt
                     W = optarg;
                     wflag = true;
+                    break;
+
+                case 'c':
+                  // /path/to/config
+                    C = optarg;
+                    another_conf = true;
                     break;
 
                 case 't':
@@ -187,15 +195,21 @@ int main(int argc, char **argv) {
 
     {
         FILE *cfp;  // Config File Pointer
-        char *str   = (char*)malloc(MAX_PARAM_LEN);
-        char *path  = (char*)malloc(strlen(getenv("HOME"))
-                                  + strlen(CONFIG_FILE) + 1);
-        strcat(path, getenv("HOME"));
-        strcat(path, "/" CONFIG_FILE);
+        char *path;
+
+        if(another_conf) {
+            path = (char*)malloc(strlen(C)+1);
+            strcpy(path, C);
+        } else {
+            path = (char*)malloc(strlen(getenv("HOME")) + strlen(CONFIG_FILE) + 1);
+            strcat(path, getenv("HOME"));
+            strcat(path, "/" CONFIG_FILE);
+        }
 
         regcompAll();
 
         cfp = fopen(path, "r");
+
         if(cfp == NULL) {
             cflag = false;
             error("%s: File open error", path);
@@ -204,20 +218,23 @@ int main(int argc, char **argv) {
         }
         else {
             params = (Param*)malloc(sizeof(Param));
+            char *str = (char*)malloc(MAX_PARAM_LEN);
+            int line = 0;
 
             while(fgets(str, MAX_PARAM_LEN, cfp) != NULL) {
-                char *top = (char*)malloc(1+1);
-                sscanf(str, " %1s", top);
+                ++line;
+                char top = '\0';
+                sscanf(str, " %c", &top);
                 // ignore comment and blank line
-                if(!strncmp(top, "#", 1) || top[0] == 0x00)
+                if(strchr(" #\n\0", top))
                     continue;
 
-                char color_or_regex[5+1],
-                     name_buf[64],
+                char *key = (char*)malloc(5+1),
+                     *name_buf = (char*)malloc(64),
                      *param_buf = (char*)malloc(MAX_PARAM_LEN);
 
-                sscanf(str, " %63[^ .] . %5[^ =] = %2047[^\n]", name_buf, color_or_regex, param_buf);
-                printf("name:%s, color:%s, regex:%s\n", name_buf, color_or_regex, param_buf);
+                sscanf(str, " %63[^ .] . %5[^ =] = %2047[^\n]", name_buf, key, param_buf);
+                //printf("[name:%s, key:%s, param:%s]\n", name_buf, key, param_buf);
 
                 bool suffer = false;
                 for(int i=0; i<params_len; ++i)
@@ -233,10 +250,10 @@ int main(int argc, char **argv) {
                 }
 
                 // DOS file format
-                if(param_buf[strlen(param_buf)-1] == 0x0D || param_buf[strlen(param_buf)-1] == 0x0A)
+                if(param_buf[strlen(param_buf)-1] == 0x0D)
                     param_buf[strlen(param_buf)-1] = '\0';
 
-                if(!strncmp(color_or_regex, "color", 5)) {
+                if(!strncmp(key, "color", 5)) {
                     bool color_flug = false;
                     for(int i=0; i<8; ++i)
                         if(!strncmp(param_buf, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
@@ -248,46 +265,46 @@ int main(int argc, char **argv) {
                     if(!color_flug) {
                         if(strlen(param_buf) > 6) {
                             // ""のチェック => error exit
+                            // "\033" to '\033'
+                            //if(strstr(param_buf, "\\033")) to '\033'
+                            //if(strcasestr(param_buf, "\\e")) to '\x1B'
+                            //if(strcasestr(param_buf, "\\x1b")) to '\x1B'
                             params[params_len-1].color = (char*)malloc(strlen(param_buf)+1);
                             strcpy(params[params_len-1].color, param_buf);
                         }
                         else if(strlen(param_buf) == 3) {
-                            char str[11+1];  // \033[38;5;XXXm
-                            snprintf(str, sizeof(str), "\033[38;5;%3sm", param_buf);
-                            params[params_len-1].color = (char*)malloc(strlen(str)+1);
-                            strcpy(params[params_len-1].color, str);
+                            char format[11+1];  // \033[38;5;XXXm
+                            snprintf(format, sizeof(format), "\033[38;5;%3sm", param_buf);
+                            params[params_len-1].color = (char*)malloc(strlen(format)+1);
+                            strcpy(params[params_len-1].color, format);
                         }
                         else if(strlen(param_buf) == 6) {
                             char hexs[3][2+1] = {
                                 { param_buf[0], param_buf[1], '\0' },
                                 { param_buf[2], param_buf[3], '\0' },
                                 { param_buf[4], param_buf[5], '\0' }};
-                            char str[19+1];  // \033[38;2;XXX;XXX;XXXm
-                            snprintf(str, sizeof(str), "\033[38;2;%03ld;%03ld;%03ldm",
+                            char format[19+1];  // \033[38;2;XXX;XXX;XXXm
+                            snprintf(format, sizeof(format), "\033[38;2;%03ld;%03ld;%03ldm",
                             strtol(hexs[0], NULL, 16),
                             strtol(hexs[1], NULL, 16),
                             strtol(hexs[2], NULL, 16));
-                            params[params_len-1].color = (char*)malloc(strlen(str)+1);
-                            strcpy(params[params_len-1].color, str);
+                            params[params_len-1].color = (char*)malloc(strlen(format)+1);
+                            strcpy(params[params_len-1].color, format);
                         } else {
-                            // error
-                            error("Invalid color");
+                            error("Invalid color: %s", str);
                             return EXIT_FAILURE;
                         }
                     }
                 }
-                else if(!strncmp(color_or_regex, "regex", 5)) {
+                else if(!strncmp(key, "regex", 5)) {
                     // ""のチェック => error exit
-                    //params[params_len-1].regex = (regex_t)malloc(strlen(regex_t));
                     if(regcomp(&params[params_len-1].regex  , param_buf  , REG_FLAGS )) {
-                        //error
-                        perror("regcomp");
+                        error("regcomp error: %s", str);
                         return EXIT_FAILURE;
                     }
                 }
                 else {
-                    //error
-                    perror("Neither color nor regex");
+                    error("%d: Neither color nor regex: %s", line, str);
                     return EXIT_FAILURE;
                 }
 
@@ -300,12 +317,13 @@ int main(int argc, char **argv) {
                 //        memcpy(params[i], val, len);
                 //        params[i][len-2] = '\0';
                 //    }
+                free(key);
+                free(name_buf);
                 free(param_buf);
-                free(top);
             }
             fclose(cfp);
+            free(str);
         }
-        free(str);
         free(path);
         //return 0;  // Debug
     }
@@ -976,7 +994,7 @@ void version() {
 
 void usage(char *argv[]) {
     printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]\n"
-           "            [-w /path/to/LOG] [-t] [-a] [-n] [-h] [-v]\n\n", argv[0]);
+           "            [-w /path/to/LOG] [-c /path/to/config] [-t] [-a] [-n] [-h] [-v]\n\n", argv[0]);
 
     printf("Command line interface for Serial Console by Network device.\n");
     printf("------------------------------------------------------------\n");
@@ -992,6 +1010,7 @@ void usage(char *argv[]) {
     printf("  -t            Add timestamp to log\n");
     printf("  -a            Append to log      (default overwrite)\n");
     printf("  -n            Without color\n\n");
+    printf("  -c path       Specification of config file (e.g. /tmp/for_cisco.conf)\n");
     printf("  -p IPAddress  Telnet !!!Beta version!!! Many bugs!\n\n");
     // rear printf("  -p portnumber [IPAddress]  \n");
 
