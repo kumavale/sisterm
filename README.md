@@ -1,7 +1,7 @@
 # sisterm
 <!-- ![stable](https://img.shields.io/badge/build-failing-critical.svg) -->
 ![stable](https://img.shields.io/badge/build-passing-success.svg)
-![version](https://img.shields.io/badge/version-1.4.1--rc-success.svg)
+![version](https://img.shields.io/badge/version-1.4.1-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
 sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.  
@@ -61,6 +61,9 @@ abc_1.color = 00FF00
 abc_1.regex = ^(aaa|bbb|ccc)$
 FGrgb_BGrgb_UB.color = \033[38;2;255;0;0;48;2;255;255;255;4m
 FGrgb_BGrgb_UB.regex = ^sisterm$
+add.color = \033[38;5;1m
+add.color += \033[48;5;2m
+add.regex = 0^  <=  match nothing
 ```
 ```
 # Color example

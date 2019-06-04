@@ -3,7 +3,7 @@
 #  Only lines beginning with '#' are comments.
 #  The maximum length of one line is 2048 characters.
 #  Blanks can not be colored.
-#  Color's define can use "+=" oprator.
+#  Color's define can use "+=" operator.
 #
 #  [NAME].color =  [COLOR]
 #  [NAME].color += [COLOR]
