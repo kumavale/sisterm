@@ -24,8 +24,14 @@
 void setSignal(int);
 void sigcatch();
 
+// Number of digits
+int chrcnt(int num);
+
 // Check hex
 int ishex(char c);
+
+// A string consisting of a single character repeat
+char *loopc(const char c, int n);
 
 // Alternative to write()
 void transmission(int, const void*, size_t);
@@ -44,6 +50,9 @@ void repaint(const char *color);
 
 // Control coloring
 void coloring(char c);
+
+// End processing
+void quit(int fd, int when, const struct termios *termptr, int exit_status);
 
 // Show version
 // ( major.minor.tweak )

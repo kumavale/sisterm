@@ -3,9 +3,11 @@
 #  Only lines beginning with '#' are comments.
 #  The maximum length of one line is 2048 characters.
 #  Blanks can not be colored.
+#  Color's define can use "+=" operator.
 #
-#  [NAME].color = [COLOR]
-#  [NAME].regex = [REGEX]
+#  [NAME].color =  [COLOR]
+#  [NAME].color += [COLOR]
+#  [NAME].regex =  [REGEX]
 #
 #  (e.g.)
 #  DEFINE1.color = RED
@@ -36,7 +38,9 @@
 #   * WHITE
 # 
 
-VENDORS.color = \033[38;5;14m
+VENDORS.color = \033[38;5;57m
+VENDORS.color += \033[48;5;51m
+VENDORS.color += \033[4m
 VENDORS.regex = ^(cisco|aruba|juniper|huawei|arista|riverbed|netscout|yamaha|mellanox)$
 
 COND.color = 001
