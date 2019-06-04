@@ -53,7 +53,7 @@ void error(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
+    //fprintf(stderr, "\n");
 }
 
 int main(int argc, char **argv) {
@@ -191,17 +191,18 @@ int main(int argc, char **argv) {
         if(another_conf) {
             path = (char*)malloc(strlen(C)+1);
             strcpy(path, C);
+            path[strlen(C)] = '\0';
         } else {
             path = (char*)malloc(strlen(getenv("HOME")) + strlen(CONFIG_FILE) + 1);
             strcat(path, getenv("HOME"));
-            strcat(path, "/" CONFIG_FILE);
+            strcat(path, "/" CONFIG_FILE "\0");
         }
 
         cfp = fopen(path, "r");
 
         if(cfp == NULL) {
             cflag = false;
-            error("%s: File open error", path);
+            error("%s: File open error\n", path);
             fprintf(stderr, "Press ENTER to continue of without color mode");
             (void)getchar();
         }
@@ -218,11 +219,11 @@ int main(int argc, char **argv) {
                 if(strchr(" #\n\0", top))
                     continue;
 
-                char *key = (char*)malloc(5+1),
+                char *key = (char*)malloc(64),
                      *name = (char*)malloc(64),
                      *param = (char*)malloc(MAX_PARAM_LEN);
 
-                sscanf(str, " %63[^ .] . %5[^ =] = %2047[^\n]", name, key, param);
+                sscanf(str, " %63[^ .] . %63[^ =] = %2047[^\n]", name, key, param);
                 //printf("[name:%s, key:%s, param:%s]\n", name, key, param);
 
                 bool suffer = false;
@@ -236,25 +237,27 @@ int main(int argc, char **argv) {
                     Param *params_tmp = (Param*)realloc(params, params_len * sizeof(Param));
                     if(params_tmp == NULL) {
                         free(params);
-                        error("%serror:%s realloc() failed", ERROR_RED, RESET);
+                        error("%serror:%s realloc() failed\n", ERROR_RED, RESET);
                         return EXIT_FAILURE;
                     }
                     params = params_tmp;
                     params[params_len-1].name = (char*)malloc(strlen(name)+1);
                     strcpy(params[params_len-1].name, name);
+                    params[params_len-1].name[strlen(name)] = '\0';
                 }
 
                 // DOS file format
                 if(param[strlen(param)-1] == 0x0D)
                     param[strlen(param)-1] = '\0';
 
-                if(!strncmp(key, "color", 5)) {
+                if(!strcmp(key, "color")) {
                     bool color_flug = false;
                     for(int i=0; i<AC_MAX; ++i)
-                        if(!strncasecmp(param, ansi_colors[i].key, strlen(ansi_colors[i].key))) {
+                        if(!strcasecmp(param, ansi_colors[i].key)) {
                             color_flug = true;
                             params[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
                             strcpy(params[params_len-1].color, ansi_colors[i].val);
+                            params[params_len-1].color[strlen(ansi_colors[i].val)] = '\0';
                             break;
                         }
                     if(!color_flug) {
@@ -275,15 +278,21 @@ int main(int argc, char **argv) {
                             }
                             param_buf[i] = '\0';
                             if(param_buf[0] == '"' || param_buf[i-1] == '"') {
-                                error("%serror:%s Invalid color: '%s%s%s': expected not to require '\"'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                error("  %s--->%s %s:%d\n", ERROR_BLUE, RESET, path, line);
+                                int cnt = chrcnt(line);
+                                error("%serror:%s Invalid color: '%s%s%s': expected not to require '\"'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                                error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
+                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                 error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
                             if(param_buf[i-1] != 'm') {
-                                error("%serror:%s Invalid color: '%s%s%s': expected 'm' in end", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                                int cnt = chrcnt(line);
+                                error("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                                error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
+                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                 error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
 
@@ -297,33 +306,44 @@ int main(int argc, char **argv) {
 
                             params[params_len-1].color = (char*)malloc(strlen(param)+1);
                             strcpy(params[params_len-1].color, param);
+                            params[params_len-1].color[strlen(param)] = '\0';
                         }
                         else if(strlen(param) == 3) {
                             for(int i=0; i<3; ++i)
                                 if(!isdigit(param[i])) {
-                                    error("%serror:%s Invalid color: '%s%s%s'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                    error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                                    int cnt = chrcnt(line);
+                                    error("%serror:%s Invalid color: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                                    error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
+                                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                     error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                     return EXIT_FAILURE;
                                 }
                             u_int16_t num = strtol(param, NULL, 10);
                             if(num > 255) {
-                                error("%serror:%s Invalid color: '%s%s%s': less than 256", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                                int cnt = chrcnt(line);
+                                error("%serror:%s Invalid color: '%s%s%s': less than 256\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                                error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
+                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                 error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
                             char format[11+1];  // \033[38;5;XXXm
                             snprintf(format, sizeof(format), "\033[38;5;%3sm", param);
                             params[params_len-1].color = (char*)malloc(strlen(format)+1);
                             strcpy(params[params_len-1].color, format);
+                            params[params_len-1].color[strlen(format)] = '\0';
                         }
                         else if(strlen(param) == 6) {
                             for(int i=0; i<6; ++i)
                                 if(!ishex(param[i])) {
-                                    error("%serror:%s Invalid color: '%s%s%s'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                    error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                                    int cnt = chrcnt(line);
+                                    error("%serror:%s Invalid color: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                                    error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
+                                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                     error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                                     return EXIT_FAILURE;
                                 }
                             char hexs[3][2+1] = {
@@ -337,38 +357,50 @@ int main(int argc, char **argv) {
                             strtol(hexs[2], NULL, 16));
                             params[params_len-1].color = (char*)malloc(strlen(format)+1);
                             strcpy(params[params_len-1].color, format);
+                            params[params_len-1].color[strlen(format)] = '\0';
                         } else {
-                            error("%serror:%s Invalid color: '%s%s%s'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                            error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                            int cnt = chrcnt(line);
+                            error("%serror:%s Invalid color: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                            error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
+                            error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                             error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                            error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                             return EXIT_FAILURE;
                         }
                     }
                 }
-                else if(!strncmp(key, "regex", 5)) {
+                else if(!strcmp(key, "regex")) {
                     if(param[0] == '"' || param[strlen(param)-1] == '"') {
-                        error("%serror:%s Invalid regex: '%s%s%s': expected not to require '\"'", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                        error("  %s--->%s %s:%d\n", ERROR_BLUE, RESET, path, line);
+                        int cnt = chrcnt(line);
+                        error("%serror:%s Invalid regex: '%s%s%s': expected not to require '\"'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
+                        error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt),  RESET, path, line);
+                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                         error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     int rc;
                     if((rc = regcomp(&params[params_len-1].regex, param, REG_FLAGS))) {
+                        int cnt = chrcnt(line);
                         char msg[100];
                         regerror(rc, &params[params_len-1].regex, msg, 100);
-                        error("%serror:%s regcomp() failred: %s", ERROR_RED, RESET, msg);
-                        error("  %s--->%s %s:%d", ERROR_BLUE, RESET, path, line);
+                        error("%serror:%s regcomp() failred: %s\n", ERROR_RED, RESET, msg);
+                        error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt),  RESET, path, line);
+                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                         error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                 }
                 else {
-                    error("%serror:%s Neither color nor regex: '%s%s%s'", ERROR_RED, RESET, ERROR_YELLOW, key, RESET);
-                    error("  ---> %s:%d", path, line);
-                    error("%d | %s", line, str);
+                    int cnt = chrcnt(line);
+                    error("%serror:%s Neither color nor regex: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, key, RESET);
+                    error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt),  RESET, path, line);
+                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                    error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                     return EXIT_FAILURE;
                 }
-
                 free(key);
                 free(name);
                 free(param);
@@ -607,8 +639,13 @@ int main(int argc, char **argv) {
                     if( logflag ) {
                         // Unstable
                         if( (int)strlen(logbuf) > lblen ) {
-                            lb = logbuf = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
-                            //free(logbuf);
+                            char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+                            if(lb_tmp == NULL) {
+                                free(logbuf);
+                                error("realloc() failed\n");
+                                quit(STDOUT_FILENO, TCSANOW, &old_stdio, EXIT_FAILURE);
+                            }
+                            lb = logbuf = lb_tmp;
                         }
 
                         if( 0x08==c ) {
@@ -900,6 +937,22 @@ int ishex(char c) {
            ('0' <= c && c <= '9');
 }
 
+int chrcnt(int num) {
+    int cnt = 1;
+    while(num /= 10)
+        ++cnt;
+    return cnt;
+}
+
+char *loopc(const char c, int n) {
+    char *str = (char*)malloc(n+1);
+    int i;
+    for(i=0; i<n; ++i)
+        str[i] = c;
+    str[i] = '\0';
+    return str;
+}
+
 void transmission(int _fd, const void* _buf, size_t _len) {
     if( -1 == write(_fd, _buf, _len) ) {
         perror("write() error");
@@ -1016,6 +1069,11 @@ void setSignal(int p_signame) {
 
 void sigcatch() {
     exit(EXIT_SUCCESS);
+}
+
+void quit(int fd, int when, const struct termios *termptr, int exit_status) {
+    tcsetattr(fd, when, termptr);
+    exit(exit_status);
 }
 
 void version() {
