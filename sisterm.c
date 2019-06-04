@@ -414,6 +414,15 @@ int main(int argc, char **argv) {
                         error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
+                    if(!strcmp(op, "+=")) {
+                        int cnt = chrcnt(line);
+                        error("%serror:%s The \"+=\" operator can\'t be used with regex\n", ERROR_RED, RESET);
+                        error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt),  RESET, path, line);
+                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                        error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                        return EXIT_FAILURE;
+                    }
                     params[params_len-1].cmped = true;
                 }
                 else {
