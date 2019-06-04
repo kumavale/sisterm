@@ -12,7 +12,8 @@
 
 
 #ifdef __linux__
-#define              CLOCK CLOCK_REALTIME_COARSE
+// CLOCK_REALTIME_COARSE
+#define              CLOCK 5
 #else
 #define              CLOCK CLOCK_REALTIME
 #endif
@@ -33,6 +34,7 @@ typedef struct {
     char *name;
     char *color;
     regex_t regex;
+    bool cmped;
 } Param;
 
 Param *params;  // Dynamic array
@@ -158,6 +160,7 @@ int main(int argc, char **argv) {
 /* ---------------------------------------------------------------- */
                 case 'p':
                   // Telnet test
+                  // XXX.XXX.XXX.XXX:XXXXX
                     tcpflag = true;
                     if(strlen(optarg) > 15) {
                         error("(%s) Invalid IP Address\n", optarg);
@@ -219,12 +222,13 @@ int main(int argc, char **argv) {
                 if(strchr(" #\n\0", top))
                     continue;
 
-                char *key = (char*)malloc(64),
-                     *name = (char*)malloc(64),
+                char *key   = (char*)malloc(64),
+                     *op    = (char*)malloc(2+1),
+                     *name  = (char*)malloc(64),
                      *param = (char*)malloc(MAX_PARAM_LEN);
 
-                sscanf(str, " %63[^ .] . %63[^ =] = %2047[^\n]", name, key, param);
-                //printf("[name:%s, key:%s, param:%s]\n", name, key, param);
+                sscanf(str, " %63[^ .] . %63[^ +=] %2[+=] %2047[^\n]", name, key, op, param);
+                //printf("[name:%s, key:%s, op:%s, param:%s]\n", name, key, op, param);
 
                 bool suffer = false;
                 for(int i=0; i<params_len; ++i)
@@ -233,6 +237,15 @@ int main(int argc, char **argv) {
                         break;
                     }
                 if(!suffer) {
+                    if(!strcmp(op, "+=")) {
+                        int cnt = chrcnt(line);
+                        error("%serror:%s '%s%s.%s%s' is used uninitialized\n", ERROR_RED, RESET, ERROR_YELLOW, name, key,RESET);
+                        error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
+                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                        error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
+                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                        return EXIT_FAILURE;
+                    }
                     ++params_len;
                     Param *params_tmp = (Param*)realloc(params, params_len * sizeof(Param));
                     if(params_tmp == NULL) {
@@ -304,9 +317,19 @@ int main(int argc, char **argv) {
                             strcpy(param, param_buf);
                             free(param_buf);
 
-                            params[params_len-1].color = (char*)malloc(strlen(param)+1);
-                            strcpy(params[params_len-1].color, param);
-                            params[params_len-1].color[strlen(param)] = '\0';
+                            if(!strcmp(op, "+=")) {
+                                char *param_tmp = (char*)realloc(params[params_len-1].color, strlen(params[params_len-1].color)+strlen(param)+1);
+                                if(param_tmp == NULL) {
+                                    error("%serror:%s realloc() failed\n", ERROR_RED, RESET);
+                                    return EXIT_FAILURE;
+                                }
+                                params[params_len-1].color = param_tmp;
+                                strcat(params[params_len-1].color, param);
+                            } else {
+                                params[params_len-1].color = (char*)malloc(strlen(param)+1);
+                                strcpy(params[params_len-1].color, param);
+                                params[params_len-1].color[strlen(param)] = '\0';
+                            }
                         }
                         else if(strlen(param) == 3) {
                             for(int i=0; i<3; ++i)
@@ -391,6 +414,7 @@ int main(int argc, char **argv) {
                         error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
+                    params[params_len-1].cmped = true;
                 }
                 else {
                     int cnt = chrcnt(line);
@@ -401,12 +425,23 @@ int main(int argc, char **argv) {
                     error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
                     return EXIT_FAILURE;
                 }
-                free(key);
                 free(name);
+                free(key);
+                free(op);
                 free(param);
             }
             fclose(cfp);
             free(str);
+
+            // Both color and regex
+            for(int i=0, failed=0; i<params_len; ++i) {
+                if(params[i].color == NULL) failed = 1;
+                if(params[i].cmped == 0)    failed = 2;
+                if(failed) {
+                    error("%serror:%s %s.%s is not defined\n", ERROR_RED, RESET, params[i].name, failed==1?"color":"regex");
+                    return EXIT_FAILURE;
+                }
+            }
         }
         free(path);
     }
