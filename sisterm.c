@@ -1,7 +1,7 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.4.2"
+#define VERSION        "1.4.3-rc"
 #define UPDATE_DATE    "20190605"
 
 #define CONFIG_FILE    "sist.conf"
@@ -75,14 +75,14 @@ int main(int argc, char **argv) {
     bool another_conf = false;            // another config file
     bool cflag        = true;             // Color Flag
     bool ts           = false;            // Whether to timestamp
-    char* logbuf      = (char*)malloc(MAX_LENGTH);  // <= 要修正
-    char* lb          = logbuf;           // Log buffer pointer
+    char* logbuf      = (char*)malloc(MAX_LENGTH);
+    char* lb          = logbuf;           // Log buffer pointer for operation
     int  lblen        = MAX_LENGTH - 2;
     char              comm[32];           // For comment
     char              date[81];           // Buffer to set timestamp
     struct timespec   now;
     struct tm         tm;
-    FILE *lf          = NULL;
+    FILE *lf          = NULL;             // Log file
     char mode[3]      = "w+";             // Log file open mode
     char dstaddr[21+1];
 
@@ -112,7 +112,8 @@ int main(int argc, char **argv) {
             switch(opt) {
                 case 'l':
                   // /path/to/SerialPort
-                    sPort = optarg;
+                    sPort = (char*)malloc(strlen(optarg)+1);
+                    strcpy(sPort, optarg);
                     break;
 
                 case 's':
@@ -645,7 +646,7 @@ int main(int argc, char **argv) {
         }
 
         char *address = (char*)malloc(15+1);
-        store_address(dstaddr, address);
+        store_address(address, dstaddr);
 
         memset(&sa, 0, sizeof(sa));
         sa.sin_family = AF_INET;
@@ -669,7 +670,9 @@ int main(int argc, char **argv) {
 
         tcsetattr(fd, TCSANOW, &tio);
 
-        ///*
+        //struct { char **addr; } share_logbuf;
+        //share_logbuf.addr = &logbuf;
+
         pid_t pid;
         pid_t p_pid = getpid();
         pid = fork();
@@ -677,11 +680,9 @@ int main(int argc, char **argv) {
         if( 0 > pid ) {
             perror("fork() failure");
             return EXIT_FAILURE;
-        } //*/
+        }
 
-        //for(;;)
-        {
-            if( 0 == pid )
+        if( 0 == pid ) {
             for(;;) {
                 //if( recv(fd, &c, 1, MSG_DONTWAIT) > 0 )
                 if( recv(fd, &c, 1, 0) > 0 ) {
@@ -689,7 +690,6 @@ int main(int argc, char **argv) {
                         transmission(STDOUT_FILENO, &c, 1);
 
                     if( logflag ) {
-                        // Unstable
                         if( (int)strlen(logbuf) > lblen ) {
                             char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                             if(lb_tmp == NULL) {
@@ -697,6 +697,7 @@ int main(int argc, char **argv) {
                                 error("realloc() failed\n");
                                 quit(STDOUT_FILENO, TCSANOW, &old_stdio, EXIT_FAILURE);
                             }
+                            //*share_logbuf.addr = lb = logbuf = lb_tmp;
                             lb = logbuf = lb_tmp;
                         }
 
@@ -708,35 +709,36 @@ int main(int argc, char **argv) {
                             *lb = c;
                             ++lb;
                         }
-                        //else if( /*0x0d==c ||*/ 0x0a==c ) {
                         else if( '\n'==c ) {
                             logbuf[strlen(logbuf)] = '\n';
-                            //if( 0x0a==c )
-                            {
-                                if( ts ) {
-                                    clock_gettime(CLOCK, &now);
-                                    localtime_r(&now.tv_sec, &tm);
-                                    sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-                                        tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                                        tm.tm_hour, tm.tm_min, tm.tm_sec,
-                                        (int) now.tv_nsec / 1000000);
-                                    fwrite(date, 1, strlen(date), lf);
-                                }
 
-                                fwrite(logbuf, 1, strlen(logbuf), lf);
-                                fdatasync(fileno(lf));
-
-                                // ToDo
-                                if( lblen > MAX_LENGTH - 2 ) {
-                                    lblen = MAX_LENGTH - 2;
-                                    free(logbuf);
-                                    //lb = logbuf = (char *)realloc(
-                                    //    logbuf, sizeof(char) * (MAX_LENGTH));
-                                    lb = logbuf = (char*)malloc(MAX_LENGTH);
-                                }
-
-                                memset( lb = logbuf, '\0', MAX_LENGTH );
+                            if( ts ) {
+                                clock_gettime(CLOCK, &now);
+                                localtime_r(&now.tv_sec, &tm);
+                                sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+                                    tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+                                    tm.tm_hour, tm.tm_min, tm.tm_sec,
+                                    (int) now.tv_nsec / 1000000);
+                                fwrite(date, 1, strlen(date), lf);
                             }
+
+                            fwrite(logbuf, 1, strlen(logbuf), lf);
+                            fflush(lf);
+
+                            if( lblen > MAX_LENGTH - 2 ) {
+                                lblen = MAX_LENGTH - 2;
+                                char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (MAX_LENGTH));
+                                if(lb_tmp == NULL) {
+                                    free(logbuf);
+                                    error("realloc() failed\n");
+                                    quit(STDOUT_FILENO, TCSANOW, &old_stdio, EXIT_FAILURE);
+                                }
+                                //*share_logbuf.addr = lb = logbuf = lb_tmp;
+                                lb = logbuf = lb_tmp;
+                            }
+
+                            //memset( *share_logbuf.addr = lb = logbuf, '\0', MAX_LENGTH );
+                            memset( lb = logbuf, '\0', MAX_LENGTH );
                         }
                     }
 
@@ -777,67 +779,72 @@ int main(int argc, char **argv) {
                     //DebugLog("\b");
                 }
             }
+        }
+        
 
-            if( 0 != pid )
+        if( 0 != pid ) {
             for(;;) {
-                if( kbhit() )
-        //  if(read(STDIN_FILENO, &c, 1) > 0)
-                {
-                    c = getchar();
-                    if( 0x1b==c )                          escflag = true;  // ^
-                    else if( escflag && 0x5b==c )          spflag  = true;  // ^[
-                    else if( spflag  && 0x33==c )          tilflag = true;  // ^[3
-                    else if( spflag  && 0x40<c && 0x45>c ) arrflag = true;  // ^[[ABCD]
-                    else if( tilflag && 0x7e==c ) {                         // ^[3~
-                        c = 0x7f;
-                        escflag = spflag = tilflag = false;
-                    }
-                    else {
-                        escflag = spflag = false;
-                    }
+                if( kbhit() ) {
+                    //if(read(STDIN_FILENO, &c, 1) > 0) {
+                    {
+                        c = getchar();
+                        if( 0x1b==c )                          escflag = true;  // ^
+                        else if( escflag && 0x5b==c )          spflag  = true;  // ^[
+                        else if( spflag  && 0x33==c )          tilflag = true;  // ^[3
+                        else if( spflag  && 0x40<c && 0x45>c ) arrflag = true;  // ^[[ABCD]
+                        else if( tilflag && 0x7e==c ) {                         // ^[3~
+                            c = 0x7f;
+                            escflag = spflag = tilflag = false;
+                        }
+                        else {
+                            escflag = spflag = false;
+                        }
 
-                    if( endcode == c ) {
-                        //kill(p_pid, SIGINT);
-                        kill(pid, SIGINT);
-                        break;  // hang up
-                    }
+                        if( endcode == c ) {
+                            //kill(p_pid, SIGINT);
+                            // 子プロセスからlogbufのアドレスを持ってきたい
+                            //if(logflag) {
+                            //    if( ts ) {
+                            //        clock_gettime(CLOCK, &now);
+                            //        localtime_r(&now.tv_sec, &tm);
+                            //        sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+                            //            tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+                            //            tm.tm_hour, tm.tm_min, tm.tm_sec,
+                            //            (int) now.tv_nsec / 1000000);
+                            //        fwrite(date, 1, strlen(date), lf);
+                            //    }
+                            //    error("[%p:%p]", *share_logbuf.addr, logbuf), fflush(stderr);
+                            //    char *loglast = (char*)malloc(strlen(*share_logbuf.addr)+2);
+                            //    sprintf(loglast, "%s\n", *share_logbuf.addr);
+                            //    fwrite(loglast, 1, strlen(loglast), lf);
+                            //    fflush(lf);
+                            //    fclose(lf);
+                            //}
+                            kill(pid, SIGINT);
+                            break;  // hang up
+                        }
 
-                    if( 0x00 == c )
-                        c = 0x7f;  // BS on Vimterminal
+                        if( 0x00 == c )
+                            c = 0x7f;  // BS on Vimterminal
 
-                    //DebugLog("[0x%02x]", c);
-                    if( !escflag )
-                        send(fd, &c, 1, 0);
-                    if( arrflag ) {
-                        char* arrow = (char*)malloc(4);
-                        sprintf(arrow, "%c%c%c", 0x1b, 0x5b, c);
-                        send(fd, arrow, 3, 0);
-                        free(arrow);
-                        arrflag = false;
+                        //DebugLog("[0x%02x]", c);
+                        if( !escflag )
+                            send(fd, &c, 1, 0);
+                        if( arrflag ) {
+                            char* arrow = (char*)malloc(4);
+                            sprintf(arrow, "%c%c%c", 0x1b, 0x5b, c);
+                            send(fd, arrow, 3, 0);
+                            free(arrow);
+                            arrflag = false;
+                        }
                     }
                 }
 
                 // 100 microsecond
                 usleep(100);
             }
-          //*/
         }
-
-        if(logflag) {
-            if( ts ) {
-                clock_gettime(CLOCK, &now);
-                localtime_r(&now.tv_sec, &tm);
-                sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-                    tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                    tm.tm_hour, tm.tm_min, tm.tm_sec,
-                    (int) now.tv_nsec / 1000000);
-                fwrite(date, 1, strlen(date), lf);
-            }
-            char loglast[strlen(logbuf)+1];
-            sprintf(loglast, "%s%c", logbuf, 0x0a);
-            fwrite(loglast, 1, strlen(loglast), lf);
-            fclose(lf);
-        }
+        
 
         tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
         printf("%s\nDisconnected.\n", RESET);
@@ -861,11 +868,13 @@ int main(int argc, char **argv) {
             if( logflag ) {
                 // Unstable
                 if( (int)strlen(logbuf) > lblen ) {
-                    lb = logbuf = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
-                    if(lb == NULL) {
-                        perror("realloc");
-                        exit(EXIT_FAILURE);
+                    char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+                    if(lb_tmp == NULL) {
+                        free(logbuf);
+                        error("realloc() failed\n");
+                        quit(STDOUT_FILENO, TCSANOW, &old_stdio, EXIT_FAILURE);
                     }
+                    lb = logbuf = lb_tmp;
                 }
 
                 if( 0x08==c ) {
@@ -1051,7 +1060,7 @@ bool correct_ipaddr_format(const char *addr) {
     return false;
 }
 
-void store_address(const char *dstaddr, char *addr) {
+void store_address(char *addr, const char *dstaddr) {
     sscanf(dstaddr, "%15[^:\n]", addr);
     addr[strlen(addr)] = '\0';
 }
@@ -1200,25 +1209,25 @@ void version() {
 
 void usage(char *argv[]) {
     printf("Usage: %s [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]\n"
-           "            [-w /path/to/LOG] [-c /path/to/config] [-t] [-a] [-n] [-h] [-v]\n\n", argv[0]);
+           "            [-w /path/to/LOG] [-c /path/to/config] [-t] [-a] [-n] [-h] [-v]\n"
+           "            [-p IPAddress[:port]]\n\n", argv[0]);
 
     printf("Command line interface for Serial Console by Network device.\n");
     printf("------------------------------------------------------------\n");
     printf("https://github.com/yorimoi/sisterm\n\n");
 
     printf("Options:\n");
-    printf("  -h,--help     Show this help message and exit\n");
-    printf("  -v,--version  Show %s version and exit\n", PROGRAM_NAME);
-    printf("  -l port       Use named device   (e.g. /dev/ttyS0)\n");
-    printf("  -s speed      Use given speed    (default 9600)\n");
-    printf("  -r path       Output log file    (e.g. /tmp/config.txt)\n");
-    printf("  -w path       Saved log          (e.g. /tmp/sist.log)\n");
-    printf("  -t            Add timestamp to log\n");
-    printf("  -a            Append to log      (default overwrite)\n");
-    printf("  -n            Without color\n");
-    printf("  -c path       Specification of config file (e.g. /tmp/for_cisco.conf)\n");
-    printf("  -p IPAddress  Telnet !!!Beta version!!! Many bugs!\n\n");
-    // rear printf("  -p portnumber [IPAddress]  \n");
+    printf("  -h,--help          Show this help message and exit\n");
+    printf("  -v,--version       Show %s version and exit\n", PROGRAM_NAME);
+    printf("  -l port            Use named device   (e.g. /dev/ttyS0)\n");
+    printf("  -s speed           Use given speed    (default 9600)\n");
+    printf("  -r path            Output log file    (e.g. /tmp/config.txt)\n");
+    printf("  -w path            Saved log          (e.g. /tmp/sist.log)\n");
+    printf("  -t                 Add timestamp to log\n");
+    printf("  -a                 Append to log      (default overwrite)\n");
+    printf("  -n                 Without color\n");
+    printf("  -c path            Specification of config file (e.g. /tmp/for_cisco.conf)\n");
+    printf("  -p address[:port]  Telnet !!!Beta version!!! Many bugs!\n\n");
 
     printf("Commands:\n");
     printf("  ~           Terminate the conversation\n");

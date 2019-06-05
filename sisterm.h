@@ -43,7 +43,7 @@ void pack_space_cpy(char *dstaddr, const char *addr);
 bool correct_ipaddr_format(const char *addr);
 
 // Pull IP address addr from dstaddr(en route)
-void store_address(const char *dstaddr, char *addr);
+void store_address(char *addr, const char *dstaddr);
 //
 int pull_port_num(const char *addr);
 
