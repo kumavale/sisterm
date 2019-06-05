@@ -44,8 +44,9 @@ After that `cp sist.conf.example $HOME/sist.conf`.
 
 
 ## Customizing
-> [NAME].color = [COLOR]  
-> [NAME].regex = [REGEX]  
+> [NAME].color =  [COLOR]  
+> [NAME].color += [COLOR]  
+> [NAME].regex =  [REGEX]  
 
 POSIX Extended Regular Expression Syntax  
 Only lines beginning with '#' are comments.  

@@ -19,6 +19,9 @@
 #include <ctype.h>
 #include <stdarg.h>
 
+typedef int bool;
+#define true  1
+#define false 0
 
 // Signal action
 void setSignal(int);
@@ -32,6 +35,17 @@ int ishex(char c);
 
 // A string consisting of a single character repeat
 char *loopc(const char c, int n);
+
+//
+void pack_space_cpy(char *dstaddr, const char *addr);
+
+//
+bool correct_ipaddr_format(const char *addr);
+
+// Pull IP address addr from dstaddr(en route)
+void store_address(const char *dstaddr, char *addr);
+//
+int pull_port_num(const char *addr);
 
 // Alternative to write()
 void transmission(int, const void*, size_t);
@@ -52,6 +66,7 @@ void repaint(const char *color);
 void coloring(char c);
 
 // End processing
+// abort ...
 void quit(int fd, int when, const struct termios *termptr, int exit_status);
 
 // Show version

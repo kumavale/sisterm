@@ -21,10 +21,6 @@
 #define MAX_LENGTH   256
 #define REG_FLAGS    REG_EXTENDED | REG_NOSUB | REG_ICASE
 
-typedef int bool;
-#define true  1
-#define false 0
-
 char s[MAX_LENGTH];
 char *io = s;
 bool bsflag = false;
@@ -59,11 +55,11 @@ void error(const char *fmt, ...) {
 }
 
 int main(int argc, char **argv) {
-    const char *sPort = NULL;             // SerialPort
-    const char *B     = NULL;             // BaudRate
-    const char *R     = NULL;             // File path to load
-    const char *W     = NULL;             // File path to save
-    const char *C     = NULL;             // File path to config
+    char *sPort       = NULL;             // SerialPort
+    char *B           = NULL;             // BaudRate
+    char *R           = NULL;             // File path to load
+    char *W           = NULL;             // File path to save
+    char *C           = NULL;             // File path to config
     speed_t baudRate  = B9600;            // Default BaudRate
     bool existsflag   = false;            // Whether to log file
     bool excflag      = false;            // Exclamation mark flag for comment
@@ -79,7 +75,7 @@ int main(int argc, char **argv) {
     bool another_conf = false;            // another config file
     bool cflag        = true;             // Color Flag
     bool ts           = false;            // Whether to timestamp
-    char* logbuf      = (char*)malloc(MAX_LENGTH);
+    char* logbuf      = (char*)malloc(MAX_LENGTH);  // <= 要修正
     char* lb          = logbuf;           // Log buffer pointer
     int  lblen        = MAX_LENGTH - 2;
     char              comm[32];           // For comment
@@ -88,7 +84,7 @@ int main(int argc, char **argv) {
     struct tm         tm;
     FILE *lf          = NULL;
     char mode[3]      = "w+";             // Log file open mode
-    char dstaddr[16];
+    char dstaddr[21+1];
 
 
     {
@@ -121,24 +117,28 @@ int main(int argc, char **argv) {
 
                 case 's':
                   // BaudRate speed
-                    B = optarg;
+                    B = (char*)malloc(strlen(optarg)+1);
+                    strcpy(B, optarg);
                     break;
 
                 case 'r':
                   // /path/to/config.txt
-                    R = optarg;
+                    R = (char*)malloc(strlen(optarg)+1);
+                    strcpy(R, optarg);
                     rflag = true;
                     break;
 
                 case 'w':
                   // /path/to/log.txt
-                    W = optarg;
+                    W = (char*)malloc(strlen(optarg)+1);
+                    strcpy(W, optarg);
                     wflag = true;
                     break;
 
                 case 'c':
                   // /path/to/config
-                    C = optarg;
+                    C = (char*)malloc(strlen(optarg)+1);
+                    strcpy(C, optarg);
                     another_conf = true;
                     break;
 
@@ -157,18 +157,16 @@ int main(int argc, char **argv) {
                     cflag = false;
                     break;
 
-/* ---------------------------------------------------------------- */
                 case 'p':
-                  // Telnet test
+                  // Tcp socket
                   // XXX.XXX.XXX.XXX:XXXXX
-                    tcpflag = true;
-                    if(strlen(optarg) > 15) {
-                        error("(%s) Invalid IP Address\n", optarg);
+                    if(!correct_ipaddr_format(optarg)) {
+                        error("%serror:%s Bad address or port number: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, optarg, RESET);
                         return EXIT_FAILURE;
                     }
-                    strcpy(dstaddr, optarg);
+                    tcpflag = true;
+                    pack_space_cpy(dstaddr, optarg);
                     break;
-/* --------------------------------------------------------------- */
 
                 case 'h':
                   // Show help
@@ -196,7 +194,9 @@ int main(int argc, char **argv) {
             strcpy(path, C);
             path[strlen(C)] = '\0';
         } else {
-            path = (char*)malloc(strlen(getenv("HOME")) + strlen(CONFIG_FILE) + 1);
+            int len = strlen(getenv("HOME")) + strlen(CONFIG_FILE);
+            path = (char*)malloc(len+1);
+            memset(path, '\0', len+1);
             strcat(path, getenv("HOME"));
             strcat(path, "/" CONFIG_FILE "\0");
         }
@@ -629,30 +629,38 @@ int main(int argc, char **argv) {
     }
 
     /* ----------------------------------------------------------------------- */
+    // 分割したい
     if( tcpflag ) {
-        // for Telnet
         tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
         struct sockaddr_in sa;
-        int port = 23;
-
+        const uint16_t default_port = 23;  // TELNET
+        int port;
+        if((port = pull_port_num(dstaddr)) < 0)
+            port = default_port;
+        
         if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
             perror("socket error");
             return EXIT_FAILURE;
         }
 
+        char *address = (char*)malloc(15+1);
+        store_address(dstaddr, address);
+
         memset(&sa, 0, sizeof(sa));
         sa.sin_family = AF_INET;
         sa.sin_port = htons(port);
-        sa.sin_addr.s_addr = inet_addr(dstaddr);
+        sa.sin_addr.s_addr = inet_addr(address);
+
+        free(address);
 
         if( sa.sin_addr.s_addr == 0xffffffff ) {
-            perror("invalid IP Address");
+            error("%serror:%s Bad address\n", ERROR_RED, RESET);
             return EXIT_FAILURE;
         }
 
         if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) > 0) {
-            perror("connect eror");
+            error("%serror:%s Not established\n", ERROR_RED, RESET);
             close(fd);
             return EXIT_FAILURE;
         }
@@ -697,9 +705,11 @@ int main(int argc, char **argv) {
                             lb--;
                         }
                         else if( 0x1f<c && 0x7f>c ) {
-                            *lb++ = c;
+                            *lb = c;
+                            ++lb;
                         }
-                        else if( /*0x0d==c ||*/ 0x0a==c ) {
+                        //else if( /*0x0d==c ||*/ 0x0a==c ) {
+                        else if( '\n'==c ) {
                             logbuf[strlen(logbuf)] = '\n';
                             //if( 0x0a==c )
                             {
@@ -714,6 +724,7 @@ int main(int argc, char **argv) {
                                 }
 
                                 fwrite(logbuf, 1, strlen(logbuf), lf);
+                                fdatasync(fileno(lf));
 
                                 // ToDo
                                 if( lblen > MAX_LENGTH - 2 ) {
@@ -723,6 +734,7 @@ int main(int argc, char **argv) {
                                     //    logbuf, sizeof(char) * (MAX_LENGTH));
                                     lb = logbuf = (char*)malloc(MAX_LENGTH);
                                 }
+
                                 memset( lb = logbuf, '\0', MAX_LENGTH );
                             }
                         }
@@ -861,9 +873,11 @@ int main(int argc, char **argv) {
                     lb--;
                 }
                 else if( 0x1f<c && 0x7f>c ) {
-                  *lb++ = c;
+                  *lb = c;
+                  ++lb;
                 }
-                else if( /*0x0d==c ||*/ 0x0a==c ) {
+                //else if( /*0x0d==c ||*/ 0x0a==c ) {
+                else if( '\n'==c ) {
                     logbuf[strlen(logbuf)] = '\n';
                     //if( 0x0a==c )
                     {
@@ -887,6 +901,7 @@ int main(int argc, char **argv) {
                             //    logbuf, sizeof(char) * (MAX_LENGTH));
                             lb = logbuf = (char*)malloc(MAX_LENGTH);
                         }
+
                         memset( lb = logbuf, '\0', MAX_LENGTH );
                     }
                 }
@@ -995,6 +1010,65 @@ char *loopc(const char c, int n) {
         str[i] = c;
     str[i] = '\0';
     return str;
+}
+
+void pack_space_cpy(char *dstaddr, const char *addr) {
+    int i = 0;
+    const char *p = addr;
+    while(*p) {
+        if(isspace(*p)) {
+            ++p;
+            continue;
+        }
+        if(i < 21)
+            dstaddr[i++] = *p;
+        ++p;
+    }
+    dstaddr[i] = '\0';
+}
+
+bool correct_ipaddr_format(const char *addr) {
+    // XXX.XXX.XXX.XXX:XXXXX || XXX.XXX.XXX.XXX
+    enum { OUT_OF_RANGE = -2 };
+    regex_t preg;
+    const char *format = "^ *(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]) *(: *[1-9][0-9]{4}|: *[1-9][0-9]{3}|: *[1-9][0-9]{2}|: *[1-9][0-9]{1}|: *[0-9]|)$";
+    int rc = regcomp(&preg, format, REG_NOSUB | REG_EXTENDED | REG_NEWLINE);
+    if(rc != 0) {
+        char msg[100];
+        regerror(rc, &preg, msg, 100);
+        regfree(&preg);
+        error("%serror:%s regcomp(): ", ERROR_RED, RESET, msg);
+        return false;
+    }
+    rc = regexec(&preg, addr, 0, 0, 0);
+    regfree(&preg);
+
+    if(rc == 0) {
+        if(pull_port_num(addr) == OUT_OF_RANGE)
+            return false;
+        return true;
+    }
+    return false;
+}
+
+void store_address(const char *dstaddr, char *addr) {
+    sscanf(dstaddr, "%15[^:\n]", addr);
+    addr[strlen(addr)] = '\0';
+}
+
+int pull_port_num(const char *addr) {
+    enum {
+        NONE_PORT    = -1,
+        OUT_OF_RANGE = -2,
+        MAX_PORT_NUM = 65535,
+    };
+    int port;
+
+    if(sscanf(addr, "%*[^:]:%d", &port) != 1)
+        return NONE_PORT;
+    if(port > MAX_PORT_NUM)
+        return OUT_OF_RANGE;
+    return port;
 }
 
 void transmission(int _fd, const void* _buf, size_t _len) {
