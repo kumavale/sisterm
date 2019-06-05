@@ -1,7 +1,7 @@
 # sisterm
-![stable](https://img.shields.io/badge/build-failing-critical.svg)
-<!-- ![stable](https://img.shields.io/badge/build-passing-success.svg) -->
-![version](https://img.shields.io/badge/version-1.4.1-success.svg)
+<!-- ![stable](https://img.shields.io/badge/build-failing-critical.svg) -->
+![stable](https://img.shields.io/badge/build-passing-success.svg)
+![version](https://img.shields.io/badge/version-1.4.2-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
 sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.  
@@ -16,17 +16,17 @@ After that `chmod 666 /path/to/port`.
 Usage: sist [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]
             [-w /path/to/LOG] [-c /path/to/config] [-t] [-a] [-n] [-h] [-v]
 Options:
-  -h,--help     Show this help message and exit
-  -v,--version  Show sisterm version and exit
-  -l port       Use named device    (e.g. /dev/ttyS0)
-  -s speed      Use given speed     (default 9600)
-  -r path       Output log file     (e.g. /tmp/config.txt)
-  -w path       Saved log           (e.g. /tmp/sist.log)
-  -t            Add timestamp to log
-  -a            Append to log       (default overwrite)
-  -n            Without color
-  -c path       Specification of config file  (e.g. /tmp/for_cisco.conf)
-* -p IPAddress  Telnet beta   Many bugs!!
+  -h,--help          Show this help message and exit
+  -v,--version       Show sisterm version and exit
+  -l port            Use named device    (e.g. /dev/ttyS0)
+  -s speed           Use given speed     (default 9600)
+  -r path            Output log file     (e.g. /tmp/config.txt)
+  -w path            Saved log           (e.g. /tmp/sist.log)
+  -t                 Add timestamp to log
+  -a                 Append to log       (default overwrite)
+  -n                 Without color
+  -c path            Specification of config file  (e.g. /tmp/for_cisco.conf)
+* -p address[:port]  Telnet beta   Many bugs!!  Can't writing log :(
 
 Commands:
   ~           Terminate the conversation
