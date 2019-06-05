@@ -1,6 +1,6 @@
 # sisterm
-<!-- ![stable](https://img.shields.io/badge/build-failing-critical.svg) -->
-![stable](https://img.shields.io/badge/build-passing-success.svg)
+![stable](https://img.shields.io/badge/build-failing-critical.svg)
+<!-- ![stable](https://img.shields.io/badge/build-passing-success.svg) -->
 ![version](https://img.shields.io/badge/version-1.4.1-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
