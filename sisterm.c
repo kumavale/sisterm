@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.4.3-rc"
-#define UPDATE_DATE    "20190605"
+#define VERSION        "1.4.3"
+#define UPDATE_DATE    "20190606"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
                 case 'p':
                   // Tcp socket
                   // XXX.XXX.XXX.XXX:XXXXX
-                  // hostname
+                  // ToDo => hostname
                     if(!correct_ipaddr_format(optarg)) {
                         error("%serror:%s Bad address or port number: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, optarg, RESET);
                         return EXIT_FAILURE;
@@ -674,8 +674,8 @@ int main(int argc, char **argv) {
 
         tcsetattr(fd, TCSANOW, &tio);
 
-        //struct { char **addr; } share_logbuf;
-        //share_logbuf.addr = &logbuf;
+        //struct { char *addr; } share_logbuf;
+        //share_logbuf.addr = logbuf;
 
         pid_t pid;
         pid_t p_pid = getpid();
@@ -701,7 +701,7 @@ int main(int argc, char **argv) {
                                 error("%serror:%s Failed realloc()\n");
                                 abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                             }
-                            //*share_logbuf.addr = lb = logbuf = lb_tmp;
+                            //share_logbuf.addr = lb = logbuf = lb_tmp;
                             lb = logbuf = lb_tmp;
                         }
 
@@ -737,11 +737,11 @@ int main(int argc, char **argv) {
                                     error("%serror:%s Failed realloc()\n", ERROR_RED, RESET);
                                     abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                                 }
-                                //*share_logbuf.addr = lb = logbuf = lb_tmp;
+                                //share_logbuf.addr = lb = logbuf = lb_tmp;
                                 lb = logbuf = lb_tmp;
                             }
 
-                            //memset( *share_logbuf.addr = lb = logbuf, '\0', MAX_LENGTH );
+                            //memset( share_logbuf.addr = lb = logbuf, '\0', MAX_LENGTH );
                             memset( lb = logbuf, '\0', MAX_LENGTH );
                         }
                     }
@@ -779,10 +779,10 @@ int main(int argc, char **argv) {
                     break;  // hang up
                 }
 
-                //if( kbhit() ) {
-                //    transmission(STDOUT_FILENO, "\b", 1);
-                //    //DebugLog("\b");
-                //}
+                if( kbhit() ) {
+                    transmission(STDOUT_FILENO, "\b", 1);
+                    //DebugLog("\b");
+                }
             }
         }
         
@@ -818,14 +818,14 @@ int main(int argc, char **argv) {
                             //            (int) now.tv_nsec / 1000000);
                             //        fwrite(date, 1, strlen(date), lf);
                             //    }
-                            //    error("[%p:%p]", *share_logbuf.addr, logbuf), fflush(stderr);
-                            //    char *loglast = (char*)malloc(strlen(*share_logbuf.addr)+2);
-                            //    sprintf(loglast, "%s\n", *share_logbuf.addr);
+                            //    char *loglast = (char*)malloc(strlen(share_logbuf.addr)+2);
+                            //    sprintf(loglast, "%s\n", share_logbuf.addr);
                             //    fwrite(loglast, 1, strlen(loglast), lf);
                             //    fflush(lf);
                             //    fclose(lf);
                             //}
                             kill(pid, SIGINT);
+
                             break;  // hang up
                         }
 
