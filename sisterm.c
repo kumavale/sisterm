@@ -161,6 +161,7 @@ int main(int argc, char **argv) {
                 case 'p':
                   // Tcp socket
                   // XXX.XXX.XXX.XXX:XXXXX
+                  // hostname
                     if(!correct_ipaddr_format(optarg)) {
                         error("%serror:%s Bad address or port number: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, optarg, RESET);
                         return EXIT_FAILURE;
@@ -206,8 +207,8 @@ int main(int argc, char **argv) {
 
         if(cfp == NULL) {
             cflag = false;
-            error("%s: File open error\n", path);
-            fprintf(stderr, "Press ENTER to continue of without color mode");
+            error("%serror:%s File open error: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, path, RESET);
+            error("Press ENTER to continue of without color mode");
             (void)getchar();
         }
         else {
@@ -458,7 +459,7 @@ int main(int argc, char **argv) {
 
 
     if( sPort == NULL && !rflag && !tcpflag ) {
-        error("%s: must specify Serial Port\n", argv[0]);
+        error("%serror:%s must specify Serial Port\n", ERROR_RED, RESET, argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -484,7 +485,7 @@ int main(int argc, char **argv) {
         else if(!strcmp(B, "115200")) baudRate = B115200;
         else if(!strcmp(B, "230400")) baudRate = B230400;
         else {
-          error("(%s) Invalid BaudRate...\n", B);
+          error("%serror:%s Invalid BaudRate: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, B, RESET);
           return EXIT_FAILURE;
         }
     }
@@ -495,13 +496,13 @@ int main(int argc, char **argv) {
             existsflag = true;
 
         if( existsflag && (access( W, (F_OK | R_OK) ) < 0) ) {
-            error("Access to the log file is denied\n");
+            error("%serror:%s Access to the log file is denied\n", ERROR_RED, RESET);
             return EXIT_FAILURE;
         }
 
         if( existsflag && !strcmp(mode, "w+") ) {
-            printf("\a%s already exists!\n", W);
-            printf("Do you want to overwrite?[confirm]");
+            error("\a%s\"%s\"%s is already exists!\n", ERROR_YELLOW, W, RESET);
+            error("Do you want to overwrite?[confirm]");
             char con = getchar();
             if( !(con=='\n' || con=='y' || con=='Y') )
                 return EXIT_SUCCESS;
@@ -511,16 +512,16 @@ int main(int argc, char **argv) {
 
         if(lf == NULL) {
             if(access(W, F_OK)) {
-              error("Failed to create file\n");
-              error("Try to check the permissions\n");
+              error("%serror:%s Failed to create file: Try to check the permissions\n", ERROR_RED, RESET);
               return EXIT_FAILURE;
             }
             else if( access( W, (F_OK | R_OK) ) < 0 ) {
-              error("Access to the log file is denied\n");
+              error("%serror:%s Access to the log file is denied\n", ERROR_RED, RESET);
               return EXIT_FAILURE;
             }
 
             error("%s: open (%s): Failure\n", argv[0], W);
+            error("%serror:%s file open Failure: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, W, RESET);
             return EXIT_FAILURE;
         }
 
@@ -559,14 +560,14 @@ int main(int argc, char **argv) {
     if( fd < 0 && !rflag && !tcpflag ) {
         tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
         if(access( sPort, F_OK ) < 0)
-            error("%s: open (%s): No such file or directory\n", argv[0], sPort);
+            error("%serror:%s No such file or directory: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, sPort, RESET);
         else if(access( sPort, (R_OK | W_OK) ) < 0)
-            error("%s: open (%s): Permission denied\n", argv[0], sPort);
+            error("%serror:%s Permission denied: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, sPort, RESET);
         // unstable
         //else if(fcntl(fd, F_GETFL) == -1)
         //  printf("%s: %s: Line in use\n", argv[0], sPort);
         else
-            error("%s: open (%s): Failure\n", argv[0], sPort);
+            error("%serror:%s File open failure: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, sPort, RESET);
         close(fd);
         return EXIT_FAILURE;
     }
@@ -580,11 +581,11 @@ int main(int argc, char **argv) {
         if(fr == NULL) {
             tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
             if(access( R, F_OK ) < 0)
-                error("%s: open (%s): No such file or directory\n", argv[0], R);
+                error("%serror:%s No such file or directory: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, R, RESET);
             else if(access( R, (R_OK) ) < 0)
-                error("%s: open (%s): Permission denied\n", argv[0], R);
+                error("%serror:%s Permission denied: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, R, RESET);
             else
-                error("%s: open (%s): Failure\n", argv[0], R);
+                error("%serror:%s File open failure: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, R, RESET);
             return EXIT_FAILURE;
         }
 
@@ -641,7 +642,7 @@ int main(int argc, char **argv) {
             port = default_port;
         
         if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
-            perror("socket error");
+            error("%serror:%s Failed socket()\n", ERROR_RED, RESET);
             return EXIT_FAILURE;
         }
 
@@ -659,6 +660,9 @@ int main(int argc, char **argv) {
             error("%serror:%s Bad address\n", ERROR_RED, RESET);
             return EXIT_FAILURE;
         }
+
+//#include <sys/ioctl.h>
+//        ioctl(fd, FIONBIO, 1);
 
         if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) > 0) {
             error("%serror:%s Not established\n", ERROR_RED, RESET);
@@ -678,7 +682,7 @@ int main(int argc, char **argv) {
         pid = fork();
 
         if( 0 > pid ) {
-            perror("fork() failure");
+            error("%serror:%s Failed fork()\n", ERROR_RED, RESET);
             return EXIT_FAILURE;
         }
 
@@ -694,8 +698,8 @@ int main(int argc, char **argv) {
                             char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                             if(lb_tmp == NULL) {
                                 free(logbuf);
-                                error("realloc() failed\n");
-                                quit(STDOUT_FILENO, TCSANOW, &old_stdio, EXIT_FAILURE);
+                                error("%serror:%s Failed realloc()\n");
+                                abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                             }
                             //*share_logbuf.addr = lb = logbuf = lb_tmp;
                             lb = logbuf = lb_tmp;
@@ -730,8 +734,8 @@ int main(int argc, char **argv) {
                                 char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (MAX_LENGTH));
                                 if(lb_tmp == NULL) {
                                     free(logbuf);
-                                    error("realloc() failed\n");
-                                    quit(STDOUT_FILENO, TCSANOW, &old_stdio, EXIT_FAILURE);
+                                    error("%serror:%s Failed realloc()\n", ERROR_RED, RESET);
+                                    abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                                 }
                                 //*share_logbuf.addr = lb = logbuf = lb_tmp;
                                 lb = logbuf = lb_tmp;
@@ -776,6 +780,7 @@ int main(int argc, char **argv) {
                 }
 
                 if( kbhit() ) {
+                    //transmission(STDOUT_FILENO, "\b", 1);
                     //DebugLog("\b");
                 }
             }
@@ -871,8 +876,8 @@ int main(int argc, char **argv) {
                     char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                     if(lb_tmp == NULL) {
                         free(logbuf);
-                        error("realloc() failed\n");
-                        quit(STDOUT_FILENO, TCSANOW, &old_stdio, EXIT_FAILURE);
+                        error("%serror:%s Failed realloc()\n", ERROR_RED, RESET);
+                        abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                     }
                     lb = logbuf = lb_tmp;
                 }
@@ -1046,7 +1051,7 @@ bool correct_ipaddr_format(const char *addr) {
         char msg[100];
         regerror(rc, &preg, msg, 100);
         regfree(&preg);
-        error("%serror:%s regcomp(): ", ERROR_RED, RESET, msg);
+        error("%serror:%s Failed regcomp(): %s\"%S\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, msg, RESET);
         return false;
     }
     rc = regexec(&preg, addr, 0, 0, 0);
@@ -1082,7 +1087,7 @@ int pull_port_num(const char *addr) {
 
 void transmission(int _fd, const void* _buf, size_t _len) {
     if( -1 == write(_fd, _buf, _len) ) {
-        perror("write() error");
+        error("%serror:%s Failed write()\n", ERROR_RED, RESET);
         //exit(EXIT_FAILURE);
     }
 }
@@ -1189,7 +1194,7 @@ void coloring(char c) {
 
 void setSignal(int p_signame) {
     if( signal(p_signame, sigcatch) == SIG_ERR ) {
-        perror("SIG_ERR");
+        error("%serror:%s SIG_ERR\n", ERROR_RED, RESET);
         exit(EXIT_FAILURE);
     }
 }
@@ -1198,9 +1203,9 @@ void sigcatch() {
     exit(EXIT_SUCCESS);
 }
 
-void quit(int fd, int when, const struct termios *termptr, int exit_status) {
+void abort_exit(int fd, int when, const struct termios *termptr) {
     tcsetattr(fd, when, termptr);
-    exit(exit_status);
+    exit(EXIT_FAILURE);
 }
 
 void version() {

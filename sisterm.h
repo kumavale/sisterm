@@ -65,9 +65,8 @@ void repaint(const char *color);
 // Control coloring
 void coloring(char c);
 
-// End processing
-// abort ...
-void quit(int fd, int when, const struct termios *termptr, int exit_status);
+// Error end processing
+void abort_exit(int fd, int when, const struct termios *termptr);
 
 // Show version
 // ( major.minor.tweak )
