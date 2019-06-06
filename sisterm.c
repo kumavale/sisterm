@@ -661,7 +661,7 @@ int main(int argc, char **argv) {
             return EXIT_FAILURE;
         }
 
-//#include <sys/ioctl.h>
+//#include <sys/ioctl.hj
 //        ioctl(fd, FIONBIO, 1);
 
         if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) > 0) {
@@ -779,10 +779,10 @@ int main(int argc, char **argv) {
                     break;  // hang up
                 }
 
-                if( kbhit() ) {
-                    //transmission(STDOUT_FILENO, "\b", 1);
-                    //DebugLog("\b");
-                }
+                //if( kbhit() ) {
+                //    transmission(STDOUT_FILENO, "\b", 1);
+                //    //DebugLog("\b");
+                //}
             }
         }
         

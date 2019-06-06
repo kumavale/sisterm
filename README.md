@@ -92,7 +92,7 @@ add.regex = 0^  <=  match nothing
 
 
 ## Environment
-* Windows10 ( WSL, linux on (VirtualBox|VMware) )  
+* Windows10 ( WSL, ~~linux on (VirtualBox|VMware)~~[<sup>[3]</sup>](#note-3) )  
 * Linux
 
 
@@ -103,3 +103,5 @@ MIT
 ## Note
 1. Even if it is colored, IOS may not support that command.  
 2. Hihlight colors are sloppy at the moment.  
+<a name="note-3"></a>
+3. Standard input looks double in appearance.  
