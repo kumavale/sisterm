@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.4.3"
-#define UPDATE_DATE    "20190606"
+#define VERSION        "1.4.4-rc"
+#define UPDATE_DATE    "20190611"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
@@ -62,8 +62,8 @@ int main(int argc, char **argv) {
     char *C           = NULL;             // File path to config
     speed_t baudRate  = B9600;            // Default BaudRate
     bool existsflag   = false;            // Whether to log file
-    bool excflag      = false;            // Exclamation mark flag for comment
-    int  comlen       = 0;                // Comment length
+    //bool excflag      = false;            // Exclamation mark flag for comment
+    //int  comlen       = 0;                // Comment length
     bool escflag      = false;            // '^'
     bool spflag       = false;            // '['
     bool tilflag      = false;            // Del key -> BS key
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     char* logbuf      = (char*)malloc(MAX_LENGTH);
     char* lb          = logbuf;           // Log buffer pointer for operation
     int  lblen        = MAX_LENGTH - 2;
-    char              comm[32];           // For comment
+    //char              comm[32];           // For comment
     char              date[81];           // Buffer to set timestamp
     struct timespec   now;
     struct tm         tm;
@@ -603,20 +603,12 @@ int main(int argc, char **argv) {
                 transmission(STDOUT_FILENO, &c, 1);
 
             if( 0x0a==c ) {
-                excflag = false;
-                transmission(STDOUT_FILENO, comm, sprintf(comm, "%c%s", 0x0d, RESET));
+                transmission(STDOUT_FILENO, RESET, strlen(RESET));
             }
 
-            if( cflag )
+            if( cflag ) {
                 coloring(c);
-
-            if( 0x21==c && cflag) {
-                excflag = true;
-                transmission(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
             }
-
-            if( excflag )
-                memset( io = s, '\0', MAX_LENGTH );
 
             if(read(STDIN_FILENO, &c, 1) > 0) {
                 if(c == endcode) break;
@@ -747,31 +739,32 @@ int main(int argc, char **argv) {
                     }
 
                     if( 0x0a==c ) {
-                        excflag = false;
-                        transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+                        transmission(STDOUT_FILENO, RESET, strlen(RESET));
                     }
 
-                    if( 0x21==c && cflag && !excflag ) {
-                        comlen = 0;
-                        excflag = true;
-                        transmission(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
-                    }
+                    //if( 0x21==c && cflag && !excflag ) {
+                    //    comlen = 0;
+                    //    excflag = true;
+                    //    transmission(stdout_fileno, comm, sprintf(comm, "\b%s%c", color_comment, c));
+                    //}
 
-                    if( excflag && 0x07!=c )
-                        comlen++;
+                    //if( excflag && 0x07!=c )
+                    //    comlen++;
 
-                    if( 0x08==c ) {
-                        if( excflag )
-                            comlen-=2;
-                        if( excflag && 0>=comlen ) {
-                            transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
-                            io++;
-                            excflag = false;
-                        }
-                    }
+                    //if( 0x08==c ) {
+                    //    if( excflag )
+                    //        comlen-=2;
+                    //    if( excflag && 0>=comlen ) {
+                    //        transmission(stdout_fileno, comm, sprintf(comm, "%s", reset));
+                    //        io++;
+                    //        excflag = false;
+                    //    }
+                    //}
 
-                    if( !excflag && cflag )
+                    //if( !excflag && cflag )
+                    if( cflag ) {
                         coloring(c);
+                    }
 
                 }
                 else if( recv(fd, &c, 1, 0) == 0) {
@@ -922,34 +915,36 @@ int main(int argc, char **argv) {
             }
 
             if( 0x0a==c ) {
-                excflag = false;
-                transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+                //excflag = false;
+                //transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+                transmission(STDOUT_FILENO, RESET, strlen(RESET));
             }
 
-            if( 0x21==c && cflag && !excflag ) {
-                comlen = 0;
-                excflag = true;
-                transmission(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
-            }
+            //if( 0x21==c && cflag && !excflag ) {
+            //    comlen = 0;
+            //    excflag = true;
+            //    transmission(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
+            //}
 
-            if( excflag && 0x07!=c )
-                comlen++;
+            //if( excflag && 0x07!=c )
+            //    comlen++;
 
             if( 0x07==c )
                 bsflag = false;
 
-            if( 0x08==c ) {
-                if( excflag )
-                    comlen-=2;
-                if( excflag && 0>=comlen ) {
-                    transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
-                    //memset( io = s, '\0', MAX_LENGTH );
-                    io++;
-                    excflag = false;
-                }
-            }
+            //if( 0x08==c ) {
+            //    if( excflag )
+            //        comlen-=2;
+            //    if( excflag && 0>=comlen ) {
+            //        transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
+            //        //memset( io = s, '\0', MAX_LENGTH );
+            //        io++;
+            //        excflag = false;
+            //    }
+            //}
 
-            if( !excflag && cflag )
+            //if( !excflag && cflag )
+            if( cflag )
                 coloring(c);
         }
 

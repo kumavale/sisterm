@@ -1,7 +1,14 @@
 # sisterm
-<!-- ![stable](https://img.shields.io/badge/build-failing-critical.svg) -->
-![stable](https://img.shields.io/badge/build-passing-success.svg)
-![version](https://img.shields.io/badge/version-1.4.3-success.svg)
+### What's New
+> Version 1.4.4
+
+\- Delete comment syntax  
+\- ~~Hostname => IPAddress~~  
+\- ~~Stdin bug fix~~  
+\- ~~Log bug fix~~  
+<!-- ![stable](https://img.shields.io/badge/build-passing-success.svg) -->
+![stable](https://img.shields.io/badge/build-failing-critical.svg)
+![version](https://img.shields.io/badge/version-1.4.4--rc-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
 sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.  
@@ -62,23 +69,23 @@ If the color length is 3 =>  8bit color (000\~255)
 HOGE.color = RED
 HOGE.regex = fuga
 ```
---> <font color="Red">fuga</font>
+--> <font color="Red">fuga</font>[<sup>[4]</sup>](#note-4)
 ```
 abc_1.color = 00FF00
 abc_1.regex = ^(aaa|bbb|ccc)$
 ```
---> <font color="Green">aaa</font> abc <font color="Green">ccc</font>
+--> <font color="Green">aaa</font> abc <font color="Green">ccc</font>[<sup>[4]</sup>](#note-4)
 ```
-FGrgb_BGrgb_UB.color = \033[38;2;255;0;0;48;2;255;255;255;4m
+FGrgb_BGrgb_UB.color = \033[38;2;255;0;0;48;2;017;221;255;4m
 FGrgb_BGrgb_UB.regex = ^sisterm$
 ```
---> <span style="color: #FF0000; background-color: #11DDFF;"><u>sisterm</u></font></span>
+--> <span style="color: #FF0000; background-color: #11DDFF;"><u>sisterm</u></font></span>[<sup>[4]</sup>](#note-4)
 ```
 add.color = \033[38;5;1m
 add.regex = piyo
 add.color += \033[48;5;2m
 ```
---> <span style="color: #FF0000; background-color: #00FF00;">piyo</font></span>
+--> <span style="color: #FF0000; background-color: #00FF00;">piyo</font></span>[<sup>[4]</sup>](#note-4)
 ```
 # match nothing
 no.regex = 0^
@@ -123,3 +130,5 @@ MIT
 2. Hihlight colors are sloppy at the moment.  
 <a name="note-3"></a>
 3. Standard input looks double in appearance.  
+<a name="note-4"></a>
+4. Not displayed correctly on GitHub. `<font color="Red">fuga</font>`  
