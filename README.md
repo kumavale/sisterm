@@ -56,16 +56,34 @@ The maximum length of one line is 2048 characters.
 If the color length is 6 => 24bit color (000000\~FFFFFF)  
 If the color length is 3 =>  8bit color (000\~255)  
 
-```(e.g.)  
+### Examples
+
+```
 HOGE.color = RED
 HOGE.regex = fuga
+```
+--> <font color="Red">fuga</font>
+```
 abc_1.color = 00FF00
 abc_1.regex = ^(aaa|bbb|ccc)$
+```
+--> <font color="Green">aaa</font> abc <font color="Green">ccc</font>
+```
 FGrgb_BGrgb_UB.color = \033[38;2;255;0;0;48;2;255;255;255;4m
 FGrgb_BGrgb_UB.regex = ^sisterm$
+```
+--> <span style="color: #FF0000; background-color: #11DDFF;"><u>sisterm</u></font></span>
+```
 add.color = \033[38;5;1m
+add.regex = piyo
 add.color += \033[48;5;2m
-add.regex = 0^  <=  match nothing
+```
+--> <span style="color: #FF0000; background-color: #00FF00;">piyo</font></span>
+```
+# match nothing
+no.regex = 0^
+# All match
+all.regex = .*
 ```
 ```
 # Color example
