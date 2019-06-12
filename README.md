@@ -3,9 +3,11 @@
 > Version 1.4.4
 
 \- Delete comment syntax  
+\- Simplification default configuration file  
 \- ~~Hostname => IPAddress~~  
 \- ~~Stdin bug fix~~  
 \- ~~Log bug fix~~  
+\- ~~Connect bug fix~~  
 <!-- ![stable](https://img.shields.io/badge/build-passing-success.svg) -->
 ![stable](https://img.shields.io/badge/build-failing-critical.svg)
 ![version](https://img.shields.io/badge/version-1.4.4--rc-success.svg)
@@ -44,11 +46,12 @@ Commands:
 
 ## Installation
 Once you have it set up, a simple `make && sudo make install` will compile sisterm and install it into `/usr/local/bin`.  
-After that `cp sist.conf.example $HOME/sist.conf`.  
+After that `cp sist.conf $HOME/sist.conf` or copy the configuration file (`sist.conf`) from my [Gist](https://gist.github.com/yorimoi/bbadf8e9ac47a478d00f532e15c7c7bf) to your home directory.  
 
 
 ## Uninstall
 `sudo make uninstall` after remove this directory  
+And remove `sist.conf` in HOME directory  
 
 
 ## Customizing

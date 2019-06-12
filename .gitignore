@@ -6,7 +6,7 @@
 
 # Allow
 !.gitignore
-!sist.conf.example
+!sist.conf
 !sisterm.c
 !sisterm.h
 !syntax.h
