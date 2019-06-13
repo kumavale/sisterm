@@ -6,15 +6,15 @@
 
 # Allow
 !.gitignore
-!config*
-!install*
+!autogen.sh
+!configure.ac
+!palette.h
+!sist.bat
 !sist.conf
 !sisterm.c
 !sisterm.h
-!syntax.h
-!palette.h
 !specificCOM.bat
-!sist.bat
-!README.md
+!syntax.h
 !LICENSE
-!Makefile*
+!Makefile.am
+!README.md
