@@ -6,7 +6,8 @@
 
 # Allow
 !.gitignore
-!configure
+!config*
+!install*
 !sist.conf
 !sisterm.c
 !sisterm.h
@@ -16,3 +17,4 @@
 !sist.bat
 !README.md
 !LICENSE
+!Makefile*
