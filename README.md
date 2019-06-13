@@ -45,7 +45,9 @@ Commands:
 
 
 ## Installation
-Once you have it set up, a simple `make && sudo make install` will compile sisterm and install it into `/usr/local/bin`.  
+`./autogen.sh && ./configure && make`  
+`sudo make install`  
+~~Once you have it set up, a simple `make && sudo make install` will compile sisterm and install it into `/usr/local/bin`.~~  
 After that `cp sist.conf $HOME/sist.conf` or copy the configuration file (`sist.conf`) from my [Gist](https://gist.github.com/yorimoi/bbadf8e9ac47a478d00f532e15c7c7bf) to your home directory.  
 
 

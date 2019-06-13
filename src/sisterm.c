@@ -2,7 +2,7 @@
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
 #define VERSION        "1.4.4-rc"
-#define UPDATE_DATE    "20190611"
+#define UPDATE_DATE    "20190613"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
@@ -85,6 +85,7 @@ int main(int argc, char **argv) {
     FILE *lf          = NULL;             // Log file
     char mode[3]      = "w+";             // Log file open mode
     char dstaddr[21+1];
+    const char CR     = 0x0d;           // Carriage Return
 
 
     {
@@ -187,6 +188,79 @@ int main(int argc, char **argv) {
          }
     }
 
+
+
+    if( sPort == NULL && !rflag && !tcpflag ) {
+        error("%serror:%s must specify Serial Port\n", ERROR_RED, RESET, argv[0]);
+        return EXIT_FAILURE;
+    }
+
+
+    if( B != NULL && !rflag && !tcpflag ) {
+        if     (!strcmp(B, "0"))      baudRate = B0;      // hang up
+        else if(!strcmp(B, "50"))     baudRate = B50;
+        else if(!strcmp(B, "75"))     baudRate = B75;
+        else if(!strcmp(B, "110"))    baudRate = B110;
+        else if(!strcmp(B, "134"))    baudRate = B134;
+        else if(!strcmp(B, "150"))    baudRate = B150;
+        else if(!strcmp(B, "200"))    baudRate = B200;
+        else if(!strcmp(B, "300"))    baudRate = B300;
+        else if(!strcmp(B, "600"))    baudRate = B600;
+        else if(!strcmp(B, "1200"))   baudRate = B1200;
+        else if(!strcmp(B, "1800"))   baudRate = B1800;
+        else if(!strcmp(B, "2400"))   baudRate = B2400;
+        else if(!strcmp(B, "4800"))   baudRate = B4800;
+        else if(!strcmp(B, "9600"))   baudRate = B9600;   // Default
+        else if(!strcmp(B, "19200"))  baudRate = B19200;
+        else if(!strcmp(B, "38400"))  baudRate = B38400;
+        else if(!strcmp(B, "57600"))  baudRate = B57600;
+        else if(!strcmp(B, "115200")) baudRate = B115200;
+        else if(!strcmp(B, "230400")) baudRate = B230400;
+        else {
+          error("%serror:%s Invalid BaudRate: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, B, RESET);
+          return EXIT_FAILURE;
+        }
+    }
+
+
+    if( wflag && !rflag ) {
+        if(!access(W, F_OK))
+            existsflag = true;
+
+        if( existsflag && (access( W, (F_OK | R_OK) ) < 0) ) {
+            error("%serror:%s Access to the log file is denied\n", ERROR_RED, RESET);
+            return EXIT_FAILURE;
+        }
+
+        if( existsflag && !strcmp(mode, "w+") ) {
+            error("\a%s\"%s\"%s is already exists!\n", ERROR_YELLOW, W, RESET);
+            error("Do you want to overwrite?[confirm]");
+            char con = getchar();
+            if( !(con=='\n' || con=='y' || con=='Y') )
+                return EXIT_SUCCESS;
+        }
+
+        lf = fopen(W, mode);
+
+        if(lf == NULL) {
+            if(access(W, F_OK)) {
+              error("%serror:%s Failed to create file: Try to check the permissions\n", ERROR_RED, RESET);
+              return EXIT_FAILURE;
+            }
+            else if( access( W, (F_OK | R_OK) ) < 0 ) {
+              error("%serror:%s Access to the log file is denied\n", ERROR_RED, RESET);
+              return EXIT_FAILURE;
+            }
+
+            error("%s: open (%s): Failure\n", argv[0], W);
+            error("%serror:%s file open Failure: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, W, RESET);
+            return EXIT_FAILURE;
+        }
+
+        logflag = 1;
+    }
+
+
     {
         FILE *cfp;  // Config File Pointer
         char *path;
@@ -196,11 +270,10 @@ int main(int argc, char **argv) {
             strcpy(path, C);
             path[strlen(C)] = '\0';
         } else {
-            int len = strlen(getenv("HOME")) + strlen(CONFIG_FILE);
+            int len = strlen(getenv("HOME")) + 1 + strlen(CONFIG_FILE);
             path = (char*)malloc(len+1);
             memset(path, '\0', len+1);
-            strcat(path, getenv("HOME"));
-            strcat(path, "/" CONFIG_FILE "\0");
+            sprintf(path, "%s/%s", getenv("HOME"), CONFIG_FILE);
         }
 
         cfp = fopen(path, "r");
@@ -457,77 +530,6 @@ int main(int argc, char **argv) {
         free(path);
     }
 
-
-    if( sPort == NULL && !rflag && !tcpflag ) {
-        error("%serror:%s must specify Serial Port\n", ERROR_RED, RESET, argv[0]);
-        return EXIT_FAILURE;
-    }
-
-
-    if( B != NULL && !rflag && !tcpflag ) {
-        if     (!strcmp(B, "0"))      baudRate = B0;      // hang up
-        else if(!strcmp(B, "50"))     baudRate = B50;
-        else if(!strcmp(B, "75"))     baudRate = B75;
-        else if(!strcmp(B, "110"))    baudRate = B110;
-        else if(!strcmp(B, "134"))    baudRate = B134;
-        else if(!strcmp(B, "150"))    baudRate = B150;
-        else if(!strcmp(B, "200"))    baudRate = B200;
-        else if(!strcmp(B, "300"))    baudRate = B300;
-        else if(!strcmp(B, "600"))    baudRate = B600;
-        else if(!strcmp(B, "1200"))   baudRate = B1200;
-        else if(!strcmp(B, "1800"))   baudRate = B1800;
-        else if(!strcmp(B, "2400"))   baudRate = B2400;
-        else if(!strcmp(B, "4800"))   baudRate = B4800;
-        else if(!strcmp(B, "9600"))   baudRate = B9600;   // Default
-        else if(!strcmp(B, "19200"))  baudRate = B19200;
-        else if(!strcmp(B, "38400"))  baudRate = B38400;
-        else if(!strcmp(B, "57600"))  baudRate = B57600;
-        else if(!strcmp(B, "115200")) baudRate = B115200;
-        else if(!strcmp(B, "230400")) baudRate = B230400;
-        else {
-          error("%serror:%s Invalid BaudRate: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, B, RESET);
-          return EXIT_FAILURE;
-        }
-    }
-
-
-    if( wflag && !rflag ) {
-        if(!access(W, F_OK))
-            existsflag = true;
-
-        if( existsflag && (access( W, (F_OK | R_OK) ) < 0) ) {
-            error("%serror:%s Access to the log file is denied\n", ERROR_RED, RESET);
-            return EXIT_FAILURE;
-        }
-
-        if( existsflag && !strcmp(mode, "w+") ) {
-            error("\a%s\"%s\"%s is already exists!\n", ERROR_YELLOW, W, RESET);
-            error("Do you want to overwrite?[confirm]");
-            char con = getchar();
-            if( !(con=='\n' || con=='y' || con=='Y') )
-                return EXIT_SUCCESS;
-        }
-
-        lf = fopen(W, mode);
-
-        if(lf == NULL) {
-            if(access(W, F_OK)) {
-              error("%serror:%s Failed to create file: Try to check the permissions\n", ERROR_RED, RESET);
-              return EXIT_FAILURE;
-            }
-            else if( access( W, (F_OK | R_OK) ) < 0 ) {
-              error("%serror:%s Access to the log file is denied\n", ERROR_RED, RESET);
-              return EXIT_FAILURE;
-            }
-
-            error("%s: open (%s): Failure\n", argv[0], W);
-            error("%serror:%s file open Failure: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, W, RESET);
-            return EXIT_FAILURE;
-        }
-
-        logflag = 1;
-    }
-
     struct termios tio;
     struct termios stdio;
     struct termios old_stdio;
@@ -603,6 +605,7 @@ int main(int argc, char **argv) {
                 transmission(STDOUT_FILENO, &c, 1);
 
             if( 0x0a==c ) {
+                transmission(STDOUT_FILENO, &CR, 1);
                 transmission(STDOUT_FILENO, RESET, strlen(RESET));
             }
 
