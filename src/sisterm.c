@@ -288,6 +288,7 @@ int main(int argc, char **argv) {
             params = (Param*)malloc(sizeof(Param));
             char *str = (char*)malloc(MAX_PARAM_LEN);
             int line = 0;
+            int i, failed;
 
             while(fgets(str, MAX_PARAM_LEN, cfp) != NULL) {
                 ++line;
@@ -306,13 +307,18 @@ int main(int argc, char **argv) {
                 //printf("[name:%s, key:%s, op:%s, param:%s]\n", name, key, op, param);
 
                 bool suffer = false;
-                for(int i=0; i<params_len; ++i)
+                for(i=0; i<params_len; ++i)
                     if(!strcmp(params[i].name, name)) {
                         suffer = true;
                         break;
                     }
                 if(!suffer) {
-                    if(!strcmp(op, "+=")) {
+                    if(!strcmp(name, "DEFAULT")) {
+                        if(!strcmp(key, "opts")) {
+                            // 引数(オプション)のチェック
+                        }
+                    }
+                    else if(!strcmp(op, "+=")) {
                         int cnt = chrcnt(line);
                         error("%serror:%s '%s%s.%s%s' is used uninitialized\n", ERROR_RED, RESET, ERROR_YELLOW, name, key,RESET);
                         error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
@@ -340,7 +346,7 @@ int main(int argc, char **argv) {
 
                 if(!strcmp(key, "color")) {
                     bool color_flug = false;
-                    for(int i=0; i<AC_MAX; ++i)
+                    for(i=0; i<AC_MAX; ++i)
                         if(!strcasecmp(param, ansi_colors[i].key)) {
                             color_flug = true;
                             params[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
@@ -407,7 +413,8 @@ int main(int argc, char **argv) {
                             }
                         }
                         else if(strlen(param) == 3) {
-                            for(int i=0; i<3; ++i)
+                            int i;
+                            for(i=0; i<3; ++i)
                                 if(!isdigit(param[i])) {
                                     int cnt = chrcnt(line);
                                     error("%serror:%s Invalid color: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
@@ -434,7 +441,8 @@ int main(int argc, char **argv) {
                             params[params_len-1].color[strlen(format)] = '\0';
                         }
                         else if(strlen(param) == 6) {
-                            for(int i=0; i<6; ++i)
+                            int i;
+                            for(i=0; i<6; ++i)
                                 if(!ishex(param[i])) {
                                     int cnt = chrcnt(line);
                                     error("%serror:%s Invalid color: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
@@ -518,7 +526,7 @@ int main(int argc, char **argv) {
             free(str);
 
             // Both color and regex
-            for(int i=0, failed=0; i<params_len; ++i) {
+            for(i=0, failed=0; i<params_len; ++i) {
                 if(params[i].color == NULL) failed = 1;
                 if(params[i].cmped == 0)    failed = 2;
                 if(failed) {

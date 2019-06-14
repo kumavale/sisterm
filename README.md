@@ -4,6 +4,7 @@
 
 \- Delete comment syntax  
 \- Simplification default configuration file  
+\- Inline devlaration fix of for()  
 \- ~~Hostname => IPAddress~~  
 \- ~~Stdin bug fix~~  
 \- ~~Log bug fix~~  
