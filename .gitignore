@@ -6,8 +6,6 @@
 
 # Allow
 !.gitignore
-!autogen.sh
-!configure.ac
 !palette.h
 !sist.bat
 !sist.conf
@@ -16,5 +14,5 @@
 !specificCOM.bat
 !syntax.h
 !LICENSE
-!Makefile.am
+!Makefile
 !README.md
