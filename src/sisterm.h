@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <netdb.h>
 
 #include <stdio.h>
 #include <time.h>
@@ -35,6 +36,9 @@ int ishex(char c);
 
 // A string consisting of a single character repeat
 char *loopc(const char c, int n);
+
+// Change Hostname to IP address
+bool hosttoip(char *dstaddr, char *optarg);
 
 //
 void pack_space_cpy(char *dstaddr, const char *addr);

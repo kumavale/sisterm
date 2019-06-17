@@ -2,7 +2,7 @@
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
 #define VERSION        "1.4.4-rc"
-#define UPDATE_DATE    "20190613"
+#define UPDATE_DATE    "20190617"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
@@ -52,6 +52,7 @@ void error(const char *fmt, ...) {
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
     //fprintf(stderr, "\n");
+    fflush(stderr);
 }
 
 int main(int argc, char **argv) {
@@ -86,6 +87,8 @@ int main(int argc, char **argv) {
     char mode[3]      = "w+";             // Log file open mode
     char dstaddr[21+1];
     const char CR     = 0x0d;           // Carriage Return
+    const uint16_t default_port = 23;   // TELNET
+    int port;
 
 
     {
@@ -161,14 +164,22 @@ int main(int argc, char **argv) {
 
                 case 'p':
                   // Tcp socket
-                  // XXX.XXX.XXX.XXX:XXXXX
-                  // ToDo => hostname
-                    if(!correct_ipaddr_format(optarg)) {
-                        error("%serror:%s Bad address or port number: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, optarg, RESET);
+                  // XXX.XXX.XXX.XXX:XXXXX || hostname:XXXXX
+                    tcpflag = true;
+                    if(correct_ipaddr_format(optarg)) {
+                        pack_space_cpy(dstaddr, optarg);
+                        if((port = pull_port_num(dstaddr)) < 0)
+                            port = default_port;
+                    } else if(hosttoip(dstaddr, optarg)) {
+                        char *packed_arg = malloc(strlen(optarg)+1);
+                        pack_space_cpy(packed_arg, optarg);
+                        if((port = pull_port_num(packed_arg)) < 0)
+                            port = default_port;
+                        free(packed_arg);
+                    } else {
+                        error("%serror:%s Bad address or hostname or port number: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, optarg, RESET);
                         return EXIT_FAILURE;
                     }
-                    tcpflag = true;
-                    pack_space_cpy(dstaddr, optarg);
                     break;
 
                 case 'h':
@@ -313,12 +324,7 @@ int main(int argc, char **argv) {
                         break;
                     }
                 if(!suffer) {
-                    if(!strcmp(name, "DEFAULT")) {
-                        if(!strcmp(key, "opts")) {
-                            // 引数(オプション)のチェック
-                        }
-                    }
-                    else if(!strcmp(op, "+=")) {
+                    if(!strcmp(op, "+=")) {
                         int cnt = chrcnt(line);
                         error("%serror:%s '%s%s.%s%s' is used uninitialized\n", ERROR_RED, RESET, ERROR_YELLOW, name, key,RESET);
                         error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
@@ -639,10 +645,6 @@ int main(int argc, char **argv) {
         tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
         struct sockaddr_in sa;
-        const uint16_t default_port = 23;  // TELNET
-        int port;
-        if((port = pull_port_num(dstaddr)) < 0)
-            port = default_port;
         
         if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
             error("%serror:%s Failed socket()\n", ERROR_RED, RESET);
@@ -1032,16 +1034,36 @@ char *loopc(const char c, int n) {
     return str;
 }
 
+bool hosttoip(char *dstaddr, char *optarg) {
+    char addr[15+1];
+    char *arg = malloc(strlen(optarg)+1);
+    struct hostent *host = NULL;
+    sscanf(optarg, "%[^ :\n]", arg);
+    arg[strlen(arg)] = '\0';
+    host = gethostbyname(arg);
+    if(host == NULL)
+        return false;
+    if(host->h_length != 4) {
+        error("%serror:%s Only IPv4 supported\n", ERROR_RED, RESET);
+        return false;
+    }
+    sprintf(addr, "%d.%d.%d.%d",
+        (unsigned char)*(host->h_addr_list[0] + 0),
+        (unsigned char)*(host->h_addr_list[0] + 1),
+        (unsigned char)*(host->h_addr_list[0] + 2),
+        (unsigned char)*(host->h_addr_list[0] + 3));
+    pack_space_cpy(dstaddr, addr);
+    free(arg);
+    return true;
+}
+
 void pack_space_cpy(char *dstaddr, const char *addr) {
     int i = 0;
     const char *p = addr;
     while(*p) {
-        if(isspace(*p)) {
-            ++p;
-            continue;
-        }
-        if(i < 21)
+        if(!isspace(*p)) {
             dstaddr[i++] = *p;
+        }
         ++p;
     }
     dstaddr[i] = '\0';
@@ -1051,7 +1073,7 @@ bool correct_ipaddr_format(const char *addr) {
     // XXX.XXX.XXX.XXX:XXXXX || XXX.XXX.XXX.XXX
     enum { OUT_OF_RANGE = -2 };
     regex_t preg;
-    const char *format = "^ *(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]) *(: *[1-9][0-9]{4}|: *[1-9][0-9]{3}|: *[1-9][0-9]{2}|: *[1-9][0-9]{1}|: *[0-9]|)$";
+    const char *format = "^ *(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]) *(: *[1-9][0-9]{4}|: *[1-9][0-9]{3}|: *[1-9][0-9]{2}|: *[1-9][0-9]{1}|: *[0-9]|) *$";
     int rc = regcomp(&preg, format, REG_NOSUB | REG_EXTENDED | REG_NEWLINE);
     if(rc != 0) {
         char msg[100];
