@@ -2,7 +2,7 @@
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
 #define VERSION        "1.4.4-rc"
-#define UPDATE_DATE    "20190617"
+#define UPDATE_DATE    "20190618"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
@@ -170,13 +170,15 @@ int main(int argc, char **argv) {
                         pack_space_cpy(dstaddr, optarg);
                         if((port = pull_port_num(dstaddr)) < 0)
                             port = default_port;
-                    } else if(hosttoip(dstaddr, optarg)) {
+                    }
+                    else if(hosttoip(dstaddr, optarg)) {
                         char *packed_arg = malloc(strlen(optarg)+1);
                         pack_space_cpy(packed_arg, optarg);
                         if((port = pull_port_num(packed_arg)) < 0)
                             port = default_port;
                         free(packed_arg);
-                    } else {
+                    }
+                    else {
                         error("%serror:%s Bad address or hostname or port number: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, optarg, RESET);
                         return EXIT_FAILURE;
                     }
@@ -554,12 +556,14 @@ int main(int argc, char **argv) {
     tcgetattr(STDOUT_FILENO, &old_stdio);
 
     memset(&stdio, 0, sizeof(stdio));
+    //memcpy(&stdio, &old_stdio, sizeof(stdio));
     stdio.c_iflag     = 0;
     stdio.c_oflag     = 0;
     stdio.c_cflag     = 0;
     stdio.c_lflag     = 0;
+    //stdio.c_lflag     &= ~(ECHO | ICANON);
     stdio.c_cc[VMIN]  = 1;
-    stdio.c_cc[VTIME] = 0;
+    stdio.c_cc[VTIME] = 10;
     tcsetattr(STDOUT_FILENO, TCSANOW,&stdio);
     tcsetattr(STDOUT_FILENO, TCSAFLUSH,&stdio);
     fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
@@ -570,7 +574,7 @@ int main(int argc, char **argv) {
     tio.c_cflag       = CS8 | CREAD | CLOCAL;
     tio.c_lflag       = 0;
     tio.c_cc[VMIN]    = 1;
-    tio.c_cc[VTIME]   = 5;
+    tio.c_cc[VTIME]   = 10;
 
     fd = open(sPort, O_RDWR | O_NONBLOCK);
     if( fd < 0 && !rflag && !tcpflag ) {
@@ -666,11 +670,8 @@ int main(int argc, char **argv) {
             return EXIT_FAILURE;
         }
 
-//#include <sys/ioctl.hj
-//        ioctl(fd, FIONBIO, 1);
-
-        if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) > 0) {
-            error("%serror:%s Not established\n", ERROR_RED, RESET);
+        if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
+            error("%serror:%s Connection refused\n", ERROR_RED, RESET);
             close(fd);
             return EXIT_FAILURE;
         }
@@ -916,6 +917,7 @@ int main(int argc, char **argv) {
                         // ToDo
                         if( lblen > MAX_LENGTH - 2 ) {
                             lblen = MAX_LENGTH - 2;
+                            // reallocにする
                             free(logbuf);
                             //lb = logbuf = (char *)realloc(
                             //    logbuf, sizeof(char) * (MAX_LENGTH));
@@ -1040,7 +1042,7 @@ bool hosttoip(char *dstaddr, char *optarg) {
     struct hostent *host = NULL;
     sscanf(optarg, "%[^ :\n]", arg);
     arg[strlen(arg)] = '\0';
-    host = gethostbyname(arg);
+    host = gethostbyname(arg);  // getaddrinfo()を検討
     if(host == NULL)
         return false;
     if(host->h_length != 4) {

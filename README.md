@@ -6,9 +6,9 @@
 \- Simplification default configuration file  
 \- Inline devlaration fix of for()  
 \- Specification in hostname  
+\- Connect bug fix  
 \- ~~Stdin bug fix~~  
 \- ~~Log bug fix~~  
-\- ~~Connect bug fix~~  
 <!-- ![stable](https://img.shields.io/badge/build-passing-success.svg) -->
 ![stable](https://img.shields.io/badge/build-failing-critical.svg)
 ![version](https://img.shields.io/badge/version-1.4.4--rc-success.svg)

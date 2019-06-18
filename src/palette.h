@@ -2,8 +2,6 @@
 #define ERROR_RED         "\033[38;5;196m"
 #define ERROR_BLUE        "\033[38;5;021m"
 #define ERROR_YELLOW      "\033[38;5;011m"
-#define STEELBLUE         "\033[38;5;067m"
-#define COLOR_COMMENT      STEELBLUE
 
 typedef struct {
     const char *key;
