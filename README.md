@@ -67,56 +67,40 @@ The maximum length of one line is 2048 characters.
 If the color length is 6 => 24bit color (000000\~FFFFFF)  
 If the color length is 3 =>  8bit color (000\~255)  
 
-### Examples
-
-```
+```.rb
+# Examples
 HOGE.color = RED
 HOGE.regex = fuga
-```
---> <font color="Red">fuga</font>[<sup>[4]</sup>](#note-4)
-```
-abc_1.color = 00FF00
-abc_1.regex = ^(aaa|bbb|ccc)$
-```
---> <font color="Green">aaa</font> abc <font color="Green">ccc</font>[<sup>[4]</sup>](#note-4)
-```
 FGrgb_BGrgb_UB.color = \033[38;2;255;0;0;48;2;017;221;255;4m
 FGrgb_BGrgb_UB.regex = ^sisterm$
-```
---> <span style="color: #FF0000; background-color: #11DDFF;"><u>sisterm</u></font></span>[<sup>[4]</sup>](#note-4)
-```
 add.color = \033[38;5;1m
 add.regex = piyo
 add.color += \033[48;5;2m
+
+others.regex = .*
+others.color = 99FF99
 ```
---> <span style="color: #FF0000; background-color: #00FF00;">piyo</font></span>[<sup>[4]</sup>](#note-4)
-```
-# match nothing
-no.regex = 0^
-# All match
-all.regex = .*
-```
-```
+```.rb
 # Color example
-#  * RED
-#  * 001
-#  * FF0000
-#  * \e[31m
-#  * \033[31m
-#  * \x1b[31m
-#  * \033[38;5;1m
-#  * \033[38;2;255;0;0m
-#  * \033[38;2;255;0;0;48;2;0;128;128;4m
-# 
+#   RED
+#   001
+#   FF0000
+#   \e[31m
+#   \033[31m
+#   \x1b[31m
+#   \033[38;5;1m
+#   \033[38;2;255;0;0m
+#   \033[38;2;255;0;0;48;2;0;128;128;4m
+ 
 # Predefined colors
-#  * BLACK
-#  * RED
-#  * GREEN
-#  * YELLOW
-#  * BLUE
-#  * MAGENTA
-#  * CYAN
-#  * WHITE
+#   BLACK
+#   RED
+#   GREEN
+#   YELLOW
+#   BLUE
+#   MAGENTA
+#   CYAN
+#   WHITE
 ```
 
 
@@ -134,5 +118,4 @@ MIT
 2. Hihlight colors are sloppy at the moment.  
 <a name="note-3"></a>
 3. Standard input looks double in appearance.  
-<a name="note-4"></a>
-4. Not displayed correctly on GitHub. `<font color="Red">fuga</font>`  
+4. Other than ASCII code can't be displayed.
