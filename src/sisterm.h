@@ -18,7 +18,8 @@
 #include <sys/types.h>
 #include <getopt.h>
 #include <ctype.h>
-#include <stdarg.h>
+
+#include "sist_error.h"
 
 typedef int bool;
 #define true  1
@@ -31,8 +32,14 @@ void sigcatch();
 // Number of digits
 int chrcnt(int num);
 
-// Check hex
-int ishex(char c);
+
+/**
+ *  @brief     Check hex
+ * 
+ *  @param     1 character
+ *  @return   
+ */
+bool ishex(char c);
 
 // A string consisting of a single character repeat
 char *loopc(const char c, int n);

@@ -9,6 +9,8 @@
 !palette.h
 !sist.bat
 !sist.conf
+!sist_error.c
+!sist_error.h
 !sisterm.c
 !sisterm.h
 !specificCOM.bat

@@ -1,7 +1,8 @@
-#define RESET             "\033[0m"
-#define ERROR_RED         "\033[38;5;196m"
-#define ERROR_BLUE        "\033[38;5;021m"
-#define ERROR_YELLOW      "\033[38;5;011m"
+#define RESET     "\033[0m"
+#define E_RED     "\033[38;5;009m"
+#define E_GREEN   "\033[38;5;010m"
+#define E_YELLOW  "\033[38;5;011m"
+#define E_BLUE    "\033[38;5;012m"
 
 typedef struct {
     const char *key;

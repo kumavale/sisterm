@@ -2,7 +2,7 @@
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
 #define VERSION        "1.4.4-rc"
-#define UPDATE_DATE    "20190618"
+#define UPDATE_DATE    "20190619"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
@@ -36,24 +36,6 @@ typedef struct {
 Param *params;  // Dynamic array
 int params_len;
 
-//For debug
-void DebugLog(const char *_format, ... ) {
-    int len;
-    va_list argList;
-    va_start(argList, _format);
-    char str[MAX_LENGTH];
-    len = vsprintf(str, _format, argList);
-    va_end(argList);
-    transmission(STDOUT_FILENO, str, len);
-}
-
-void error(const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    //fprintf(stderr, "\n");
-    fflush(stderr);
-}
 
 int main(int argc, char **argv) {
     char *sPort       = NULL;             // SerialPort
@@ -179,7 +161,7 @@ int main(int argc, char **argv) {
                         free(packed_arg);
                     }
                     else {
-                        error("%serror:%s Bad address or hostname or port number: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, optarg, RESET);
+                        sisterr("%serror:%s Bad address or hostname or port number: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, optarg, RESET);
                         return EXIT_FAILURE;
                     }
                     break;
@@ -195,7 +177,7 @@ int main(int argc, char **argv) {
                     return EXIT_SUCCESS;
 
                 default :
-                    error("Use %s -h for help\n", argv[0]);
+                    sisterr("Use %s -h for help\n", argv[0]);
                     return EXIT_FAILURE;
               }
          }
@@ -204,7 +186,7 @@ int main(int argc, char **argv) {
 
 
     if( sPort == NULL && !rflag && !tcpflag ) {
-        error("%serror:%s must specify Serial Port\n", ERROR_RED, RESET, argv[0]);
+        sisterr("%serror:%s must specify Serial Port\n", E_RED, RESET, argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -230,7 +212,7 @@ int main(int argc, char **argv) {
         else if(!strcmp(B, "115200")) baudRate = B115200;
         else if(!strcmp(B, "230400")) baudRate = B230400;
         else {
-          error("%serror:%s Invalid BaudRate: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, B, RESET);
+          sisterr("%serror:%s Invalid BaudRate: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, B, RESET);
           return EXIT_FAILURE;
         }
     }
@@ -241,13 +223,13 @@ int main(int argc, char **argv) {
             existsflag = true;
 
         if( existsflag && (access( W, (F_OK | R_OK) ) < 0) ) {
-            error("%serror:%s Access to the log file is denied\n", ERROR_RED, RESET);
+            sisterr("%serror:%s Access to the log file is denied\n", E_RED, RESET);
             return EXIT_FAILURE;
         }
 
         if( existsflag && !strcmp(mode, "w+") ) {
-            error("\a%s\"%s\"%s is already exists!\n", ERROR_YELLOW, W, RESET);
-            error("Do you want to overwrite?[confirm]");
+            sisterr("\a%s\"%s\"%s is already exists!\n", E_YELLOW, W, RESET);
+            sisterr("Do you want to overwrite?[confirm]");
             char con = getchar();
             if( !(con=='\n' || con=='y' || con=='Y') )
                 return EXIT_SUCCESS;
@@ -257,16 +239,16 @@ int main(int argc, char **argv) {
 
         if(lf == NULL) {
             if(access(W, F_OK)) {
-              error("%serror:%s Failed to create file: Try to check the permissions\n", ERROR_RED, RESET);
+              sisterr("%serror:%s Failed to create file: Try to check the permissions\n", E_RED, RESET);
               return EXIT_FAILURE;
             }
             else if( access( W, (F_OK | R_OK) ) < 0 ) {
-              error("%serror:%s Access to the log file is denied\n", ERROR_RED, RESET);
+              sisterr("%serror:%s Access to the log file is denied\n", E_RED, RESET);
               return EXIT_FAILURE;
             }
 
-            error("%s: open (%s): Failure\n", argv[0], W);
-            error("%serror:%s file open Failure: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, W, RESET);
+            sisterr("%s: open (%s): Failure\n", argv[0], W);
+            sisterr("%serror:%s file open Failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, W, RESET);
             return EXIT_FAILURE;
         }
 
@@ -293,8 +275,8 @@ int main(int argc, char **argv) {
 
         if(cfp == NULL) {
             cflag = false;
-            error("%serror:%s File open error: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, path, RESET);
-            error("Press ENTER to continue of without color mode");
+            sisterr("%serror:%s File open error: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, path, RESET);
+            sisterr("Press ENTER to continue of without color mode");
             (void)getchar();
         }
         else {
@@ -311,10 +293,10 @@ int main(int argc, char **argv) {
                 if(strchr(" #\n\0", top))
                     continue;
 
-                char *key   = (char*)malloc(64),
-                     *op    = (char*)malloc(2+1),
-                     *name  = (char*)malloc(64),
-                     *param = (char*)malloc(MAX_PARAM_LEN);
+                char *key   = (char*)calloc(64, sizeof(char)),
+                     *op    = (char*)calloc(2+1, sizeof(char)),
+                     *name  = (char*)calloc(64, sizeof(char)),
+                     *param = (char*)calloc(MAX_PARAM_LEN, sizeof(char));
 
                 sscanf(str, " %63[^ .] . %63[^ +=] %2[+=] %2047[^\n]", name, key, op, param);
                 //printf("[name:%s, key:%s, op:%s, param:%s]\n", name, key, op, param);
@@ -328,18 +310,18 @@ int main(int argc, char **argv) {
                 if(!suffer) {
                     if(!strcmp(op, "+=")) {
                         int cnt = chrcnt(line);
-                        error("%serror:%s '%s%s.%s%s' is used uninitialized\n", ERROR_RED, RESET, ERROR_YELLOW, name, key,RESET);
-                        error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
-                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                        error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                        sisterr("%serror:%s '%s%s.%s%s' is used uninitialized\n", E_RED, RESET, E_YELLOW, name, key,RESET);
+                        sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
+                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     ++params_len;
                     Param *params_tmp = (Param*)realloc(params, params_len * sizeof(Param));
                     if(params_tmp == NULL) {
                         free(params);
-                        error("%serror:%s realloc() failed\n", ERROR_RED, RESET);
+                        sisterr("%serror:%s realloc() failed\n", E_RED, RESET);
                         return EXIT_FAILURE;
                     }
                     params = params_tmp;
@@ -352,8 +334,20 @@ int main(int argc, char **argv) {
                 if(param[strlen(param)-1] == 0x0D)
                     param[strlen(param)-1] = '\0';
 
+                if(param[0] == '\0') {
+                    int cnt = chrcnt(line);
+                    sisterr("%serror:%s Value required after =:\n", E_RED, RESET);
+                    sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
+                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                    sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                    return EXIT_FAILURE;
+                }
+
                 if(!strcmp(key, "color")) {
-                    bool color_flug = false;
+                    bool color_flug = false,
+                         isColor_24 = false;
+
                     for(i=0; i<AC_MAX; ++i)
                         if(!strcasecmp(param, ansi_colors[i].key)) {
                             color_flug = true;
@@ -362,8 +356,44 @@ int main(int argc, char **argv) {
                             params[params_len-1].color[strlen(ansi_colors[i].val)] = '\0';
                             break;
                         }
+
                     if(!color_flug) {
-                        if(strlen(param) > 6) {
+
+                        if((strlen(param) == 7) && param[0] == '#') {
+                            int i;
+                            for(i=0; i<6; ++i)
+                                param[i] = param[i+1];
+                            param[i] = '\0';
+                        }
+
+                        if(strlen(param) == 6 || strlen(param) == 7) {
+                            int i;
+                            isColor_24 = true;
+                            for(i=0; i<6; ++i)
+                                if(!ishex(param[i])) {
+                                    isColor_24 = false;
+                                    break;
+                                }
+                            if(isColor_24) {
+                                char hexs[3][2+1] = {
+                                    { param[0], param[1], '\0' },
+                                    { param[2], param[3], '\0' },
+                                    { param[4], param[5], '\0' }};
+                                char format[19+1];  // \033[38;2;XXX;XXX;XXXm
+                                snprintf(format, sizeof(format), "\033[38;2;%03ld;%03ld;%03ldm",
+                                strtol(hexs[0], NULL, 16),
+                                strtol(hexs[1], NULL, 16),
+                                strtol(hexs[2], NULL, 16));
+                                params[params_len-1].color = (char*)malloc(strlen(format)+1);
+                                strcpy(params[params_len-1].color, format);
+                                params[params_len-1].color[strlen(format)] = '\0';
+                            }
+                        }
+
+                        if(isColor_24) {
+                            // Do nothing
+                        }
+                        else if(strlen(param) >= 6) {
                             char *p;
                             char *param_buf = (char*)malloc(strlen(param)+1);
                             strcpy(param_buf, param);
@@ -381,20 +411,20 @@ int main(int argc, char **argv) {
                             param_buf[i] = '\0';
                             if(param_buf[0] == '"' || param_buf[i-1] == '"') {
                                 int cnt = chrcnt(line);
-                                error("%serror:%s Invalid color: '%s%s%s': expected not to require '\"'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
-                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                                error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                                sisterr("%serror:%s Invalid color: '%s%s%s': expected not to require '\"'\n", E_RED, RESET, E_YELLOW, param, RESET);
+                                sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
+                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
                             if(param_buf[i-1] != 'm') {
                                 int cnt = chrcnt(line);
-                                error("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
-                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                                error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                                sisterr("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", E_RED, RESET, E_YELLOW, param, RESET);
+                                sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
+                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
 
@@ -409,7 +439,7 @@ int main(int argc, char **argv) {
                             if(!strcmp(op, "+=")) {
                                 char *param_tmp = (char*)realloc(params[params_len-1].color, strlen(params[params_len-1].color)+strlen(param)+1);
                                 if(param_tmp == NULL) {
-                                    error("%serror:%s realloc() failed\n", ERROR_RED, RESET);
+                                    sisterr("%serror:%s realloc() failed\n", E_RED, RESET);
                                     return EXIT_FAILURE;
                                 }
                                 params[params_len-1].color = param_tmp;
@@ -425,21 +455,21 @@ int main(int argc, char **argv) {
                             for(i=0; i<3; ++i)
                                 if(!isdigit(param[i])) {
                                     int cnt = chrcnt(line);
-                                    error("%serror:%s Invalid color: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                    error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
-                                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                                    error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                                    sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
+                                    sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
+                                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                    sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                                     return EXIT_FAILURE;
                                 }
                             u_int16_t num = strtol(param, NULL, 10);
                             if(num > 255) {
                                 int cnt = chrcnt(line);
-                                error("%serror:%s Invalid color: '%s%s%s': less than 256\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
-                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                                error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                                error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                                sisterr("%serror:%s Invalid color: '%s%s%s': less than 256\n", E_RED, RESET, E_YELLOW, param, RESET);
+                                sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
+                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
                             char format[11+1];  // \033[38;5;XXXm
@@ -448,37 +478,13 @@ int main(int argc, char **argv) {
                             strcpy(params[params_len-1].color, format);
                             params[params_len-1].color[strlen(format)] = '\0';
                         }
-                        else if(strlen(param) == 6) {
-                            int i;
-                            for(i=0; i<6; ++i)
-                                if(!ishex(param[i])) {
-                                    int cnt = chrcnt(line);
-                                    error("%serror:%s Invalid color: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                                    error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
-                                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                                    error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                                    return EXIT_FAILURE;
-                                }
-                            char hexs[3][2+1] = {
-                                { param[0], param[1], '\0' },
-                                { param[2], param[3], '\0' },
-                                { param[4], param[5], '\0' }};
-                            char format[19+1];  // \033[38;2;XXX;XXX;XXXm
-                            snprintf(format, sizeof(format), "\033[38;2;%03ld;%03ld;%03ldm",
-                            strtol(hexs[0], NULL, 16),
-                            strtol(hexs[1], NULL, 16),
-                            strtol(hexs[2], NULL, 16));
-                            params[params_len-1].color = (char*)malloc(strlen(format)+1);
-                            strcpy(params[params_len-1].color, format);
-                            params[params_len-1].color[strlen(format)] = '\0';
-                        } else {
+                        else {
                             int cnt = chrcnt(line);
-                            error("%serror:%s Invalid color: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                            error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt), RESET, path, line);
-                            error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                            error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                            error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                            sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
+                            sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
+                            sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                            sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                            sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                             return EXIT_FAILURE;
                         }
                     }
@@ -486,11 +492,11 @@ int main(int argc, char **argv) {
                 else if(!strcmp(key, "regex")) {
                     if(param[0] == '"' || param[strlen(param)-1] == '"') {
                         int cnt = chrcnt(line);
-                        error("%serror:%s Invalid regex: '%s%s%s': expected not to require '\"'\n", ERROR_RED, RESET, ERROR_YELLOW, param, RESET);
-                        error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt),  RESET, path, line);
-                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                        error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                        sisterr("%serror:%s Invalid regex: '%s%s%s': expected not to require '\"'\n", E_RED, RESET, E_YELLOW, param, RESET);
+                        sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
+                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     int rc;
@@ -498,31 +504,31 @@ int main(int argc, char **argv) {
                         int cnt = chrcnt(line);
                         char msg[100];
                         regerror(rc, &params[params_len-1].regex, msg, 100);
-                        error("%serror:%s regcomp() failred: %s\n", ERROR_RED, RESET, msg);
-                        error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt),  RESET, path, line);
-                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                        error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                        sisterr("%serror:%s regcomp() failred: %s\n", E_RED, RESET, msg);
+                        sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
+                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     if(!strcmp(op, "+=")) {
                         int cnt = chrcnt(line);
-                        error("%serror:%s The \"+=\" operator can\'t be used with regex\n", ERROR_RED, RESET);
-                        error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt),  RESET, path, line);
-                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                        error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                        error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                        sisterr("%serror:%s The \"+=\" operator can\'t be used with regex\n", E_RED, RESET);
+                        sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
+                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     params[params_len-1].cmped = true;
                 }
                 else {
                     int cnt = chrcnt(line);
-                    error("%serror:%s Neither color nor regex: '%s%s%s'\n", ERROR_RED, RESET, ERROR_YELLOW, key, RESET);
-                    error("  %s%s>%s %s:%d\n", ERROR_BLUE, loopc('-', cnt),  RESET, path, line);
-                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
-                    error("%s%d |%s %s", ERROR_BLUE, line, RESET, str);
-                    error(" %s%s|%s\n", loopc(' ', cnt), ERROR_BLUE, RESET);
+                    sisterr("%serror:%s Neither color nor regex: '%s%s%s'\n", E_RED, RESET, E_YELLOW, key, RESET);
+                    sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
+                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                    sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
+                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                     return EXIT_FAILURE;
                 }
                 free(name);
@@ -538,7 +544,7 @@ int main(int argc, char **argv) {
                 if(params[i].color == NULL) failed = 1;
                 if(params[i].cmped == 0)    failed = 2;
                 if(failed) {
-                    error("%serror:%s %s.%s is not defined\n", ERROR_RED, RESET, params[i].name, failed==1?"color":"regex");
+                    sisterr("%serror:%s %s.%s is not defined\n", E_RED, RESET, params[i].name, failed==1?"color":"regex");
                     return EXIT_FAILURE;
                 }
             }
@@ -555,13 +561,13 @@ int main(int argc, char **argv) {
     const char endcode = '~';
     tcgetattr(STDOUT_FILENO, &old_stdio);
 
-    memset(&stdio, 0, sizeof(stdio));
-    //memcpy(&stdio, &old_stdio, sizeof(stdio));
-    stdio.c_iflag     = 0;
-    stdio.c_oflag     = 0;
-    stdio.c_cflag     = 0;
-    stdio.c_lflag     = 0;
-    //stdio.c_lflag     &= ~(ECHO | ICANON);
+    //memset(&stdio, 0, sizeof(stdio));
+    memcpy(&stdio, &old_stdio, sizeof(stdio));
+    //stdio.c_iflag     = 0;
+    //stdio.c_oflag     = 0;
+    //stdio.c_cflag     = 0;
+    //stdio.c_lflag     = 0;
+    stdio.c_lflag     &= ~(ECHO | ICANON);
     stdio.c_cc[VMIN]  = 1;
     stdio.c_cc[VTIME] = 10;
     tcsetattr(STDOUT_FILENO, TCSANOW,&stdio);
@@ -580,14 +586,14 @@ int main(int argc, char **argv) {
     if( fd < 0 && !rflag && !tcpflag ) {
         tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
         if(access( sPort, F_OK ) < 0)
-            error("%serror:%s No such file or directory: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, sPort, RESET);
+            sisterr("%serror:%s No such file or directory: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, sPort, RESET);
         else if(access( sPort, (R_OK | W_OK) ) < 0)
-            error("%serror:%s Permission denied: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, sPort, RESET);
+            sisterr("%serror:%s Permission denied: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, sPort, RESET);
         // unstable
         //else if(fcntl(fd, F_GETFL) == -1)
         //  printf("%s: %s: Line in use\n", argv[0], sPort);
         else
-            error("%serror:%s File open failure: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, sPort, RESET);
+            sisterr("%serror:%s File open failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, sPort, RESET);
         close(fd);
         return EXIT_FAILURE;
     }
@@ -601,11 +607,11 @@ int main(int argc, char **argv) {
         if(fr == NULL) {
             tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
             if(access( R, F_OK ) < 0)
-                error("%serror:%s No such file or directory: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, R, RESET);
+                sisterr("%serror:%s No such file or directory: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, R, RESET);
             else if(access( R, (R_OK) ) < 0)
-                error("%serror:%s Permission denied: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, R, RESET);
+                sisterr("%serror:%s Permission denied: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, R, RESET);
             else
-                error("%serror:%s File open failure: %s\"%s\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, R, RESET);
+                sisterr("%serror:%s File open failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, R, RESET);
             return EXIT_FAILURE;
         }
 
@@ -651,7 +657,7 @@ int main(int argc, char **argv) {
         struct sockaddr_in sa;
         
         if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
-            error("%serror:%s Failed socket()\n", ERROR_RED, RESET);
+            sisterr("%serror:%s Failed socket()\n", E_RED, RESET);
             return EXIT_FAILURE;
         }
 
@@ -666,12 +672,12 @@ int main(int argc, char **argv) {
         free(address);
 
         if( sa.sin_addr.s_addr == 0xffffffff ) {
-            error("%serror:%s Bad address\n", ERROR_RED, RESET);
+            sisterr("%serror:%s Bad address\n", E_RED, RESET);
             return EXIT_FAILURE;
         }
 
         if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
-            error("%serror:%s Connection refused\n", ERROR_RED, RESET);
+            sisterr("%serror:%s Connection refused\n", E_RED, RESET);
             close(fd);
             return EXIT_FAILURE;
         }
@@ -688,7 +694,7 @@ int main(int argc, char **argv) {
         pid = fork();
 
         if( 0 > pid ) {
-            error("%serror:%s Failed fork()\n", ERROR_RED, RESET);
+            sisterr("%serror:%s Failed fork()\n", E_RED, RESET);
             return EXIT_FAILURE;
         }
 
@@ -704,7 +710,7 @@ int main(int argc, char **argv) {
                             char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                             if(lb_tmp == NULL) {
                                 free(logbuf);
-                                error("%serror:%s Failed realloc()\n");
+                                sisterr("%serror:%s Failed realloc()\n");
                                 abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                             }
                             //share_logbuf.addr = lb = logbuf = lb_tmp;
@@ -740,7 +746,7 @@ int main(int argc, char **argv) {
                                 char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (MAX_LENGTH));
                                 if(lb_tmp == NULL) {
                                     free(logbuf);
-                                    error("%serror:%s Failed realloc()\n", ERROR_RED, RESET);
+                                    sisterr("%serror:%s Failed realloc()\n", E_RED, RESET);
                                     abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                                 }
                                 //share_logbuf.addr = lb = logbuf = lb_tmp;
@@ -788,7 +794,6 @@ int main(int argc, char **argv) {
 
                 if( kbhit() ) {
                     transmission(STDOUT_FILENO, "\b", 1);
-                    //DebugLog("\b");
                 }
             }
         }
@@ -839,7 +844,6 @@ int main(int argc, char **argv) {
                         if( 0x00 == c )
                             c = 0x7f;  // BS on Vimterminal
 
-                        //DebugLog("[0x%02x]", c);
                         if( !escflag )
                             send(fd, &c, 1, 0);
                         if( arrflag ) {
@@ -875,7 +879,6 @@ int main(int argc, char **argv) {
         if(read(fd, &c, 1) > 0) {
             if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
                 transmission(STDOUT_FILENO, &c, 1);
-          //DebugLog("[%02x]", c);
 
             if( logflag ) {
                 // Unstable
@@ -883,7 +886,7 @@ int main(int argc, char **argv) {
                     char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                     if(lb_tmp == NULL) {
                         free(logbuf);
-                        error("%serror:%s Failed realloc()\n", ERROR_RED, RESET);
+                        sisterr("%serror:%s Failed realloc()\n", E_RED, RESET);
                         abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                     }
                     lb = logbuf = lb_tmp;
@@ -981,12 +984,10 @@ int main(int argc, char **argv) {
 
             if( 0x7f == c )             bsflag = 3;     // BS on Vimterminal
 
-            //if( '$' == c ) DebugLog("[lblen:%d]", lblen);
-            //DebugLog("[0x%02x]", c);
             transmission(fd, &c, 1);
         }
 
-        // 100 microsecond
+        /* 100 microsecond */
         usleep(100);
     }
 
@@ -1014,7 +1015,7 @@ int main(int argc, char **argv) {
     return EXIT_SUCCESS;
 }
 
-int ishex(char c) {
+bool ishex(char c) {
     return ('a' <= c && c <= 'f') ||
            ('A' <= c && c <= 'F') ||
            ('0' <= c && c <= '9');
@@ -1046,7 +1047,7 @@ bool hosttoip(char *dstaddr, char *optarg) {
     if(host == NULL)
         return false;
     if(host->h_length != 4) {
-        error("%serror:%s Only IPv4 supported\n", ERROR_RED, RESET);
+        sisterr("%serror:%s Only IPv4 supported\n", E_RED, RESET);
         return false;
     }
     sprintf(addr, "%d.%d.%d.%d",
@@ -1081,7 +1082,7 @@ bool correct_ipaddr_format(const char *addr) {
         char msg[100];
         regerror(rc, &preg, msg, 100);
         regfree(&preg);
-        error("%serror:%s Failed regcomp(): %s\"%S\"%s\n", ERROR_RED, RESET, ERROR_YELLOW, msg, RESET);
+        sisterr("%serror:%s Failed regcomp(): %s\"%S\"%s\n", E_RED, RESET, E_YELLOW, msg, RESET);
         return false;
     }
     rc = regexec(&preg, addr, 0, 0, 0);
@@ -1117,7 +1118,7 @@ int pull_port_num(const char *addr) {
 
 void transmission(int _fd, const void* _buf, size_t _len) {
     if( -1 == write(_fd, _buf, _len) ) {
-        error("%serror:%s Failed write()\n", ERROR_RED, RESET);
+        sisterr("%serror:%s Failed write()\n", E_RED, RESET);
         //exit(EXIT_FAILURE);
     }
 }
@@ -1224,7 +1225,7 @@ void coloring(char c) {
 
 void setSignal(int p_signame) {
     if( signal(p_signame, sigcatch) == SIG_ERR ) {
-        error("%serror:%s SIG_ERR\n", ERROR_RED, RESET);
+        sisterr("%serror:%s SIG_ERR\n", E_RED, RESET);
         exit(EXIT_FAILURE);
     }
 }
