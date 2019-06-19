@@ -359,26 +359,28 @@ int main(int argc, char **argv) {
 
                     if(!color_flug) {
 
-                        if((strlen(param) == 7) && param[0] == '#') {
-                            int i;
-                            for(i=0; i<6; ++i)
-                                param[i] = param[i+1];
-                            param[i] = '\0';
-                        }
-
                         if(strlen(param) == 6 || strlen(param) == 7) {
+                            char param_tmp[7+1];
                             int i;
+                            strcpy(param_tmp, param);
+
+                            if((strlen(param) == 7) && param[0] == '#') {
+                                for(i=0; i<6; ++i)
+                                    param_tmp[i] = param_tmp[i+1];
+                                param_tmp[i] = '\0';
+                            }
+
                             isColor_24 = true;
                             for(i=0; i<6; ++i)
-                                if(!ishex(param[i])) {
+                                if(!ishex(param_tmp[i])) {
                                     isColor_24 = false;
                                     break;
                                 }
                             if(isColor_24) {
                                 char hexs[3][2+1] = {
-                                    { param[0], param[1], '\0' },
-                                    { param[2], param[3], '\0' },
-                                    { param[4], param[5], '\0' }};
+                                    { param_tmp[0], param_tmp[1], '\0' },
+                                    { param_tmp[2], param_tmp[3], '\0' },
+                                    { param_tmp[4], param_tmp[5], '\0' }};
                                 char format[19+1];  // \033[38;2;XXX;XXX;XXXm
                                 snprintf(format, sizeof(format), "\033[38;2;%03ld;%03ld;%03ldm",
                                 strtol(hexs[0], NULL, 16),
@@ -420,7 +422,8 @@ int main(int argc, char **argv) {
                             }
                             if(param_buf[i-1] != 'm') {
                                 int cnt = chrcnt(line);
-                                sisterr("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", E_RED, RESET, E_YELLOW, param, RESET);
+                                //sisterr("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", E_RED, RESET, E_YELLOW, param, RESET);
+                                sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
                                 sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
                                 sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                                 sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
@@ -531,6 +534,7 @@ int main(int argc, char **argv) {
                     sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                     return EXIT_FAILURE;
                 }
+
                 free(name);
                 free(key);
                 free(op);

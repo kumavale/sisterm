@@ -7,7 +7,7 @@
 \- Inline devlaration fix of for()  
 \- Specification in hostname  
 \- Connect bug fix  
-\- ~~Config file bug fix~~  
+\- Config file bug fix  
 \- ~~Stdin bug fix~~  
 \- ~~Log bug fix~~  
 <!-- ![stable](https://img.shields.io/badge/build-failing-critical.svg) -->
@@ -86,6 +86,7 @@ others.color = 99FF99
 #   RED
 #   001
 #   FF0000
+#   #FF0000
 #   \e[31m
 #   \033[31m
 #   \x1b[31m
