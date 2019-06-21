@@ -36,6 +36,26 @@ typedef struct {
 Param *params;  // Dynamic array
 int params_len;
 
+/* Shared memory TEST */
+#include <sys/shm.h>
+struct sharememory { char *logbuf; };
+struct sharememory_info {
+    int id;
+    struct sharememory *shm;
+};
+struct sharememory_info shminf;
+
+int release_sharemem(int id, struct sharememory *shm) {
+    if(id >= 0) shmdt(shm);
+    if(shmctl(id, IPC_RMID, 0) == -1) {
+        // en route
+        sisterr("%serror:%s shmctl\n", E_RED, RESET);
+        return 1;
+    }
+    return 0;
+}
+/* END */
+
 
 int main(int argc, char **argv) {
     char *sPort       = NULL;             // SerialPort
@@ -58,8 +78,13 @@ int main(int argc, char **argv) {
     bool another_conf = false;            // another config file
     bool cflag        = true;             // Color Flag
     bool ts           = false;            // Whether to timestamp
-    char* logbuf      = (char*)malloc(MAX_LENGTH);
-    char* lb          = logbuf;           // Log buffer pointer for operation
+    // Chack if logflag
+    shminf.id = shmget(IPC_PRIVATE, sizeof(struct sharememory), IPC_CREAT|0666);
+    // Chack
+    shminf.shm = (struct sharememory*)shmat(shminf.id, 0, 0);
+    // Chack
+    shminf.shm->logbuf = (char*)malloc(MAX_LENGTH);
+    char* lb          = shminf.shm->logbuf;           // Log buffer pointer for operation
     int  lblen        = MAX_LENGTH - 2;
     //char              comm[32];           // For comment
     char              date[81];           // Buffer to set timestamp
@@ -565,6 +590,8 @@ int main(int argc, char **argv) {
     const char endcode = '~';
     tcgetattr(STDOUT_FILENO, &old_stdio);
 
+    // ダメでした
+    // logは多重しない 1.4.5で修正予定
     //memset(&stdio, 0, sizeof(stdio));
     memcpy(&stdio, &old_stdio, sizeof(stdio));
     //stdio.c_iflag     = 0;
@@ -690,8 +717,8 @@ int main(int argc, char **argv) {
 
         tcsetattr(fd, TCSANOW, &tio);
 
-        //struct { char *addr; } share_logbuf;
-        //share_logbuf.addr = logbuf;
+        //struct { char *addr; } share_shminf.shm->logbuf;
+        //share_shminf.shm->logbuf.addr = shminf.shm->logbuf;
 
         pid_t pid;
         pid_t p_pid = getpid();
@@ -710,19 +737,19 @@ int main(int argc, char **argv) {
                         transmission(STDOUT_FILENO, &c, 1);
 
                     if( logflag ) {
-                        if( (int)strlen(logbuf) > lblen ) {
-                            char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+                        if( (int)strlen(shminf.shm->logbuf) > lblen ) {
+                            char *lb_tmp = (char*)realloc(shminf.shm->logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                             if(lb_tmp == NULL) {
-                                free(logbuf);
+                                free(shminf.shm->logbuf);
                                 sisterr("%serror:%s Failed realloc()\n");
                                 abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                             }
-                            //share_logbuf.addr = lb = logbuf = lb_tmp;
-                            lb = logbuf = lb_tmp;
+                            //share_shminf.shm->logbuf.addr = lb = shminf.shm->logbuf = lb_tmp;
+                            lb = shminf.shm->logbuf = lb_tmp;
                         }
 
                         if( 0x08==c ) {
-                            //if( lb != logbuf ) // Sent 0x07 from device
+                            //if( lb != shminf.shm->logbuf ) // Sent 0x07 from device
                             lb--;
                         }
                         else if( 0x1f<c && 0x7f>c ) {
@@ -730,7 +757,7 @@ int main(int argc, char **argv) {
                             ++lb;
                         }
                         else if( '\n'==c ) {
-                            logbuf[strlen(logbuf)] = '\n';
+                            shminf.shm->logbuf[strlen(shminf.shm->logbuf)] = '\n';
 
                             if( ts ) {
                                 clock_gettime(CLOCK, &now);
@@ -742,23 +769,23 @@ int main(int argc, char **argv) {
                                 fwrite(date, 1, strlen(date), lf);
                             }
 
-                            fwrite(logbuf, 1, strlen(logbuf), lf);
+                            fwrite(shminf.shm->logbuf, 1, strlen(shminf.shm->logbuf), lf);
                             fflush(lf);
 
                             if( lblen > MAX_LENGTH - 2 ) {
                                 lblen = MAX_LENGTH - 2;
-                                char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (MAX_LENGTH));
+                                char *lb_tmp = (char*)realloc(shminf.shm->logbuf, sizeof(char) * (MAX_LENGTH));
                                 if(lb_tmp == NULL) {
-                                    free(logbuf);
+                                    free(shminf.shm->logbuf);
                                     sisterr("%serror:%s Failed realloc()\n", E_RED, RESET);
                                     abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                                 }
-                                //share_logbuf.addr = lb = logbuf = lb_tmp;
-                                lb = logbuf = lb_tmp;
+                                //share_shminf.shm->logbuf.addr = lb = shminf.shm->logbuf = lb_tmp;
+                                lb = shminf.shm->logbuf = lb_tmp;
                             }
 
-                            //memset( share_logbuf.addr = lb = logbuf, '\0', MAX_LENGTH );
-                            memset( lb = logbuf, '\0', MAX_LENGTH );
+                            //memset( share_shminf.shm->logbuf.addr = lb = shminf.shm->logbuf, '\0', MAX_LENGTH );
+                            memset( lb = shminf.shm->logbuf, '\0', MAX_LENGTH );
                         }
                     }
 
@@ -823,7 +850,7 @@ int main(int argc, char **argv) {
 
                         if( endcode == c ) {
                             //kill(p_pid, SIGINT);
-                            // 子プロセスからlogbufのアドレスを持ってきたい
+                            // 子プロセスからshminf.shm->logbufのアドレスを持ってきたい
                             //if(logflag) {
                             //    if( ts ) {
                             //        clock_gettime(CLOCK, &now);
@@ -834,8 +861,8 @@ int main(int argc, char **argv) {
                             //            (int) now.tv_nsec / 1000000);
                             //        fwrite(date, 1, strlen(date), lf);
                             //    }
-                            //    char *loglast = (char*)malloc(strlen(share_logbuf.addr)+2);
-                            //    sprintf(loglast, "%s\n", share_logbuf.addr);
+                            //    char *loglast = (char*)malloc(strlen(share_shminf.shm->logbuf.addr)+2);
+                            //    sprintf(loglast, "%s\n", share_shminf.shm->logbuf.addr);
                             //    fwrite(loglast, 1, strlen(loglast), lf);
                             //    fflush(lf);
                             //    fclose(lf);
@@ -865,6 +892,23 @@ int main(int argc, char **argv) {
             }
         }
         
+        if(logflag) {
+            if( ts ) {
+                clock_gettime(CLOCK, &now);
+                localtime_r(&now.tv_sec, &tm);
+                sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+                    tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+                    tm.tm_hour, tm.tm_min, tm.tm_sec,
+                    (int) now.tv_nsec / 1000000);
+                fwrite(date, 1, strlen(date), lf);
+            }
+            char *loglast = (char*)malloc(strlen(shminf.shm->logbuf)+2);
+            sprintf(loglast, "%s\n", shminf.shm->logbuf);
+            fwrite(loglast, 1, strlen(loglast), lf);
+            fflush(lf);
+            fclose(lf);
+        }
+        release_sharemem(shminf.id, shminf.shm);
 
         tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
         printf("%s\nDisconnected.\n", RESET);
@@ -886,18 +930,18 @@ int main(int argc, char **argv) {
 
             if( logflag ) {
                 // Unstable
-                if( (int)strlen(logbuf) > lblen ) {
-                    char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+                if( (int)strlen(shminf.shm->logbuf) > lblen ) {
+                    char *lb_tmp = (char*)realloc(shminf.shm->logbuf, sizeof(char) * (lblen += MAX_LENGTH));
                     if(lb_tmp == NULL) {
-                        free(logbuf);
+                        free(shminf.shm->logbuf);
                         sisterr("%serror:%s Failed realloc()\n", E_RED, RESET);
                         abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                     }
-                    lb = logbuf = lb_tmp;
+                    lb = shminf.shm->logbuf = lb_tmp;
                 }
 
                 if( 0x08==c ) {
-                    //if( lb != logbuf ) // Sent 0x07 from device
+                    //if( lb != shminf.shm->logbuf ) // Sent 0x07 from device
                     lb--;
                 }
                 else if( 0x1f<c && 0x7f>c ) {
@@ -906,7 +950,7 @@ int main(int argc, char **argv) {
                 }
                 //else if( /*0x0d==c ||*/ 0x0a==c ) {
                 else if( '\n'==c ) {
-                    logbuf[strlen(logbuf)] = '\n';
+                    shminf.shm->logbuf[strlen(shminf.shm->logbuf)] = '\n';
                     //if( 0x0a==c )
                     {
                         if( ts ) {
@@ -919,19 +963,19 @@ int main(int argc, char **argv) {
                             fwrite(date, 1, strlen(date), lf);
                         }
 
-                        fwrite(logbuf, 1, strlen(logbuf), lf);
+                        fwrite(shminf.shm->logbuf, 1, strlen(shminf.shm->logbuf), lf);
 
                         // ToDo
                         if( lblen > MAX_LENGTH - 2 ) {
                             lblen = MAX_LENGTH - 2;
                             // reallocにする
-                            free(logbuf);
-                            //lb = logbuf = (char *)realloc(
-                            //    logbuf, sizeof(char) * (MAX_LENGTH));
-                            lb = logbuf = (char*)malloc(MAX_LENGTH);
+                            free(shminf.shm->logbuf);
+                            //lb = shminf.shm->logbuf = (char *)realloc(
+                            //    shminf.shm->logbuf, sizeof(char) * (MAX_LENGTH));
+                            lb = shminf.shm->logbuf = (char*)malloc(MAX_LENGTH);
                         }
 
-                        memset( lb = logbuf, '\0', MAX_LENGTH );
+                        memset( lb = shminf.shm->logbuf, '\0', MAX_LENGTH );
                     }
                 }
             }
@@ -1007,8 +1051,8 @@ int main(int argc, char **argv) {
                 (int) now.tv_nsec / 1000000);
             fwrite(date, 1, strlen(date), lf);
         }
-        char loglast[strlen(logbuf)+1];
-        sprintf(loglast, "%s%c", logbuf, 0x0a);
+        char loglast[strlen(shminf.shm->logbuf)+1];
+        sprintf(loglast, "%s%c", shminf.shm->logbuf, 0x0a);
         fwrite(loglast, 1, strlen(loglast), lf);
         fclose(lf);
     }

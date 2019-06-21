@@ -8,10 +8,9 @@
 \- Specification in hostname  
 \- Connect bug fix  
 \- Config file bug fix  
-\- ~~Stdin bug fix~~  
 \- ~~Log bug fix~~  
-<!-- ![stable](https://img.shields.io/badge/build-failing-critical.svg) -->
-![stable](https://img.shields.io/badge/build-passing-success.svg)
+<!-- ![stable](https://img.shields.io/badge/build-passing-success.svg) -->
+![stable](https://img.shields.io/badge/build-failing-critical.svg)
 ![version](https://img.shields.io/badge/version-1.4.4--rc-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
@@ -68,7 +67,7 @@ The maximum length of one line is 2048 characters.
 If the color length is 6 => 24bit color (000000\~FFFFFF)  
 If the color length is 3 =>  8bit color (000\~255)  
 
-```.rb
+```.sh
 # Examples
 HOGE.color = RED
 HOGE.regex = fuga
@@ -81,7 +80,7 @@ add.color += \033[48;5;2m
 others.regex = .*
 others.color = 99FF99
 ```
-```.rb
+```.sh
 # Color example
 #   RED
 #   001
