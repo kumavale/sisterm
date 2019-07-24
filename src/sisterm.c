@@ -1,8 +1,8 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.4.4-rc"
-#define UPDATE_DATE    "20190625"
+#define VERSION        "1.4.5-rc"
+#define UPDATE_DATE    "20190724"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
@@ -21,6 +21,8 @@
 #define MAX_LENGTH   256
 #define REG_FLAGS    REG_EXTENDED | REG_NOSUB | REG_ICASE
 
+#define DEBUGLOG sisterr("[%d]", __LINE__)
+
 char s[MAX_LENGTH];
 char *io = s;
 bool bsflag = false;
@@ -36,26 +38,9 @@ typedef struct {
 Param *params;  // Dynamic array
 int params_len;
 
-/* Shared memory TEST */
-//#include <sys/shm.h>
-//struct sharememory { char *logbuf; };
-//struct sharememory_info {
-//    int id;
-//    struct sharememory *shm;
-//};
-//struct sharememory_info shminf;
-//
-//int release_sharemem(int id, struct sharememory *shm) {
-//    if(id >= 0) shmdt(shm);
-//    if(shmctl(id, IPC_RMID, 0) == -1) {
-//        // en route
-//        sisterr("%serror:%s shmctl\n", E_RED, RESET);
-//        return 1;
-//    }
-//    return 0;
+//char getch_(char *c) {
+//    return NULL;
 //}
-/* END */
-
 
 int main(int argc, char **argv) {
     char *sPort       = NULL;             // SerialPort
@@ -78,16 +63,10 @@ int main(int argc, char **argv) {
     bool another_conf = false;            // another config file
     bool cflag        = true;             // Color Flag
     bool ts           = false;            // Whether to timestamp
-    //shminf.id = shmget(IPC_PRIVATE, sizeof(struct sharememory), IPC_CREAT|0666);
-    //shminf.shm = (struct sharememory*)shmat(shminf.id, 0, 0);
-    //shminf.shm->logbuf = (char*)malloc(MAX_LENGTH);
     char* logbuf      = (char*)malloc(MAX_LENGTH);
     char* lb          = logbuf;           // Log buffer pointer for operation
     int  lblen        = MAX_LENGTH - 2;
     //char              comm[32];           // For comment
-    char              date[81];           // Buffer to set timestamp
-    struct timespec   now;
-    struct tm         tm;
     FILE *lf          = NULL;             // Log file
     char mode[3]      = "w+";             // Log file open mode
     char dstaddr[21+1];
@@ -588,7 +567,6 @@ int main(int argc, char **argv) {
     const char endcode = '~';
     tcgetattr(STDOUT_FILENO, &old_stdio);
 
-    // ダメでした
     // logは多重しない 1.4.5で修正予定
     //memset(&stdio, 0, sizeof(stdio));
     memcpy(&stdio, &old_stdio, sizeof(stdio));
@@ -681,10 +659,15 @@ int main(int argc, char **argv) {
     /* ----------------------------------------------------------------------- */
     // 分割したい
     if( tcpflag ) {
-        tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+        //tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
         struct sockaddr_in sa;
-        
+
+//#include <sys/select.h>
+//        struct timeval t_val = {0, 1000};
+//        fd_set fds, readfds;
+//        int select_ret;
+
         if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
             sisterr("%serror:%s Failed socket()\n", E_RED, RESET);
             return EXIT_FAILURE;
@@ -713,194 +696,126 @@ int main(int argc, char **argv) {
 
         printf("Connected.\n");
 
+        //FD_ZERO(&readfds);
+        //FD_SET(fd, &readfds);
+
         tcsetattr(fd, TCSANOW, &tio);
 
-        //struct { char *addr; } share_logbuf;
-        //share_logbuf.addr = logbuf;
+        while(1) {
+            //memcpy(&fds, &readfds, sizeof(fd_set));
+            //select_ret = select(0, &fds, NULL, NULL, &t_val);
 
-        // forkしない方向で考える => 1.4.5
+            //if(select_ret != 0) {
+            if( recv(fd, &c, 1, 0) > 0 ) {
+                if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
+                    transmission(STDOUT_FILENO, &c, 1);
 
-        pid_t pid;
-        pid_t p_pid = getpid();
-        pid = fork();
+                if( logflag ) {
+                    if( (int)strlen(logbuf) > lblen ) {
+                        char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+                        if(lb_tmp == NULL) {
+                            free(logbuf);
+                            sisterr("%serror:%s Failed realloc()\n");
+                            abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
+                        }
+                        lb = logbuf = lb_tmp;
+                    }
 
-        if( 0 > pid ) {
-            sisterr("%serror:%s Failed fork()\n", E_RED, RESET);
-            return EXIT_FAILURE;
-        }
+                    if( 0x08==c ) {
+                        //if( lb != logbuf ) // Sent 0x07 from device
+                        lb--;
+                    }
+                    else if( 0x1f<c && 0x7f>c ) {
+                        *lb = c;
+                        ++lb;
+                    }
+                    else if( '\n'==c ) {
+                        logbuf[strlen(logbuf)] = '\n';
 
-        if( 0 == pid ) {
-            for(;;) {
-                //if( recv(fd, &c, 1, MSG_DONTWAIT) > 0 )
-                if( recv(fd, &c, 1, 0) > 0 ) {
-                    if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
-                        transmission(STDOUT_FILENO, &c, 1);
+                        if( ts ) {
+                            fwritets(lf);
+                        }
 
-                    if( logflag ) {
-                        if( (int)strlen(logbuf) > lblen ) {
-                            char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
+                        fwrite(logbuf, 1, strlen(logbuf), lf);
+                        fflush(lf);
+
+                        if( lblen > MAX_LENGTH - 2 ) {
+                            lblen = MAX_LENGTH - 2;
+                            char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (MAX_LENGTH));
                             if(lb_tmp == NULL) {
                                 free(logbuf);
-                                sisterr("%serror:%s Failed realloc()\n");
+                                sisterr("%serror:%s Failed realloc()\n", E_RED, RESET);
                                 abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
                             }
-                            //share_logbuf.addr = lb = logbuf = lb_tmp;
                             lb = logbuf = lb_tmp;
                         }
 
-                        if( 0x08==c ) {
-                            //if( lb != logbuf ) // Sent 0x07 from device
-                            lb--;
-                        }
-                        else if( 0x1f<c && 0x7f>c ) {
-                            *lb = c;
-                            ++lb;
-                        }
-                        else if( '\n'==c ) {
-                            logbuf[strlen(logbuf)] = '\n';
-
-                            if( ts ) {
-                                clock_gettime(CLOCK, &now);
-                                localtime_r(&now.tv_sec, &tm);
-                                sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-                                    tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                                    tm.tm_hour, tm.tm_min, tm.tm_sec,
-                                    (int) now.tv_nsec / 1000000);
-                                fwrite(date, 1, strlen(date), lf);
-                            }
-
-                            fwrite(logbuf, 1, strlen(logbuf), lf);
-                            fflush(lf);
-
-                            if( lblen > MAX_LENGTH - 2 ) {
-                                lblen = MAX_LENGTH - 2;
-                                char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (MAX_LENGTH));
-                                if(lb_tmp == NULL) {
-                                    free(logbuf);
-                                    sisterr("%serror:%s Failed realloc()\n", E_RED, RESET);
-                                    abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
-                                }
-                                //share_logbuf.addr = lb = logbuf = lb_tmp;
-                                lb = logbuf = lb_tmp;
-                            }
-
-                            //memset( share_logbuf.addr = lb = logbuf, '\0', MAX_LENGTH );
-                            memset( lb = logbuf, '\0', MAX_LENGTH );
-                        }
+                        memset( lb = logbuf, '\0', MAX_LENGTH );
                     }
-
-                    if( 0x0a==c ) {
-                        transmission(STDOUT_FILENO, RESET, strlen(RESET));
-                    }
-
-                    //if( 0x21==c && cflag && !excflag ) {
-                    //    comlen = 0;
-                    //    excflag = true;
-                    //    transmission(stdout_fileno, comm, sprintf(comm, "\b%s%c", color_comment, c));
-                    //}
-
-                    //if( excflag && 0x07!=c )
-                    //    comlen++;
-
-                    //if( 0x08==c ) {
-                    //    if( excflag )
-                    //        comlen-=2;
-                    //    if( excflag && 0>=comlen ) {
-                    //        transmission(stdout_fileno, comm, sprintf(comm, "%s", reset));
-                    //        io++;
-                    //        excflag = false;
-                    //    }
-                    //}
-
-                    //if( !excflag && cflag )
-                    if( cflag ) {
-                        coloring(c);
-                    }
-
                 }
-                else if( recv(fd, &c, 1, 0) == 0) {
-                    kill(p_pid, SIGINT);
+
+                if( 0x0a==c ) {
+                    transmission(STDOUT_FILENO, RESET, strlen(RESET));
+                }
+
+                if( cflag ) {
+                    coloring(c);
+                }
+
+            }
+            //else if( recv(fd, &c, 1, 0) == 0) {
+                //kill(p_pid, SIGINT);
+            //    break;  // hang up
+            //}
+
+            //else {
+            //else if(fgets(&c, 1, stdin) != NULL) {
+            //else if(getch_(&c) != NULL) {
+            //else if( kbhit() ) {
+                //DEBUGLOG;
+            if( kbhit() ) {
+                DEBUGLOG;
+                c = getchar();
+                if( 0x1b==c )                          escflag = true;  // ^
+                else if( escflag && 0x5b==c )          spflag  = true;  // ^[
+                else if( spflag  && 0x33==c )          tilflag = true;  // ^[3
+                else if( spflag  && 0x40<c && 0x45>c ) arrflag = true;  // ^[[ABCD]
+                else if( tilflag && 0x7e==c ) {                         // ^[3~
+                    c = 0x7f;
+                    escflag = spflag = tilflag = false;
+                }
+                else {
+                    escflag = spflag = false;
+                }
+
+                if( endcode == c ) {
+                    //kill(pid, SIGINT);
                     break;  // hang up
                 }
 
-                if( kbhit() ) {
-                    transmission(STDOUT_FILENO, "\b", 1);
+                if( 0x00 == c )
+                    c = 0x7f;  // BS on Vimterminal
+
+                if( !escflag )
+                    send(fd, &c, 1, 0);
+
+                if( arrflag ) {
+                    char* arrow = (char*)malloc(4);
+                    sprintf(arrow, "%c%c%c", 0x1b, 0x5b, c);
+                    send(fd, arrow, 3, 0);
+                    free(arrow);
+                    arrflag = false;
                 }
             }
+            //}
+
+            // 100 microsecond
+            usleep(100);
         }
-        
 
-        if( 0 != pid ) {
-            for(;;) {
-                if( kbhit() ) {
-                    //if(read(STDIN_FILENO, &c, 1) > 0) {
-                    {
-                        c = getchar();
-                        if( 0x1b==c )                          escflag = true;  // ^
-                        else if( escflag && 0x5b==c )          spflag  = true;  // ^[
-                        else if( spflag  && 0x33==c )          tilflag = true;  // ^[3
-                        else if( spflag  && 0x40<c && 0x45>c ) arrflag = true;  // ^[[ABCD]
-                        else if( tilflag && 0x7e==c ) {                         // ^[3~
-                            c = 0x7f;
-                            escflag = spflag = tilflag = false;
-                        }
-                        else {
-                            escflag = spflag = false;
-                        }
-
-                        if( endcode == c ) {
-                            //kill(p_pid, SIGINT);
-                            // 子プロセスからlogbufのアドレスを持ってきたい
-                            //if(logflag) {
-                            //    if( ts ) {
-                            //        clock_gettime(CLOCK, &now);
-                            //        localtime_r(&now.tv_sec, &tm);
-                            //        sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-                            //            tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                            //            tm.tm_hour, tm.tm_min, tm.tm_sec,
-                            //            (int) now.tv_nsec / 1000000);
-                            //        fwrite(date, 1, strlen(date), lf);
-                            //    }
-                            //    char *loglast = (char*)malloc(strlen(share_logbuf.addr)+2);
-                            //    sprintf(loglast, "%s\n", share_logbuf.addr);
-                            //    fwrite(loglast, 1, strlen(loglast), lf);
-                            //    fflush(lf);
-                            //    fclose(lf);
-                            //}
-                            kill(pid, SIGINT);
-
-                            break;  // hang up
-                        }
-
-                        if( 0x00 == c )
-                            c = 0x7f;  // BS on Vimterminal
-
-                        if( !escflag )
-                            send(fd, &c, 1, 0);
-                        if( arrflag ) {
-                            char* arrow = (char*)malloc(4);
-                            sprintf(arrow, "%c%c%c", 0x1b, 0x5b, c);
-                            send(fd, arrow, 3, 0);
-                            free(arrow);
-                            arrflag = false;
-                        }
-                    }
-                }
-
-                // 100 microsecond
-                usleep(100);
-            }
-        }
-        
         if(logflag) {
             if( ts ) {
-                clock_gettime(CLOCK, &now);
-                localtime_r(&now.tv_sec, &tm);
-                sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-                    tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                    tm.tm_hour, tm.tm_min, tm.tm_sec,
-                    (int) now.tv_nsec / 1000000);
-                fwrite(date, 1, strlen(date), lf);
+                fwritets(lf);
             }
             char *loglast = (char*)malloc(strlen(logbuf)+2);
             sprintf(loglast, "%s\n", logbuf);
@@ -908,20 +823,21 @@ int main(int argc, char **argv) {
             fflush(lf);
             fclose(lf);
         }
-        //release_sharemem(shminf.id, shminf.shm);
 
         tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
+
         printf("%s\nDisconnected.\n", RESET);
         close(fd);
         return EXIT_SUCCESS;
     }
+
     /* ----------------------------------------------------------------------- */
 
     printf("Connected.\n");
 
     tcsetattr(fd, TCSANOW, &tio);
 
-    for(;;) {
+    while(1) {
         // if new data is available on the serial port, print it out
         // ToDo Parallel processing
         if(read(fd, &c, 1) > 0) {
@@ -954,13 +870,7 @@ int main(int argc, char **argv) {
                     //if( 0x0a==c )
                     {
                         if( ts ) {
-                            clock_gettime(CLOCK, &now);
-                            localtime_r(&now.tv_sec, &tm);
-                            sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-                                tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                                tm.tm_hour, tm.tm_min, tm.tm_sec,
-                                (int) now.tv_nsec / 1000000);
-                            fwrite(date, 1, strlen(date), lf);
+                            fwritets(lf);
                         }
 
                         fwrite(logbuf, 1, strlen(logbuf), lf);
@@ -1043,13 +953,7 @@ int main(int argc, char **argv) {
 
     if(logflag) {
         if( ts ) {
-            clock_gettime(CLOCK, &now);
-            localtime_r(&now.tv_sec, &tm);
-            sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
-                tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                tm.tm_hour, tm.tm_min, tm.tm_sec,
-                (int) now.tv_nsec / 1000000);
-            fwrite(date, 1, strlen(date), lf);
+            fwritets(lf);
         }
         char loglast[strlen(logbuf)+1];
         sprintf(loglast, "%s%c", logbuf, 0x0a);
@@ -1169,6 +1073,20 @@ void transmission(int _fd, const void* _buf, size_t _len) {
         sisterr("%serror:%s Failed write()\n", E_RED, RESET);
         //exit(EXIT_FAILURE);
     }
+}
+
+
+void fwritets(FILE *lf) {
+    static struct timespec now;
+    static struct tm       tm;
+    static char date[82];
+    clock_gettime(CLOCK, &now);
+    localtime_r(&now.tv_sec, &tm);
+    sprintf(date, "[%d-%02d-%02d %02d:%02d:%02d.%03d] ",
+        tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+        tm.tm_hour, tm.tm_min, tm.tm_sec,
+        (int) now.tv_nsec / 1000000);
+    fwrite(date, 1, strlen(date), lf);
 }
 
 

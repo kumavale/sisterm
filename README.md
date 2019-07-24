@@ -1,7 +1,7 @@
 # sisterm
-<!-- ![stable](https://img.shields.io/badge/build-failing-critical.svg) -->
-![stable](https://img.shields.io/badge/build-passing-success.svg)
-![version](https://img.shields.io/badge/version-1.4.4--rc-success.svg)
+<!-- ![stable](https://img.shields.io/badge/build-passing-success.svg) -->
+![disable](https://img.shields.io/badge/build-failing-critical.svg)
+![version](https://img.shields.io/badge/version-1.4.5--rc-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
 sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.  
@@ -96,7 +96,7 @@ others.color = 99FF99
 
 
 ## Environment
-* Windows10 ( WSL, ~~linux on (VirtualBox|VMware)~~[<sup>[3]</sup>](#note-3) )  
+* Windows10 ( WSL, ~~linux on (VirtualBox|VMware)~~[<sup>[1]</sup>](#note-1) )  
 * Linux
 
 
@@ -105,8 +105,6 @@ MIT
 
 
 ## Note
-1. Even if it is colored, IOS may not support that command.  
-2. Hihlight colors are sloppy at the moment.  
-<a name="note-3"></a>
-3. Standard input looks double in appearance.  
-4. Other than ASCII code can't be displayed.
+<a name="note-1"></a>
+1. Standard input looks double in appearance.  
+2. Other than ASCII code can't be displayed.

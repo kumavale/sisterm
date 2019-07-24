@@ -35,9 +35,9 @@ int chrcnt(int num);
 
 /**
  *  @brief     Check hex
- * 
+ *
  *  @param     1 character
- *  @return   
+ *  @return
  */
 bool ishex(char c);
 
@@ -60,6 +60,9 @@ int pull_port_num(const char *addr);
 
 // Alternative to write()
 void transmission(int, const void*, size_t);
+
+// Append time stamp to logfile
+void fwritets(FILE *lf);
 
 // Keyboard Hit Check
 int kbhit();
