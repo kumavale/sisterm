@@ -321,10 +321,10 @@ int main(int argc, char **argv) {
                     if (!strcmp(op, "+=")) {
                         int cnt = chrcnt(line);
                         sisterr("%serror:%s '%s%s.%s%s' is used uninitialized\n", E_RED, RESET, E_YELLOW, name, key,RESET);
-                        sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
-                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr("  %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
+                        sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                         sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     ++params_len;
@@ -347,11 +347,11 @@ int main(int argc, char **argv) {
 
                 if (param[0] == '\0') {
                     int cnt = chrcnt(line);
-                    sisterr("%serror:%s Value required after =:\n", E_RED, RESET);
-                    sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
-                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                    sisterr("%serror:%s Value required after '=':\n", E_RED, RESET);
+                    sisterr("  %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
+                    sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                     sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                    sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                     return EXIT_FAILURE;
                 }
 
@@ -428,20 +428,19 @@ int main(int argc, char **argv) {
                             if (param_buf[0] == '"' || param_buf[i-1] == '"') {
                                 int cnt = chrcnt(line);
                                 sisterr("%serror:%s Invalid color: '%s%s%s': expected not to require '\"'\n", E_RED, RESET, E_YELLOW, param, RESET);
-                                sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
-                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr("  %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
+                                sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                                 sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
                             if (param_buf[i-1] != 'm') {
                                 int cnt = chrcnt(line);
-                                //sisterr("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", E_RED, RESET, E_YELLOW, param, RESET);
-                                sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
-                                sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
-                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", E_RED, RESET, E_YELLOW, param, RESET);
+                                sisterr("  %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
+                                sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                                 sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
 
@@ -473,10 +472,10 @@ int main(int argc, char **argv) {
                                 if (!isdigit(param[i])) {
                                     int cnt = chrcnt(line);
                                     sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
-                                    sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
-                                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                    sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
+                                    sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                                     sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                    sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                                     return EXIT_FAILURE;
                                 }
                             }
@@ -484,10 +483,10 @@ int main(int argc, char **argv) {
                             if (num > 255) {
                                 int cnt = chrcnt(line);
                                 sisterr("%serror:%s Invalid color: '%s%s%s': less than 256\n", E_RED, RESET, E_YELLOW, param, RESET);
-                                sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
-                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
+                                sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                                 sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                                sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                                sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
                             char format[11+1];  // \033[38;5;XXXm
@@ -499,10 +498,10 @@ int main(int argc, char **argv) {
                         else {
                             int cnt = chrcnt(line);
                             sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
-                            sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
-                            sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                            sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
+                            sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                             sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                            sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                            sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                             return EXIT_FAILURE;
                         }
                     }
@@ -511,10 +510,10 @@ int main(int argc, char **argv) {
                     if (param[0] == '"' || param[strlen(param)-1] == '"') {
                         int cnt = chrcnt(line);
                         sisterr("%serror:%s Invalid regex: '%s%s%s': expected not to require '\"'\n", E_RED, RESET, E_YELLOW, param, RESET);
-                        sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
-                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-",  RESET, path, line);
+                        sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                         sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     int rc;
@@ -523,19 +522,19 @@ int main(int argc, char **argv) {
                         char msg[100];
                         regerror(rc, &params[params_len-1].regex, msg, 100);
                         sisterr("%serror:%s regcomp() failred: %s\n", E_RED, RESET, msg);
-                        sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
-                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-",  RESET, path, line);
+                        sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                         sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     if (!strcmp(op, "+=")) {
                         int cnt = chrcnt(line);
                         sisterr("%serror:%s The \"+=\" operator can\'t be used with regex\n", E_RED, RESET);
-                        sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
-                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-",  RESET, path, line);
+                        sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                         sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                        sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                        sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
                     params[params_len-1].cmped = true;
@@ -543,10 +542,10 @@ int main(int argc, char **argv) {
                 else {
                     int cnt = chrcnt(line);
                     sisterr("%serror:%s Neither color nor regex: '%s%s%s'\n", E_RED, RESET, E_YELLOW, key, RESET);
-                    sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
-                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                    sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-",  RESET, path, line);
+                    sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                     sisterr("%s%d |%s %s", E_BLUE, line, RESET, str);
-                    sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
+                    sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
                     return EXIT_FAILURE;
                 }
 
@@ -1000,16 +999,6 @@ int chrcnt(int num) {
     while (num /= 10)
         ++cnt;
     return cnt;
-}
-
-char *loopc(const char c, int n) {
-    char *str = (char*)malloc(n+1);
-    int i;
-    for (i=0; i<n; ++i) {
-        str[i] = c;
-    }
-    str[i] = '\0';
-    return str;
 }
 
 bool hosttoip(char *dstaddr, char *optarg) {
