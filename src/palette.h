@@ -4,6 +4,7 @@
 #define E_YELLOW  "\033[38;5;011m"
 #define E_BLUE    "\033[38;5;012m"
 
+
 typedef struct {
     const char *key;
     const char *val;

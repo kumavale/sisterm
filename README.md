@@ -96,7 +96,6 @@ others.color = 99FF99
 
 
 ## Environment
-* Windows10 ( WSL, ~~linux on (VirtualBox|VMware)~~[<sup>[1]</sup>](#note-1) )  
 * Linux
 
 

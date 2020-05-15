@@ -1,13 +1,14 @@
 
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
-#define VERSION        "1.4.5-rc"
-#define UPDATE_DATE    "20190724"
+#define VERSION        "1.5.0"
+#define UPDATE_DATE    "2020XXXX"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
 
 #include "sisterm.h"
+#include "sist_error.h"
 #include "palette.h"
 
 
@@ -43,35 +44,35 @@ int params_len;
 //}
 
 int main(int argc, char **argv) {
-    char *sPort       = NULL;             // SerialPort
-    char *B           = NULL;             // BaudRate
-    char *R           = NULL;             // File path to load
-    char *W           = NULL;             // File path to save
-    char *C           = NULL;             // File path to config
-    speed_t baudRate  = B9600;            // Default BaudRate
-    bool existsflag   = false;            // Whether to log file
-    //bool excflag      = false;            // Exclamation mark flag for comment
-    //int  comlen       = 0;                // Comment length
-    bool escflag      = false;            // '^'
-    bool spflag       = false;            // '['
-    bool tilflag      = false;            // Del key -> BS key
-    bool arrflag      = false;            // Arrow keys flag
-    bool logflag      = false;            // Whether to take a log
-    bool tcpflag      = false;            // TCP
-    bool wflag        = false;            // Write file Flag
-    bool rflag        = false;            // Read file Flag
-    bool another_conf = false;            // another config file
-    bool cflag        = true;             // Color Flag
-    bool ts           = false;            // Whether to timestamp
-    char* logbuf      = (char*)malloc(MAX_LENGTH);
-    char* lb          = logbuf;           // Log buffer pointer for operation
-    int  lblen        = MAX_LENGTH - 2;
-    //char              comm[32];           // For comment
-    FILE *lf          = NULL;             // Log file
-    char mode[3]      = "w+";             // Log file open mode
+    char *serial_port     = NULL;             // SerialPort
+    char *baud_rate       = NULL;             // BaudRate
+    char *read_file_path  = NULL;             // File path to load
+    char *write_file_path = NULL;             // File path to save
+    char *cfg_file_path   = NULL;             // File path to config
+    speed_t baudRate      = B9600;            // Default BaudRate
+    bool existsflag       = false;            // Whether to log file
+    //bool excflag          = false;            // Exclamation mark flag for comment
+    //int  comlen           = 0;                // Comment length
+    bool escflag          = false;            // '^'
+    bool spflag           = false;            // '['
+    bool tilflag          = false;            // Del key -> BS key
+    bool arrflag          = false;            // Arrow keys flag
+    bool logflag          = false;            // Whether to take a log
+    bool tcpflag          = false;            // TCP
+    bool wflag            = false;            // Write file Flag
+    bool rflag            = false;            // Read file Flag
+    bool another_conf     = false;            // another config file
+    bool cflag            = true;             // Color Flag
+    bool ts               = false;            // Whether to timestamp
+    char* logbuf          = (char*)malloc(MAX_LENGTH);
+    char* lb              = logbuf;           // Log buffer pointer for operation
+    int  lblen            = MAX_LENGTH - 2;
+    //char                  comm[32];           // For comment
+    FILE *lf              = NULL;             // Log file
+    char mode[]           = "w+";             // Log file open mode
     char dstaddr[21+1];
-    const char CR     = 0x0d;           // Carriage Return
-    const uint16_t default_port = 23;   // TELNET
+    const char CR         = 0x0d;             // Carriage Return
+    const uint16_t default_port = 23;         // TELNET
     int port;
 
 
@@ -90,44 +91,44 @@ int main(int argc, char **argv) {
 	    	{0,0,0,0}
 	    };
         int opt, idx;
-        while((opt = getopt_long(
+        while ((opt = getopt_long(
                 argc,
                 argv,
                 "l:s:r:w:c:tanp:hv",
                 longopts,
                 &idx)
         ) != -1) {
-            switch(opt) {
+            switch (opt) {
                 case 'l':
                   // /path/to/SerialPort
-                    sPort = (char*)malloc(strlen(optarg)+1);
-                    strcpy(sPort, optarg);
+                    serial_port = (char*)malloc(strlen(optarg)+1);
+                    strcpy(serial_port, optarg);
                     break;
 
                 case 's':
                   // BaudRate speed
-                    B = (char*)malloc(strlen(optarg)+1);
-                    strcpy(B, optarg);
+                    baud_rate = (char*)malloc(strlen(optarg)+1);
+                    strcpy(baud_rate, optarg);
                     break;
 
                 case 'r':
                   // /path/to/config.txt
-                    R = (char*)malloc(strlen(optarg)+1);
-                    strcpy(R, optarg);
+                    read_file_path = (char*)malloc(strlen(optarg)+1);
+                    strcpy(read_file_path, optarg);
                     rflag = true;
                     break;
 
                 case 'w':
                   // /path/to/log.txt
-                    W = (char*)malloc(strlen(optarg)+1);
-                    strcpy(W, optarg);
+                    write_file_path = (char*)malloc(strlen(optarg)+1);
+                    strcpy(write_file_path, optarg);
                     wflag = true;
                     break;
 
                 case 'c':
                   // /path/to/config
-                    C = (char*)malloc(strlen(optarg)+1);
-                    strcpy(C, optarg);
+                    cfg_file_path = (char*)malloc(strlen(optarg)+1);
+                    strcpy(cfg_file_path, optarg);
                     another_conf = true;
                     break;
 
@@ -150,16 +151,18 @@ int main(int argc, char **argv) {
                   // Tcp socket
                   // XXX.XXX.XXX.XXX:XXXXX || hostname:XXXXX
                     tcpflag = true;
-                    if(correct_ipaddr_format(optarg)) {
+                    if (correct_ipaddr_format(optarg)) {
                         pack_space_cpy(dstaddr, optarg);
-                        if((port = pull_port_num(dstaddr)) < 0)
+                        if ((port = pull_port_num(dstaddr)) < 0) {
                             port = default_port;
+                        }
                     }
-                    else if(hosttoip(dstaddr, optarg)) {
+                    else if (hosttoip(dstaddr, optarg)) {
                         char *packed_arg = malloc(strlen(optarg)+1);
                         pack_space_cpy(packed_arg, optarg);
-                        if((port = pull_port_num(packed_arg)) < 0)
+                        if ((port = pull_port_num(packed_arg)) < 0) {
                             port = default_port;
+                        }
                         free(packed_arg);
                     }
                     else {
@@ -187,70 +190,73 @@ int main(int argc, char **argv) {
 
 
 
-    if( sPort == NULL && !rflag && !tcpflag ) {
+    if ( serial_port == NULL && !rflag && !tcpflag ) {
         sisterr("%serror:%s must specify Serial Port\n", E_RED, RESET, argv[0]);
+        //sisterr("must specify Serial Port\n", argv[0]);
         return EXIT_FAILURE;
     }
 
 
-    if( B != NULL && !rflag && !tcpflag ) {
-        if     (!strcmp(B, "0"))      baudRate = B0;      // hang up
-        else if(!strcmp(B, "50"))     baudRate = B50;
-        else if(!strcmp(B, "75"))     baudRate = B75;
-        else if(!strcmp(B, "110"))    baudRate = B110;
-        else if(!strcmp(B, "134"))    baudRate = B134;
-        else if(!strcmp(B, "150"))    baudRate = B150;
-        else if(!strcmp(B, "200"))    baudRate = B200;
-        else if(!strcmp(B, "300"))    baudRate = B300;
-        else if(!strcmp(B, "600"))    baudRate = B600;
-        else if(!strcmp(B, "1200"))   baudRate = B1200;
-        else if(!strcmp(B, "1800"))   baudRate = B1800;
-        else if(!strcmp(B, "2400"))   baudRate = B2400;
-        else if(!strcmp(B, "4800"))   baudRate = B4800;
-        else if(!strcmp(B, "9600"))   baudRate = B9600;   // Default
-        else if(!strcmp(B, "19200"))  baudRate = B19200;
-        else if(!strcmp(B, "38400"))  baudRate = B38400;
-        else if(!strcmp(B, "57600"))  baudRate = B57600;
-        else if(!strcmp(B, "115200")) baudRate = B115200;
-        else if(!strcmp(B, "230400")) baudRate = B230400;
+    if ( baud_rate != NULL && !rflag && !tcpflag ) {
+        if     (!strcmp(baud_rate, "0"))      baudRate = B0;      // hang up
+        else if (!strcmp(baud_rate, "50"))     baudRate = B50;
+        else if (!strcmp(baud_rate, "75"))     baudRate = B75;
+        else if (!strcmp(baud_rate, "110"))    baudRate = B110;
+        else if (!strcmp(baud_rate, "134"))    baudRate = B134;
+        else if (!strcmp(baud_rate, "150"))    baudRate = B150;
+        else if (!strcmp(baud_rate, "200"))    baudRate = B200;
+        else if (!strcmp(baud_rate, "300"))    baudRate = B300;
+        else if (!strcmp(baud_rate, "600"))    baudRate = B600;
+        else if (!strcmp(baud_rate, "1200"))   baudRate = B1200;
+        else if (!strcmp(baud_rate, "1800"))   baudRate = B1800;
+        else if (!strcmp(baud_rate, "2400"))   baudRate = B2400;
+        else if (!strcmp(baud_rate, "4800"))   baudRate = B4800;
+        else if (!strcmp(baud_rate, "9600"))   baudRate = B9600;   // Default
+        else if (!strcmp(baud_rate, "19200"))  baudRate = B19200;
+        else if (!strcmp(baud_rate, "38400"))  baudRate = B38400;
+        else if (!strcmp(baud_rate, "57600"))  baudRate = B57600;
+        else if (!strcmp(baud_rate, "115200")) baudRate = B115200;
+        else if (!strcmp(baud_rate, "230400")) baudRate = B230400;
         else {
-          sisterr("%serror:%s Invalid BaudRate: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, B, RESET);
+          sisterr("%serror:%s Invalid BaudRate: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, baud_rate, RESET);
           return EXIT_FAILURE;
         }
     }
 
 
-    if( wflag && !rflag ) {
-        if(!access(W, F_OK))
+    if ( wflag && !rflag ) {
+        if (!access(write_file_path, F_OK)) {
             existsflag = true;
+        }
 
-        if( existsflag && (access( W, (F_OK | R_OK) ) < 0) ) {
+        if ( existsflag && (access( write_file_path, (F_OK | R_OK) ) < 0) ) {
             sisterr("%serror:%s Access to the log file is denied\n", E_RED, RESET);
             return EXIT_FAILURE;
         }
 
-        if( existsflag && !strcmp(mode, "w+") ) {
-            sisterr("\a%s\"%s\"%s is already exists!\n", E_YELLOW, W, RESET);
+        if ( existsflag && !strcmp(mode, "w+") ) {
+            sisterr("\a%s\"%s\"%s is already exists!\n", E_YELLOW, write_file_path, RESET);
             sisterr("Do you want to overwrite?[confirm]");
             char con = getchar();
-            if( !(con=='\n' || con=='y' || con=='Y') )
+            if ( !(con=='\n' || con=='y' || con=='Y') ) {
                 return EXIT_SUCCESS;
+            }
         }
 
-        lf = fopen(W, mode);
+        lf = fopen(write_file_path, mode);
 
-        if(lf == NULL) {
-            if(access(W, F_OK)) {
+        if (lf == NULL) {
+            if (access(write_file_path, F_OK)) {
               sisterr("%serror:%s Failed to create file: Try to check the permissions\n", E_RED, RESET);
               return EXIT_FAILURE;
             }
-            else if( access( W, (F_OK | R_OK) ) < 0 ) {
+            else if ( access( write_file_path, (F_OK | R_OK) ) < 0 ) {
               sisterr("%serror:%s Access to the log file is denied\n", E_RED, RESET);
               return EXIT_FAILURE;
             }
 
-            sisterr("%s: open (%s): Failure\n", argv[0], W);
-            sisterr("%serror:%s file open Failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, W, RESET);
+            sisterr("%s: open (%s): Failure\n", argv[0], write_file_path);
+            sisterr("%serror:%s file open Failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, write_file_path, RESET);
             return EXIT_FAILURE;
         }
 
@@ -262,10 +268,10 @@ int main(int argc, char **argv) {
         FILE *cfp;  // Config File Pointer
         char *path;
 
-        if(another_conf) {
-            path = (char*)malloc(strlen(C)+1);
-            strcpy(path, C);
-            path[strlen(C)] = '\0';
+        if (another_conf) {
+            path = (char*)malloc(strlen(cfg_file_path)+1);
+            strcpy(path, cfg_file_path);
+            path[strlen(cfg_file_path)] = '\0';
         } else {
             int len = strlen(getenv("HOME")) + 1 + strlen(CONFIG_FILE);
             path = (char*)malloc(len+1);
@@ -275,7 +281,7 @@ int main(int argc, char **argv) {
 
         cfp = fopen(path, "r");
 
-        if(cfp == NULL) {
+        if (cfp == NULL) {
             cflag = false;
             sisterr("%serror:%s File open error: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, path, RESET);
             sisterr("Press ENTER to continue of without color mode");
@@ -287,13 +293,14 @@ int main(int argc, char **argv) {
             int line = 0;
             int i, failed;
 
-            while(fgets(str, MAX_PARAM_LEN, cfp) != NULL) {
+            while (fgets(str, MAX_PARAM_LEN, cfp) != NULL) {
                 ++line;
                 char top = '\0';
                 sscanf(str, " %c", &top);
                 // ignore comment and blank line
-                if(strchr(" #\n\0", top))
+                if (strchr(" #\n\0", top)) {
                     continue;
+                }
 
                 char *key   = (char*)calloc(64, sizeof(char)),
                      *op    = (char*)calloc(2+1, sizeof(char)),
@@ -304,13 +311,14 @@ int main(int argc, char **argv) {
                 //printf("[name:%s, key:%s, op:%s, param:%s]\n", name, key, op, param);
 
                 bool suffer = false;
-                for(i=0; i<params_len; ++i)
-                    if(!strcmp(params[i].name, name)) {
+                for (i=0; i<params_len; ++i) {
+                    if (!strcmp(params[i].name, name)) {
                         suffer = true;
                         break;
                     }
-                if(!suffer) {
-                    if(!strcmp(op, "+=")) {
+                }
+                if (!suffer) {
+                    if (!strcmp(op, "+=")) {
                         int cnt = chrcnt(line);
                         sisterr("%serror:%s '%s%s.%s%s' is used uninitialized\n", E_RED, RESET, E_YELLOW, name, key,RESET);
                         sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
@@ -321,7 +329,7 @@ int main(int argc, char **argv) {
                     }
                     ++params_len;
                     Param *params_tmp = (Param*)realloc(params, params_len * sizeof(Param));
-                    if(params_tmp == NULL) {
+                    if (params_tmp == NULL) {
                         free(params);
                         sisterr("%serror:%s realloc() failed\n", E_RED, RESET);
                         return EXIT_FAILURE;
@@ -333,10 +341,11 @@ int main(int argc, char **argv) {
                 }
 
                 // DOS file format
-                if(param[strlen(param)-1] == 0x0D)
+                if (param[strlen(param)-1] == 0x0D) {
                     param[strlen(param)-1] = '\0';
+                }
 
-                if(param[0] == '\0') {
+                if (param[0] == '\0') {
                     int cnt = chrcnt(line);
                     sisterr("%serror:%s Value required after =:\n", E_RED, RESET);
                     sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
@@ -346,39 +355,42 @@ int main(int argc, char **argv) {
                     return EXIT_FAILURE;
                 }
 
-                if(!strcmp(key, "color")) {
+                if (!strcmp(key, "color")) {
                     bool color_flug = false,
                          isColor_24 = false;
 
-                    for(i=0; i<AC_MAX; ++i)
-                        if(!strcasecmp(param, ansi_colors[i].key)) {
+                    for (i=0; i<AC_MAX; ++i) {
+                        if (!strcasecmp(param, ansi_colors[i].key)) {
                             color_flug = true;
                             params[params_len-1].color = (char*)malloc(strlen(ansi_colors[i].val)+1);
                             strcpy(params[params_len-1].color, ansi_colors[i].val);
                             params[params_len-1].color[strlen(ansi_colors[i].val)] = '\0';
                             break;
                         }
+                    }
 
-                    if(!color_flug) {
+                    if (!color_flug) {
 
-                        if(strlen(param) == 6 || strlen(param) == 7) {
+                        if (strlen(param) == 6 || strlen(param) == 7) {
                             char param_tmp[7+1];
                             int i;
                             strcpy(param_tmp, param);
 
-                            if((strlen(param) == 7) && param[0] == '#') {
-                                for(i=0; i<6; ++i)
+                            if ((strlen(param) == 7) && param[0] == '#') {
+                                for (i=0; i<6; ++i) {
                                     param_tmp[i] = param_tmp[i+1];
+                                }
                                 param_tmp[i] = '\0';
                             }
 
                             isColor_24 = true;
-                            for(i=0; i<6; ++i)
-                                if(!ishex(param_tmp[i])) {
+                            for (i=0; i<6; ++i) {
+                                if (!ishex(param_tmp[i])) {
                                     isColor_24 = false;
                                     break;
                                 }
-                            if(isColor_24) {
+                            }
+                            if (isColor_24) {
                                 char hexs[3][2+1] = {
                                     { param_tmp[0], param_tmp[1], '\0' },
                                     { param_tmp[2], param_tmp[3], '\0' },
@@ -394,17 +406,17 @@ int main(int argc, char **argv) {
                             }
                         }
 
-                        if(isColor_24) {
+                        if (isColor_24) {
                             // Do nothing
                         }
-                        else if(strlen(param) >= 6) {
+                        else if (strlen(param) >= 6) {
                             char *p;
                             char *param_buf = (char*)malloc(strlen(param)+1);
                             strcpy(param_buf, param);
                             p = param_buf;
                             int i = 0;
-                            while(*p) {
-                                if(isspace(*p)) {
+                            while (*p) {
+                                if (isspace(*p)) {
                                     ++p;
                                     continue;
                                 }
@@ -413,7 +425,7 @@ int main(int argc, char **argv) {
                                 ++p;
                             }
                             param_buf[i] = '\0';
-                            if(param_buf[0] == '"' || param_buf[i-1] == '"') {
+                            if (param_buf[0] == '"' || param_buf[i-1] == '"') {
                                 int cnt = chrcnt(line);
                                 sisterr("%serror:%s Invalid color: '%s%s%s': expected not to require '\"'\n", E_RED, RESET, E_YELLOW, param, RESET);
                                 sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
@@ -422,7 +434,7 @@ int main(int argc, char **argv) {
                                 sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                                 return EXIT_FAILURE;
                             }
-                            if(param_buf[i-1] != 'm') {
+                            if (param_buf[i-1] != 'm') {
                                 int cnt = chrcnt(line);
                                 //sisterr("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", E_RED, RESET, E_YELLOW, param, RESET);
                                 sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
@@ -441,9 +453,9 @@ int main(int argc, char **argv) {
                             strcpy(param, param_buf);
                             free(param_buf);
 
-                            if(!strcmp(op, "+=")) {
+                            if (!strcmp(op, "+=")) {
                                 char *param_tmp = (char*)realloc(params[params_len-1].color, strlen(params[params_len-1].color)+strlen(param)+1);
-                                if(param_tmp == NULL) {
+                                if (param_tmp == NULL) {
                                     sisterr("%serror:%s realloc() failed\n", E_RED, RESET);
                                     return EXIT_FAILURE;
                                 }
@@ -455,10 +467,10 @@ int main(int argc, char **argv) {
                                 params[params_len-1].color[strlen(param)] = '\0';
                             }
                         }
-                        else if(strlen(param) == 3) {
+                        else if (strlen(param) == 3) {
                             int i;
-                            for(i=0; i<3; ++i)
-                                if(!isdigit(param[i])) {
+                            for (i=0; i<3; ++i) {
+                                if (!isdigit(param[i])) {
                                     int cnt = chrcnt(line);
                                     sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
                                     sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
@@ -467,8 +479,9 @@ int main(int argc, char **argv) {
                                     sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                                     return EXIT_FAILURE;
                                 }
+                            }
                             u_int16_t num = strtol(param, NULL, 10);
-                            if(num > 255) {
+                            if (num > 255) {
                                 int cnt = chrcnt(line);
                                 sisterr("%serror:%s Invalid color: '%s%s%s': less than 256\n", E_RED, RESET, E_YELLOW, param, RESET);
                                 sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt), RESET, path, line);
@@ -494,8 +507,8 @@ int main(int argc, char **argv) {
                         }
                     }
                 }
-                else if(!strcmp(key, "regex")) {
-                    if(param[0] == '"' || param[strlen(param)-1] == '"') {
+                else if (!strcmp(key, "regex")) {
+                    if (param[0] == '"' || param[strlen(param)-1] == '"') {
                         int cnt = chrcnt(line);
                         sisterr("%serror:%s Invalid regex: '%s%s%s': expected not to require '\"'\n", E_RED, RESET, E_YELLOW, param, RESET);
                         sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
@@ -505,7 +518,7 @@ int main(int argc, char **argv) {
                         return EXIT_FAILURE;
                     }
                     int rc;
-                    if((rc = regcomp(&params[params_len-1].regex, param, REG_FLAGS))) {
+                    if ((rc = regcomp(&params[params_len-1].regex, param, REG_FLAGS))) {
                         int cnt = chrcnt(line);
                         char msg[100];
                         regerror(rc, &params[params_len-1].regex, msg, 100);
@@ -516,7 +529,7 @@ int main(int argc, char **argv) {
                         sisterr(" %s%s|%s\n", loopc(' ', cnt), E_BLUE, RESET);
                         return EXIT_FAILURE;
                     }
-                    if(!strcmp(op, "+=")) {
+                    if (!strcmp(op, "+=")) {
                         int cnt = chrcnt(line);
                         sisterr("%serror:%s The \"+=\" operator can\'t be used with regex\n", E_RED, RESET);
                         sisterr("  %s%s>%s %s:%d\n", E_BLUE, loopc('-', cnt),  RESET, path, line);
@@ -546,10 +559,10 @@ int main(int argc, char **argv) {
             free(str);
 
             // Both color and regex
-            for(i=0, failed=0; i<params_len; ++i) {
-                if(params[i].color == NULL) failed = 1;
-                if(params[i].cmped == 0)    failed = 2;
-                if(failed) {
+            for (i=0, failed=0; i<params_len; ++i) {
+                if (params[i].color == NULL) failed = 1;
+                if (params[i].cmped == 0)    failed = 2;
+                if (failed) {
                     sisterr("%serror:%s %s.%s is not defined\n", E_RED, RESET, params[i].name, failed==1?"color":"regex");
                     return EXIT_FAILURE;
                 }
@@ -589,40 +602,42 @@ int main(int argc, char **argv) {
     tio.c_cc[VMIN]    = 1;
     tio.c_cc[VTIME]   = 10;
 
-    fd = open(sPort, O_RDWR | O_NONBLOCK);
-    if( fd < 0 && !rflag && !tcpflag ) {
+    fd = open(serial_port, O_RDWR | O_NONBLOCK);
+    if ( fd < 0 && !rflag && !tcpflag ) {
         tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
-        if(access( sPort, F_OK ) < 0)
-            sisterr("%serror:%s No such file or directory: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, sPort, RESET);
-        else if(access( sPort, (R_OK | W_OK) ) < 0)
-            sisterr("%serror:%s Permission denied: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, sPort, RESET);
+        if (access( serial_port, F_OK ) < 0) {
+            sisterr("%serror:%s No such file or directory: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, serial_port, RESET);
+        } else if (access( serial_port, (R_OK | W_OK) ) < 0) {
+            sisterr("%serror:%s Permission denied: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, serial_port, RESET);
         // unstable
-        //else if(fcntl(fd, F_GETFL) == -1)
-        //  printf("%s: %s: Line in use\n", argv[0], sPort);
-        else
-            sisterr("%serror:%s File open failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, sPort, RESET);
+        //else if (fcntl(fd, F_GETFL) == -1)
+        //  printf("%s: %s: Line in use\n", argv[0], serial_port);
+        } else {
+            sisterr("%serror:%s File open failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, serial_port, RESET);
+        }
         close(fd);
         return EXIT_FAILURE;
     }
 
-    if( cfsetispeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
-    if( cfsetospeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
+    if ( cfsetispeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
+    if ( cfsetospeed(&tio, baudRate) != 0 ) return EXIT_FAILURE;
 
-    if( rflag && !tcpflag ) {
+    if ( rflag && !tcpflag ) {
         FILE *fr;
-        fr = fopen(R, "r");
-        if(fr == NULL) {
+        fr = fopen(read_file_path, "r");
+        if (fr == NULL) {
             tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
-            if(access( R, F_OK ) < 0)
-                sisterr("%serror:%s No such file or directory: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, R, RESET);
-            else if(access( R, (R_OK) ) < 0)
-                sisterr("%serror:%s Permission denied: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, R, RESET);
-            else
-                sisterr("%serror:%s File open failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, R, RESET);
+            if (access( read_file_path, F_OK ) < 0) {
+                sisterr("%serror:%s No such file or directory: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, read_file_path, RESET);
+            } else if (access( read_file_path, (R_OK) ) < 0) {
+                sisterr("%serror:%s Permission denied: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, read_file_path, RESET);
+            } else {
+                sisterr("%serror:%s File open failure: %s\"%s\"%s\n", E_RED, RESET, E_YELLOW, read_file_path, RESET);
+            }
             return EXIT_FAILURE;
         }
 
-        //if( setvbuf(stdout, NULL, _IOLBF, 2048) != 0 )
+        //if ( setvbuf(stdout, NULL, _IOLBF, 2048) != 0 )
         //{
         //  /* If failure without buffering */
         //}
@@ -630,22 +645,23 @@ int main(int argc, char **argv) {
         tcsetattr(fd, TCSANOW, &tio);
 
         int i;
-        while((i=fgetc(fr)) != EOF) {
+        while ((i=fgetc(fr)) != EOF) {
             c = (char)i;
-            if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
+            if ( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) ) {
                 transmission(STDOUT_FILENO, &c, 1);
+            }
 
-            if( 0x0a==c ) {
+            if ( 0x0a==c ) {
                 transmission(STDOUT_FILENO, &CR, 1);
                 transmission(STDOUT_FILENO, RESET, strlen(RESET));
             }
 
-            if( cflag ) {
+            if ( cflag ) {
                 coloring(c);
             }
 
-            if(read(STDIN_FILENO, &c, 1) > 0) {
-                if(c == endcode) break;
+            if (read(STDIN_FILENO, &c, 1) > 0) {
+                if (c == endcode) break;
             }
         }
 
@@ -658,7 +674,7 @@ int main(int argc, char **argv) {
 
     /* ----------------------------------------------------------------------- */
     // 分割したい
-    if( tcpflag ) {
+    if ( tcpflag ) {
         //tcsetattr(STDOUT_FILENO, TCSANOW, &old_stdio);
 
         struct sockaddr_in sa;
@@ -668,7 +684,7 @@ int main(int argc, char **argv) {
 //        fd_set fds, readfds;
 //        int select_ret;
 
-        if( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
+        if ( (fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
             sisterr("%serror:%s Failed socket()\n", E_RED, RESET);
             return EXIT_FAILURE;
         }
@@ -683,12 +699,12 @@ int main(int argc, char **argv) {
 
         free(address);
 
-        if( sa.sin_addr.s_addr == 0xffffffff ) {
+        if ( sa.sin_addr.s_addr == 0xffffffff ) {
             sisterr("%serror:%s Bad address\n", E_RED, RESET);
             return EXIT_FAILURE;
         }
 
-        if( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
+        if ( connect(fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
             sisterr("%serror:%s Connection refused\n", E_RED, RESET);
             close(fd);
             return EXIT_FAILURE;
@@ -701,19 +717,20 @@ int main(int argc, char **argv) {
 
         tcsetattr(fd, TCSANOW, &tio);
 
-        while(1) {
+        while (1) {
             //memcpy(&fds, &readfds, sizeof(fd_set));
             //select_ret = select(0, &fds, NULL, NULL, &t_val);
 
-            //if(select_ret != 0) {
-            if( recv(fd, &c, 1, 0) > 0 ) {
-                if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
+            //if (select_ret != 0) {
+            if ( recv(fd, &c, 1, 0) > 0 ) {
+                if ( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) ) {
                     transmission(STDOUT_FILENO, &c, 1);
+                }
 
-                if( logflag ) {
-                    if( (int)strlen(logbuf) > lblen ) {
+                if ( logflag ) {
+                    if ( (int)strlen(logbuf) > lblen ) {
                         char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
-                        if(lb_tmp == NULL) {
+                        if (lb_tmp == NULL) {
                             free(logbuf);
                             sisterr("%serror:%s Failed realloc()\n");
                             abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
@@ -721,28 +738,28 @@ int main(int argc, char **argv) {
                         lb = logbuf = lb_tmp;
                     }
 
-                    if( 0x08==c ) {
-                        //if( lb != logbuf ) // Sent 0x07 from device
+                    if ( 0x08==c ) {
+                        //if ( lb != logbuf ) // Sent 0x07 from device
                         lb--;
                     }
-                    else if( 0x1f<c && 0x7f>c ) {
+                    else if ( 0x1f<c && 0x7f>c ) {
                         *lb = c;
                         ++lb;
                     }
-                    else if( '\n'==c ) {
+                    else if ( '\n'==c ) {
                         logbuf[strlen(logbuf)] = '\n';
 
-                        if( ts ) {
+                        if ( ts ) {
                             fwritets(lf);
                         }
 
                         fwrite(logbuf, 1, strlen(logbuf), lf);
                         fflush(lf);
 
-                        if( lblen > MAX_LENGTH - 2 ) {
+                        if ( lblen > MAX_LENGTH - 2 ) {
                             lblen = MAX_LENGTH - 2;
                             char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (MAX_LENGTH));
-                            if(lb_tmp == NULL) {
+                            if (lb_tmp == NULL) {
                                 free(logbuf);
                                 sisterr("%serror:%s Failed realloc()\n", E_RED, RESET);
                                 abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
@@ -754,33 +771,33 @@ int main(int argc, char **argv) {
                     }
                 }
 
-                if( 0x0a==c ) {
+                if ( 0x0a==c ) {
                     transmission(STDOUT_FILENO, RESET, strlen(RESET));
                 }
 
-                if( cflag ) {
+                if ( cflag ) {
                     coloring(c);
                 }
 
             }
-            //else if( recv(fd, &c, 1, 0) == 0) {
+            //else if ( recv(fd, &c, 1, 0) == 0) {
                 //kill(p_pid, SIGINT);
             //    break;  // hang up
             //}
 
             //else {
-            //else if(fgets(&c, 1, stdin) != NULL) {
-            //else if(getch_(&c) != NULL) {
-            //else if( kbhit() ) {
+            //else if (fgets(&c, 1, stdin) != NULL) {
+            //else if (getch_(&c) != NULL) {
+            //else if ( kbhit() ) {
                 //DEBUGLOG;
-            if( kbhit() ) {
+            if ( kbhit() ) {
                 DEBUGLOG;
                 c = getchar();
-                if( 0x1b==c )                          escflag = true;  // ^
-                else if( escflag && 0x5b==c )          spflag  = true;  // ^[
-                else if( spflag  && 0x33==c )          tilflag = true;  // ^[3
-                else if( spflag  && 0x40<c && 0x45>c ) arrflag = true;  // ^[[ABCD]
-                else if( tilflag && 0x7e==c ) {                         // ^[3~
+                if ( 0x1b==c )                          escflag = true;  // ^
+                else if ( escflag && 0x5b==c )          spflag  = true;  // ^[
+                else if ( spflag  && 0x33==c )          tilflag = true;  // ^[3
+                else if ( spflag  && 0x40<c && 0x45>c ) arrflag = true;  // ^[[ABCD]
+                else if ( tilflag && 0x7e==c ) {                         // ^[3~
                     c = 0x7f;
                     escflag = spflag = tilflag = false;
                 }
@@ -788,18 +805,20 @@ int main(int argc, char **argv) {
                     escflag = spflag = false;
                 }
 
-                if( endcode == c ) {
+                if ( endcode == c ) {
                     //kill(pid, SIGINT);
                     break;  // hang up
                 }
 
-                if( 0x00 == c )
+                if ( 0x00 == c ) {
                     c = 0x7f;  // BS on Vimterminal
+                }
 
-                if( !escflag )
+                if ( !escflag ) {
                     send(fd, &c, 1, 0);
+                }
 
-                if( arrflag ) {
+                if ( arrflag ) {
                     char* arrow = (char*)malloc(4);
                     sprintf(arrow, "%c%c%c", 0x1b, 0x5b, c);
                     send(fd, arrow, 3, 0);
@@ -813,8 +832,8 @@ int main(int argc, char **argv) {
             usleep(100);
         }
 
-        if(logflag) {
-            if( ts ) {
+        if (logflag) {
+            if ( ts ) {
                 fwritets(lf);
             }
             char *loglast = (char*)malloc(strlen(logbuf)+2);
@@ -837,18 +856,19 @@ int main(int argc, char **argv) {
 
     tcsetattr(fd, TCSANOW, &tio);
 
-    while(1) {
+    while (1) {
         // if new data is available on the serial port, print it out
         // ToDo Parallel processing
-        if(read(fd, &c, 1) > 0) {
-            if( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) )
+        if (read(fd, &c, 1) > 0) {
+            if ( 0x07==c || 0x08==c || 0x0a==c || 0x0d==c || (0x1f<c && 0x7f>c) ) {
                 transmission(STDOUT_FILENO, &c, 1);
+            }
 
-            if( logflag ) {
+            if ( logflag ) {
                 // Unstable
-                if( (int)strlen(logbuf) > lblen ) {
+                if ( (int)strlen(logbuf) > lblen ) {
                     char *lb_tmp = (char*)realloc(logbuf, sizeof(char) * (lblen += MAX_LENGTH));
-                    if(lb_tmp == NULL) {
+                    if (lb_tmp == NULL) {
                         free(logbuf);
                         sisterr("%serror:%s Failed realloc()\n", E_RED, RESET);
                         abort_exit(STDOUT_FILENO, TCSANOW, &old_stdio);
@@ -856,27 +876,27 @@ int main(int argc, char **argv) {
                     lb = logbuf = lb_tmp;
                 }
 
-                if( 0x08==c ) {
-                    //if( lb != logbuf ) // Sent 0x07 from device
+                if ( 0x08==c ) {
+                    //if ( lb != logbuf ) // Sent 0x07 from device
                     lb--;
                 }
-                else if( 0x1f<c && 0x7f>c ) {
+                else if ( 0x1f<c && 0x7f>c ) {
                   *lb = c;
                   ++lb;
                 }
-                //else if( /*0x0d==c ||*/ 0x0a==c ) {
-                else if( '\n'==c ) {
+                //else if ( /*0x0d==c ||*/ 0x0a==c ) {
+                else if ( '\n'==c ) {
                     logbuf[strlen(logbuf)] = '\n';
-                    //if( 0x0a==c )
+                    //if ( 0x0a==c )
                     {
-                        if( ts ) {
+                        if ( ts ) {
                             fwritets(lf);
                         }
 
                         fwrite(logbuf, 1, strlen(logbuf), lf);
 
                         // ToDo
-                        if( lblen > MAX_LENGTH - 2 ) {
+                        if ( lblen > MAX_LENGTH - 2 ) {
                             lblen = MAX_LENGTH - 2;
                             // reallocにする
                             free(logbuf);
@@ -890,28 +910,29 @@ int main(int argc, char **argv) {
                 }
             }
 
-            if( 0x0a==c ) {
+            if ( 0x0a==c ) {
                 //excflag = false;
                 //transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
                 transmission(STDOUT_FILENO, RESET, strlen(RESET));
             }
 
-            //if( 0x21==c && cflag && !excflag ) {
+            //if ( 0x21==c && cflag && !excflag ) {
             //    comlen = 0;
             //    excflag = true;
             //    transmission(STDOUT_FILENO, comm, sprintf(comm, "\b%s%c", COLOR_COMMENT, c));
             //}
 
-            //if( excflag && 0x07!=c )
+            //if ( excflag && 0x07!=c )
             //    comlen++;
 
-            if( 0x07==c )
+            if ( 0x07==c ) {
                 bsflag = false;
+            }
 
-            //if( 0x08==c ) {
-            //    if( excflag )
+            //if ( 0x08==c ) {
+            //    if ( excflag )
             //        comlen-=2;
-            //    if( excflag && 0>=comlen ) {
+            //    if ( excflag && 0>=comlen ) {
             //        transmission(STDOUT_FILENO, comm, sprintf(comm, "%s", RESET));
             //        //memset( io = s, '\0', MAX_LENGTH );
             //        io++;
@@ -919,17 +940,18 @@ int main(int argc, char **argv) {
             //    }
             //}
 
-            //if( !excflag && cflag )
-            if( cflag )
+            //if ( !excflag && cflag )
+            if ( cflag ) {
                 coloring(c);
+            }
         }
 
         // if new data is available on the console, send it to the serial port
-        if(read(STDIN_FILENO, &c, 1) > 0) {
-            if( 0x1b==c )                 escflag = true; // ^
-            else if( 0x5b==c && escflag ) spflag  = true; // ^[
-            else if( 0x33==c && spflag )  tilflag = true; // ^[3
-            else if( 0x7e==c && tilflag ) {               // ^[3~
+        if (read(STDIN_FILENO, &c, 1) > 0) {
+            if ( 0x1b==c )                 escflag = true; // ^
+            else if ( 0x5b==c && escflag ) spflag  = true; // ^[
+            else if ( 0x33==c && spflag )  tilflag = true; // ^[3
+            else if ( 0x7e==c && tilflag ) {               // ^[3~
                 c = 0x7f;
                 escflag = spflag = tilflag = false;
             }
@@ -937,10 +959,10 @@ int main(int argc, char **argv) {
                 escflag = spflag = false;
             }
 
-            if( endcode == c )                   break; // hang up
-            if( 0x00 == c )                  c = 0x7f;  // BS on Vimterminal
+            if ( endcode == c )                   break; // hang up
+            if ( 0x00 == c )                  c = 0x7f;  // BS on Vimterminal
 
-            if( 0x7f == c )             bsflag = 3;     // BS on Vimterminal
+            if ( 0x7f == c )             bsflag = 3;     // BS on Vimterminal
 
             transmission(fd, &c, 1);
         }
@@ -951,8 +973,8 @@ int main(int argc, char **argv) {
 
     close(fd);
 
-    if(logflag) {
-        if( ts ) {
+    if (logflag) {
+        if ( ts ) {
             fwritets(lf);
         }
         char loglast[strlen(logbuf)+1];
@@ -975,7 +997,7 @@ bool ishex(char c) {
 
 int chrcnt(int num) {
     int cnt = 1;
-    while(num /= 10)
+    while (num /= 10)
         ++cnt;
     return cnt;
 }
@@ -983,8 +1005,9 @@ int chrcnt(int num) {
 char *loopc(const char c, int n) {
     char *str = (char*)malloc(n+1);
     int i;
-    for(i=0; i<n; ++i)
+    for (i=0; i<n; ++i) {
         str[i] = c;
+    }
     str[i] = '\0';
     return str;
 }
@@ -996,9 +1019,10 @@ bool hosttoip(char *dstaddr, char *optarg) {
     sscanf(optarg, "%[^ :\n]", arg);
     arg[strlen(arg)] = '\0';
     host = gethostbyname(arg);  // getaddrinfo()を検討
-    if(host == NULL)
+    if (host == NULL) {
         return false;
-    if(host->h_length != 4) {
+    }
+    if (host->h_length != 4) {
         sisterr("%serror:%s Only IPv4 supported\n", E_RED, RESET);
         return false;
     }
@@ -1015,8 +1039,8 @@ bool hosttoip(char *dstaddr, char *optarg) {
 void pack_space_cpy(char *dstaddr, const char *addr) {
     int i = 0;
     const char *p = addr;
-    while(*p) {
-        if(!isspace(*p)) {
+    while (*p) {
+        if (!isspace(*p)) {
             dstaddr[i++] = *p;
         }
         ++p;
@@ -1030,7 +1054,7 @@ bool correct_ipaddr_format(const char *addr) {
     regex_t preg;
     const char *format = "^ *(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]) *(: *[1-9][0-9]{4}|: *[1-9][0-9]{3}|: *[1-9][0-9]{2}|: *[1-9][0-9]{1}|: *[0-9]|) *$";
     int rc = regcomp(&preg, format, REG_NOSUB | REG_EXTENDED | REG_NEWLINE);
-    if(rc != 0) {
+    if (rc != 0) {
         char msg[100];
         regerror(rc, &preg, msg, 100);
         regfree(&preg);
@@ -1040,9 +1064,10 @@ bool correct_ipaddr_format(const char *addr) {
     rc = regexec(&preg, addr, 0, 0, 0);
     regfree(&preg);
 
-    if(rc == 0) {
-        if(pull_port_num(addr) == OUT_OF_RANGE)
+    if (rc == 0) {
+        if (pull_port_num(addr) == OUT_OF_RANGE) {
             return false;
+        }
         return true;
     }
     return false;
@@ -1061,15 +1086,17 @@ int pull_port_num(const char *addr) {
     };
     int port;
 
-    if(sscanf(addr, "%*[^:]:%d", &port) != 1)
+    if (sscanf(addr, "%*[^:]:%d", &port) != 1) {
         return NONE_PORT;
-    if(port > MAX_PORT_NUM)
+    }
+    if (port > MAX_PORT_NUM) {
         return OUT_OF_RANGE;
+    }
     return port;
 }
 
 void transmission(int _fd, const void* _buf, size_t _len) {
-    if( -1 == write(_fd, _buf, _len) ) {
+    if ( -1 == write(_fd, _buf, _len) ) {
         sisterr("%serror:%s Failed write()\n", E_RED, RESET);
         //exit(EXIT_FAILURE);
     }
@@ -1114,7 +1141,7 @@ int kbhit() {
 
 void replace(char *str, const char *before, const char *after) {
     char *p;
-    while((p = strstr(str, before)) != NULL) {
+    while ((p = strstr(str, before)) != NULL) {
         *p = '\0';
         p += (int)strlen(before);
         strcat(str, after);
@@ -1124,9 +1151,11 @@ void replace(char *str, const char *before, const char *after) {
 
 int syntaxCheck(char *str) {
     int hi_num;
-    for(hi_num = 0; hi_num < params_len; ++hi_num)
-        if( regexec(&params[hi_num].regex, str, 0, 0, 0) == 0 )
+    for (hi_num = 0; hi_num < params_len; ++hi_num) {
+        if ( regexec(&params[hi_num].regex, str, 0, 0, 0) == 0 ) {
             return hi_num;
+        }
+    }
     return -1;
 }
 
@@ -1136,40 +1165,42 @@ void repaint(const char *color) {
     char bs = 0x08;
     char tmp[MAX_LENGTH];
     char str[MAX_LENGTH + 32];
-    while(*io) {
+    while (*io) {
         tmp[i++] = *io++;
         transmission(STDOUT_FILENO, &bs, 1);
     }
-    if(tmp[i]!='\0') {
+    if (tmp[i]!='\0') {
         tmp[i]='\0';
     }
     transmission(STDOUT_FILENO, str, sprintf(str, "%s%s%s", color, tmp, RESET));
 }
 
 void coloring(char c) {
-    if( (/*0x08!=c &&*/ 0x21>c && !bsflag) ) {
+    if ( (/*0x08!=c &&*/ 0x21>c && !bsflag) ) {
         memset( io = s, '\0', MAX_LENGTH );
         return;
     }
 
     //en route
-    if( bsflag ) {
-        if( 2==bsflag-- /*&& '\0'!=s[0]*/)
+    if ( bsflag ) {
+        if ( 2==bsflag-- /*&& '\0'!=s[0]*/) {
             *io++ = '\0';
             //*io++ = 0x20;
-        else
+        } else {
             io--;
+        }
 
-        if( bsflag )
+        if ( bsflag ) {
             return;
+        }
     }
-    /*else if( 0x08==c ) {
+    /*else if ( 0x08==c ) {
         io--;
-        if( '\0'==s )
+        if ( '\0'==s )
             memset( io = s, '\0', MAX_LENGTH );
         return;
     } //*/
-    else if( strlen(s) < MAX_LENGTH - 1 ) {
+    else if ( strlen(s) < MAX_LENGTH - 1 ) {
         *io++ = c;
     }
     else {
@@ -1178,8 +1209,9 @@ void coloring(char c) {
     }
 
     int checked = syntaxCheck(s);
-    if(checked >= 0)
+    if (checked >= 0) {
         repaint(params[checked].color);
+    }
 
     //        case HL_SLASH:
     //            sprintf(s, "/");
@@ -1190,7 +1222,7 @@ void coloring(char c) {
 }
 
 void setSignal(int p_signame) {
-    if( signal(p_signame, sigcatch) == SIG_ERR ) {
+    if ( signal(p_signame, sigcatch) == SIG_ERR ) {
         sisterr("%serror:%s SIG_ERR\n", E_RED, RESET);
         exit(EXIT_FAILURE);
     }

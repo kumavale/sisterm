@@ -19,7 +19,6 @@
 #include <getopt.h>
 #include <ctype.h>
 
-#include "sist_error.h"
 
 typedef int bool;
 #define true  1
