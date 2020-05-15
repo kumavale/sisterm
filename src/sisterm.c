@@ -192,7 +192,6 @@ int main(int argc, char **argv) {
 
     if ( serial_port == NULL && !rflag && !tcpflag ) {
         sisterr("%serror:%s must specify Serial Port\n", E_RED, RESET, argv[0]);
-        //sisterr("must specify Serial Port\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -319,7 +318,7 @@ int main(int argc, char **argv) {
                 }
                 if (!suffer) {
                     if (!strcmp(op, "+=")) {
-                        int cnt = chrcnt(line);
+                        int cnt = numlen(line);
                         sisterr("%serror:%s '%s%s.%s%s' is used uninitialized\n", E_RED, RESET, E_YELLOW, name, key,RESET);
                         sisterr("  %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
                         sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -346,7 +345,7 @@ int main(int argc, char **argv) {
                 }
 
                 if (param[0] == '\0') {
-                    int cnt = chrcnt(line);
+                    int cnt = numlen(line);
                     sisterr("%serror:%s Value required after '=':\n", E_RED, RESET);
                     sisterr("  %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
                     sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -426,7 +425,7 @@ int main(int argc, char **argv) {
                             }
                             param_buf[i] = '\0';
                             if (param_buf[0] == '"' || param_buf[i-1] == '"') {
-                                int cnt = chrcnt(line);
+                                int cnt = numlen(line);
                                 sisterr("%serror:%s Invalid color: '%s%s%s': expected not to require '\"'\n", E_RED, RESET, E_YELLOW, param, RESET);
                                 sisterr("  %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
                                 sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -435,7 +434,7 @@ int main(int argc, char **argv) {
                                 return EXIT_FAILURE;
                             }
                             if (param_buf[i-1] != 'm') {
-                                int cnt = chrcnt(line);
+                                int cnt = numlen(line);
                                 sisterr("%serror:%s Invalid color: '%s%s%s': expected 'm' in end\n", E_RED, RESET, E_YELLOW, param, RESET);
                                 sisterr("  %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
                                 sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -470,7 +469,7 @@ int main(int argc, char **argv) {
                             int i;
                             for (i=0; i<3; ++i) {
                                 if (!isdigit(param[i])) {
-                                    int cnt = chrcnt(line);
+                                    int cnt = numlen(line);
                                     sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
                                     sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
                                     sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -481,7 +480,7 @@ int main(int argc, char **argv) {
                             }
                             u_int16_t num = strtol(param, NULL, 10);
                             if (num > 255) {
-                                int cnt = chrcnt(line);
+                                int cnt = numlen(line);
                                 sisterr("%serror:%s Invalid color: '%s%s%s': less than 256\n", E_RED, RESET, E_YELLOW, param, RESET);
                                 sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
                                 sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -496,7 +495,7 @@ int main(int argc, char **argv) {
                             params[params_len-1].color[strlen(format)] = '\0';
                         }
                         else {
-                            int cnt = chrcnt(line);
+                            int cnt = numlen(line);
                             sisterr("%serror:%s Invalid color: '%s%s%s'\n", E_RED, RESET, E_YELLOW, param, RESET);
                             sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-", RESET, path, line);
                             sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -508,7 +507,7 @@ int main(int argc, char **argv) {
                 }
                 else if (!strcmp(key, "regex")) {
                     if (param[0] == '"' || param[strlen(param)-1] == '"') {
-                        int cnt = chrcnt(line);
+                        int cnt = numlen(line);
                         sisterr("%serror:%s Invalid regex: '%s%s%s': expected not to require '\"'\n", E_RED, RESET, E_YELLOW, param, RESET);
                         sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-",  RESET, path, line);
                         sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -518,7 +517,7 @@ int main(int argc, char **argv) {
                     }
                     int rc;
                     if ((rc = regcomp(&params[params_len-1].regex, param, REG_FLAGS))) {
-                        int cnt = chrcnt(line);
+                        int cnt = numlen(line);
                         char msg[100];
                         regerror(rc, &params[params_len-1].regex, msg, 100);
                         sisterr("%serror:%s regcomp() failred: %s\n", E_RED, RESET, msg);
@@ -529,7 +528,7 @@ int main(int argc, char **argv) {
                         return EXIT_FAILURE;
                     }
                     if (!strcmp(op, "+=")) {
-                        int cnt = chrcnt(line);
+                        int cnt = numlen(line);
                         sisterr("%serror:%s The \"+=\" operator can\'t be used with regex\n", E_RED, RESET);
                         sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-",  RESET, path, line);
                         sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -540,7 +539,7 @@ int main(int argc, char **argv) {
                     params[params_len-1].cmped = true;
                 }
                 else {
-                    int cnt = chrcnt(line);
+                    int cnt = numlen(line);
                     sisterr("%serror:%s Neither color nor regex: '%s%s%s'\n", E_RED, RESET, E_YELLOW, key, RESET);
                     sisterr(" %s%*s->%s %s:%d\n", E_BLUE, cnt, "-",  RESET, path, line);
                     sisterr(" %*s%s|%s\n", cnt, "", E_BLUE, RESET);
@@ -585,7 +584,7 @@ int main(int argc, char **argv) {
     //stdio.c_iflag     = 0;
     //stdio.c_oflag     = 0;
     //stdio.c_cflag     = 0;
-    //stdio.c_lflag     = 0;
+    stdio.c_lflag     = 0;
     stdio.c_lflag     &= ~(ECHO | ICANON);
     stdio.c_cc[VMIN]  = 1;
     stdio.c_cc[VTIME] = 10;
@@ -716,7 +715,7 @@ int main(int argc, char **argv) {
 
         tcsetattr(fd, TCSANOW, &tio);
 
-        while (1) {
+        while (true) {
             //memcpy(&fds, &readfds, sizeof(fd_set));
             //select_ret = select(0, &fds, NULL, NULL, &t_val);
 
@@ -855,7 +854,7 @@ int main(int argc, char **argv) {
 
     tcsetattr(fd, TCSANOW, &tio);
 
-    while (1) {
+    while (true) {
         // if new data is available on the serial port, print it out
         // ToDo Parallel processing
         if (read(fd, &c, 1) > 0) {
@@ -877,13 +876,12 @@ int main(int argc, char **argv) {
 
                 if ( 0x08==c ) {
                     //if ( lb != logbuf ) // Sent 0x07 from device
-                    lb--;
+                    --lb;
                 }
                 else if ( 0x1f<c && 0x7f>c ) {
                   *lb = c;
                   ++lb;
                 }
-                //else if ( /*0x0d==c ||*/ 0x0a==c ) {
                 else if ( '\n'==c ) {
                     logbuf[strlen(logbuf)] = '\n';
                     //if ( 0x0a==c )
@@ -994,10 +992,11 @@ bool ishex(char c) {
            ('0' <= c && c <= '9');
 }
 
-int chrcnt(int num) {
+int numlen(int num) {
     int cnt = 1;
-    while (num /= 10)
+    while (num /= 10) {
         ++cnt;
+    }
     return cnt;
 }
 

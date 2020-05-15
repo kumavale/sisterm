@@ -29,7 +29,7 @@ void setSignal(int);
 void sigcatch();
 
 // Number of digits
-int chrcnt(int num);
+int numlen(int num);
 
 
 /**
