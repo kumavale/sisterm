@@ -2,7 +2,7 @@
 #define COMMAND_NAME   "sist"
 #define PROGRAM_NAME   "sisterm"
 #define VERSION        "1.5.0"
-#define UPDATE_DATE    "2020XXXX"
+#define UPDATE_DATE    "20200516"
 
 #define CONFIG_FILE    "sist.conf"
 #define MAX_PARAM_LEN  2048
