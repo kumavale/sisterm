@@ -1,5 +1,5 @@
 [package]
-name = "sisterm"
+name = "sist"
 version = "0.1.0"
 authors = ["kmgy <bhnk1270223@gn.iwasaki.ac.jp>"]
 edition = "2018"
@@ -7,3 +7,5 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+serialport = "3.3.0"
+clap = "2.33.1"
