@@ -1,30 +1,35 @@
-extern crate sist;
+#[macro_use]
+extern crate clap;
 
+extern crate sist;
 use sist::posix::repl::run;
 
 use std::time::Duration;
 
-use clap::{App, Arg};
+use clap::{App, AppSettings, Arg};
 use serialport::prelude::*;
 use serialport::available_ports;
 
 fn main() {
-    let matches = App::new("sisterm")
-        .version("2.0.0")
-        .about("Reads data from a serial port and echoes it to stdout")
+    let app = App::new("sisterm")
+        .version(crate_version!())
+        .about(crate_description!())
+        .setting(AppSettings::DeriveDisplayOrder)
         .arg(
             Arg::with_name("port")
-                .help("The device path to a serial port")
+                .help("The device path to a serial port (auto detection)")
                 .short("l")
+                .long("line")
                 .takes_value(true)
         )
         .arg(
             Arg::with_name("baud")
                 .help("The baud rate to connect at (default 9600)")
                 .short("s")
+                .long("speed")
                 .takes_value(true)
-        )
-        .get_matches();
+        );
+    let matches = app.get_matches();
 
     // If "port (-l)" is specified
     let port_name = if let Some(name) = matches.value_of("port") {
