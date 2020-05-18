@@ -54,6 +54,6 @@ fn main() {
 
     run(port_name, settings);
 
-    println!("Disconnected.");
+    println!("\nDisconnected.");
 }
 
