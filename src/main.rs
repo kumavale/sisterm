@@ -2,6 +2,8 @@
 extern crate clap;
 extern crate sist;
 
+use sist::flag;
+
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
@@ -34,9 +36,22 @@ fn main() {
                 .short("r")
                 .long("read")
                 .takes_value(true)
+        )
+        .arg(
+            Arg::with_name("nocolor")
+                .help("Without color")
+                .short("n")
+                .long("no-color")
         );
 
     let matches = app.get_matches();
+
+
+    // Color display flag
+    let nocolor = matches.is_present("nocolor");
+
+    // Setting flags
+    let flags = flag::Flags::new(nocolor);
 
 
     // If "read file (-r)" is specified
@@ -44,7 +59,7 @@ fn main() {
     if let Some(path) = matches.value_of("read file") {
         use sist::read;
 
-        read::run(&path);
+        read::run(&path, flags);
 
 
     // Else REPL start
@@ -72,7 +87,7 @@ fn main() {
         }
 
 
-        repl::run(port_name, settings);
+        repl::run(port_name, settings, flags);
 
         println!("\nDisconnected.");
     }

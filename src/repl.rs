@@ -2,12 +2,13 @@ use std::io::{self, Read, Write};
 use std::thread;
 
 use crate::queue::Queue;
+use crate::flag;
 
 use serialport::prelude::*;
 use getch::Getch;
 
 
-pub fn run(port_name: String, settings: SerialPortSettings) {
+pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) {
     let receiver = match serialport::open_with_settings(&port_name, &settings) {
         Ok(port) => port,
         Err(e) => {
