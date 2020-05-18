@@ -68,7 +68,7 @@ fn main() {
             settings.baud_rate = rate;
         } else {
             eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
-            ::std::process::exit(1);
+            std::process::exit(1);
         }
 
 

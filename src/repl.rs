@@ -12,7 +12,7 @@ pub fn run(port_name: String, settings: SerialPortSettings) {
         Ok(port) => port,
         Err(e) => {
             eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
-            ::std::process::exit(1);
+            std::process::exit(1);
         },
     };
     let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
