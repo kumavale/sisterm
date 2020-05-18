@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 serialport = "3.3.0"
 clap = "2.33.1"
+getch = "0.2.1"

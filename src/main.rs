@@ -1,8 +1,6 @@
-extern crate clap;
-extern crate serialport;
+extern crate sist;
 
-mod posix;
-use posix::repl::run;
+use sist::posix::repl::run;
 
 use std::time::Duration;
 
@@ -55,5 +53,7 @@ fn main() {
 
 
     run(port_name, settings);
+
+    println!("Disconnected.");
 }
 

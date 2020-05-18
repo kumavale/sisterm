@@ -2,6 +2,7 @@ use std::io::{self, Read, Write};
 use std::thread;
 
 use serialport::prelude::*;
+use getch::Getch;
 
 
 pub fn run(port_name: String, settings: SerialPortSettings) {
@@ -18,7 +19,8 @@ pub fn run(port_name: String, settings: SerialPortSettings) {
     // Receiver
     thread::spawn(move || {
         let mut serial_buf: Vec<u8> = vec![0; 1000];
-        println!("Receiving data on {}:", &port_name);
+        println!("Connected. {}:", &port_name);
+
         loop {
             match receiver.read(serial_buf.as_mut_slice()) {
                 Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
@@ -30,15 +32,19 @@ pub fn run(port_name: String, settings: SerialPortSettings) {
 
 
     // Transmitter
-    let mut input_buffer = [0];
+    let exit_char = b'~';
+    let g = Getch::new();
     loop {
-        if io::stdin().read(&mut input_buffer).is_ok() {
-            match transmitter.write(&input_buffer) {
-                Ok(_) => (),
-                Err(e) => eprintln!("{}", e),
-            }
-        } else {
-            eprintln!("error: write() failed");
+        match g.getch() {
+            Ok(key) => {
+                if key == exit_char {
+                    break;
+                }
+                if let Err(e) = transmitter.write(&[key]) {
+                    eprintln!("{}", e);
+                }
+            },
+            Err(e) => eprintln!("{}", e),
         }
     }
 }
