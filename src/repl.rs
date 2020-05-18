@@ -48,11 +48,19 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: fl
 
                     // Write timestamp to log file
                     if flags.is_timestamp() {
-                        let log_buf = String::from_utf8(serial_buf[..t].to_vec()).unwrap();
-                        // Write to log file
-                        if log_buf.find('\n').is_some() {
+                        let mut append_ts = false;
+                        for ch in &serial_buf[..t] {
+                            if ch == &b'\n' {
+                                append_ts = true;
+                                break;
+                            }
+                        }
+                        if append_ts {
+                            // Write to log file. Also the timestamp
+                            let log_buf = String::from_utf8(serial_buf[..t].to_vec()).unwrap();
                             log_file.write_all(log_buf.replace("\n", &format_timestamp()).as_bytes()).unwrap();
                         } else {
+                            // Write to log file
                             log_file.write_all(&serial_buf[..t]).unwrap();
                         }
 

@@ -45,6 +45,14 @@ fn main() {
                 .takes_value(true)
         )
         .arg(
+            Arg::with_name("config file")
+                .help("Specify configuration file")
+                .short("c")
+                .long("config")
+                .takes_value(true)
+                .default_value("TODO")
+        )
+        .arg(
             Arg::with_name("nocolor")
                 .help("Without color")
                 .short("n")
@@ -69,8 +77,11 @@ fn main() {
     // If "write file (-w)" is specified
     let write_file = matches.value_of("write file");
 
+    // If "config file (-c)" is specified
+    let config_file = matches.value_of("config file").expect("Invalid file name");
+
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, write_file, config_file);
 
 
     // If "read file (-r)" is specified
