@@ -24,3 +24,34 @@ impl Queue {
         self.queue[0] == self.exit_char1 && self.queue[1] == self.exit_char2
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_enqueue() {
+        let mut q = Queue::new(b'~', b'.');
+
+        q.enqueue(b'A');
+        q.enqueue(b'B');
+    }
+
+    #[test]
+    fn test_is_exit_chars() {
+        let mut q = Queue::new(b'~', b'.');
+
+        q.enqueue(b'A');
+        q.enqueue(b'B');
+        assert!(!q.is_exit_chars());
+
+        q.enqueue(b'~');
+        q.enqueue(b'.');
+        assert!(q.is_exit_chars());
+
+        q.enqueue(b'.');
+        q.enqueue(b'~');
+        assert!(!q.is_exit_chars());
+    }
+}

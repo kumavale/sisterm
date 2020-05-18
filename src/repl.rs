@@ -58,22 +58,29 @@ fn transmitter_run(mut port: std::boxed::Box<dyn serialport::SerialPort>) {
                 queue.enqueue(key);
                 // If input "~." to exit
                 if queue.is_exit_chars() {
-                    print!(".");
+                    eprint!(".");
                     let _ = io::stdout().flush();
                     break;
                 }
                 // If the previous character is not a tilde and the current character is a tilde
                 if !last_is_tilde && key == exit_char1 {
                     last_is_tilde = true;
-                    print!("~");
+                    eprint!("~");
                     let _ = io::stdout().flush();
                     continue;
                 }
                 // If not input "~~" to dispaly error message
-                if last_is_tilde && key != exit_char1 {
-                    eprintln!("[Unrecognized.  Use ~~ to send ~]");
-                    last_is_tilde = false;
-                    continue;
+                if last_is_tilde {
+                    if key == exit_char1 {
+                        eprint!("\x08");
+                        queue.enqueue(0);
+                    } else {
+                        eprint!("\x08");
+                        eprintln!("[Unrecognized.  Use ~~ to send ~]");
+                        let _ = io::stdout().flush();
+                        last_is_tilde = false;
+                        continue;
+                    }
                 }
                 last_is_tilde = false;
 
