@@ -42,14 +42,14 @@ fn main() {
     // If "read file (-r)" is specified
     // Output text from the file
     if let Some(path) = matches.value_of("read file") {
-        use sist::posix::read;
+        use sist::read;
 
         read::run(&path);
 
 
     // Else REPL start
     } else {
-        use sist::posix::repl;
+        use sist::repl;
 
         // If "port (-l)" is specified
         let port_name = if let Some(name) = matches.value_of("port") {

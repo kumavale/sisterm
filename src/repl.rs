@@ -1,7 +1,7 @@
 use std::io::{self, Read, Write};
 use std::thread;
 
-use super::queue::Queue;
+use crate::queue::Queue;
 
 use serialport::prelude::*;
 use getch::Getch;
