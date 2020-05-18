@@ -11,8 +11,10 @@ pub fn run(path: &str, flags: flag::Flags) {
     f.read_to_string(&mut contents).expect("Somothing went wrong reading the file");
 
     if flags.is_nocolor() {
+        // Without coloring
         println!("{}", contents);
     } else {
+        // Coloring
         color::coloring_from_file(contents);
         println!();
     }

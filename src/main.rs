@@ -32,9 +32,16 @@ fn main() {
         )
         .arg(
             Arg::with_name("read file")
-                .help("Output text from file  (e.g. /tmp/config.txt)")
+                .help("Output text from file")
                 .short("r")
                 .long("read")
+                .takes_value(true)
+        )
+        .arg(
+            Arg::with_name("write file")
+                .help("Saved log")
+                .short("w")
+                .long("write")
                 .takes_value(true)
         )
         .arg(
@@ -50,8 +57,11 @@ fn main() {
     // Color display flag
     let nocolor = matches.is_present("nocolor");
 
+    // If "write file (-w)" is specified
+    let write_file = matches.value_of("write file");
+
     // Setting flags
-    let flags = flag::Flags::new(nocolor);
+    let flags = flag::Flags::new(nocolor, write_file);
 
 
     // If "read file (-r)" is specified

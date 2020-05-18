@@ -1,5 +1,6 @@
-use std::io::{self, Read, Write};
+use std::io::{self, BufWriter, Read, Write};
 use std::thread;
+use std::fs::File;
 
 use crate::queue::Queue;
 use crate::flag;
@@ -18,31 +19,59 @@ pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) 
     };
     let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
 
+    println!("Connected. {}:", port_name);
+    println!("Type \"~.\" to exit.");
 
     // Receiver
     thread::spawn(move || {
-        receiver_run(receiver, &port_name);
+        receiver_run(receiver, flags);
     });
 
     // Transmitter
     transmitter_run(transmitter);
 }
 
-fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, port_name: &str) {
+fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: flag::Flags) {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
-    println!("Connected. {}:", port_name);
-    println!("Type \"~.\" to exit.");
 
-    loop {
-        match port.read(serial_buf.as_mut_slice()) {
-            Ok(t) => {
-                // Display received string
-                io::stdout().write_all(&serial_buf[..t]).unwrap();
-            },
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-            Err(e) => eprintln!("{:?}", e),
+    if let Some(write_file) = flags.write_file() {
+        // Save log
+        let mut log_file = BufWriter::new(File::create(write_file).expect("File open failed"));
+        println!("Log record: {}", write_file);
+
+        loop {
+            match port.read(serial_buf.as_mut_slice()) {
+                Ok(t) => {
+                    // Display received string
+                    io::stdout().write_all(&serial_buf[..t]).unwrap();
+
+                    // Write to log file
+                    log_file.write_all(&serial_buf[..t]).unwrap();
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                Err(e) => eprintln!("{}", e),
+            }
+
+            // Flush
+            let _ = io::stdout().flush();
+            let _ = log_file.flush();
         }
-        let _ = io::stdout().flush();
+
+    } else {
+        // Non save log
+        loop {
+            match port.read(serial_buf.as_mut_slice()) {
+                Ok(t) => {
+                    // Display received string
+                    io::stdout().write_all(&serial_buf[..t]).unwrap();
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                Err(e) => eprintln!("{}", e),
+            }
+
+            // Flush
+            let _ = io::stdout().flush();
+        }
     }
 }
 
