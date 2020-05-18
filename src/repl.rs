@@ -7,6 +7,7 @@ use crate::flag;
 
 use serialport::prelude::*;
 use getch::Getch;
+use chrono::Local;
 
 
 pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) {
@@ -45,8 +46,20 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: fl
                     // Display received string
                     io::stdout().write_all(&serial_buf[..t]).unwrap();
 
-                    // Write to log file
-                    log_file.write_all(&serial_buf[..t]).unwrap();
+                    // Write timestamp to log file
+                    if flags.is_timestamp() {
+                        let log_buf = String::from_utf8(serial_buf[..t].to_vec()).unwrap();
+                        // Write to log file
+                        if log_buf.find('\n').is_some() {
+                            log_file.write_all(log_buf.replace("\n", &format_timestamp()).as_bytes()).unwrap();
+                        } else {
+                            log_file.write_all(&serial_buf[..t]).unwrap();
+                        }
+
+                    } else {
+                        // Write to log file
+                        log_file.write_all(&serial_buf[..t]).unwrap();
+                    }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                 Err(e) => eprintln!("{}", e),
@@ -122,4 +135,8 @@ fn transmitter_run(mut port: std::boxed::Box<dyn serialport::SerialPort>) {
             Err(e) => eprintln!("{}", e),
         }
     }
+}
+
+fn format_timestamp() -> String {
+    Local::now().format("\n[%Y-%m-%d %H:%M:%S %Z] ").to_string()
 }

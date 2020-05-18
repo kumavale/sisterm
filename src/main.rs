@@ -24,7 +24,7 @@ fn main() {
         )
         .arg(
             Arg::with_name("baud")
-                .help("The baud rate to connect at (default 9600)")
+                .help("The baud rate to connect at")
                 .short("s")
                 .long("speed")
                 .takes_value(true)
@@ -49,6 +49,12 @@ fn main() {
                 .help("Without color")
                 .short("n")
                 .long("no-color")
+        )
+        .arg(
+            Arg::with_name("timestamp")
+                .help("Add timestamp to log")
+                .short("t")
+                .long("time-stamp")
         );
 
     let matches = app.get_matches();
@@ -57,11 +63,14 @@ fn main() {
     // Color display flag
     let nocolor = matches.is_present("nocolor");
 
+    // Timestamp flag
+    let timestamp = matches.is_present("timestamp");
+
     // If "write file (-w)" is specified
     let write_file = matches.value_of("write file");
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, write_file);
 
 
     // If "read file (-r)" is specified
