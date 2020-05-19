@@ -1,6 +1,7 @@
 use regex::Regex;
+use crate::setting;
 
-pub fn coloring_from_file(text: String) {
+pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
     let re_dbg = Regex::new("ip").unwrap();
     let tokens = split_whitespace(text);
 

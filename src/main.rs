@@ -3,6 +3,7 @@ extern crate clap;
 extern crate sist;
 
 use sist::flag;
+use sist::setting;
 
 use std::time::Duration;
 
@@ -50,7 +51,7 @@ fn main() {
                 .short("c")
                 .long("config")
                 .takes_value(true)
-                .default_value("TODO")
+                .default_value("sisterm.toml")
         )
         .arg(
             Arg::with_name("nocolor")
@@ -68,6 +69,12 @@ fn main() {
     let matches = app.get_matches();
 
 
+    // If "config file (-c)" is specified
+    let config_file = matches.value_of("config file").expect("Invalid file name");
+
+    // Parse configuration file
+    let params = setting::Params::new(config_file);
+
     // Color display flag
     let nocolor = matches.is_present("nocolor");
 
@@ -77,11 +84,8 @@ fn main() {
     // If "write file (-w)" is specified
     let write_file = matches.value_of("write file");
 
-    // If "config file (-c)" is specified
-    let config_file = matches.value_of("config file").expect("Invalid file name");
-
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, write_file, config_file);
+    let flags = flag::Flags::new(nocolor, timestamp, write_file);
 
 
     // If "read file (-r)" is specified
@@ -89,22 +93,44 @@ fn main() {
     if let Some(path) = matches.value_of("read file") {
         use sist::read;
 
-        read::run(&path, flags);
+        read::run(&path, flags, params);
 
 
     // Else REPL start
     } else {
         use sist::repl;
 
-        // If "port (-l)" is specified
-        let port_name = if let Some(name) = matches.value_of("port") {
-            name.to_string()
-        } else {
-            available_ports().expect("No serial port")[0].port_name.to_string()
-        };
+        let (port_name, baud_rate) = if let Some(params) = params {
+            // If "port (-l)" is specified
+            let port_name = if let Some(port) = matches.value_of("port") {
+                port.to_string()
+            } else if let Some(port) = params.port {
+                port
+            } else {
+                available_ports().expect("No serial port")[0].port_name.to_string()
+            };
+            // If "baudrate (-s)" is specified
+            let baud_rate = if let Some(baud) = params.speed {
+                baud
+            } else if let Some(baud) = matches.value_of("baud") {
+                baud.to_string()
+            } else {
+                panic!("No baud rate");
+            };
 
-        // If "baudrate (-s)" is specified
-        let baud_rate = matches.value_of("baud").expect("No baud rate");
+            (port_name, baud_rate)
+        } else {
+            // If "port (-l)" is specified
+            let port_name = if let Some(port) = matches.value_of("port") {
+                port.to_string()
+            } else {
+                available_ports().expect("No serial port")[0].port_name.to_string()
+            };
+            // If "baudrate (-s)" is specified
+            let baud_rate = matches.value_of("baud").expect("No baud rate");
+
+            (port_name, baud_rate.to_string())
+        };
 
 
         let mut settings: SerialPortSettings = Default::default();

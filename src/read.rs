@@ -3,19 +3,21 @@ use std::io::prelude::*;
 
 use crate::color;
 use crate::flag;
+use crate::setting;
 
-pub fn run(path: &str, flags: flag::Flags) {
-    let mut f = File::open(path).expect("File not found");
+pub fn run(path: &str, flags: flag::Flags, params: Option<setting::Params>) {
+    let mut f = File::open(path).expect("File open failed");
 
     let mut contents = String::new();
     f.read_to_string(&mut contents).expect("Somothing went wrong reading the file");
 
+    // Without coloring
     if flags.is_nocolor() {
-        // Without coloring
         println!("{}", contents);
+
+    // Coloring
     } else {
-        // Coloring
-        color::coloring_from_file(contents);
+        color::coloring_from_file(contents, params);
         println!();
     }
 }

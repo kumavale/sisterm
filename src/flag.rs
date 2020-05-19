@@ -3,11 +3,10 @@ pub struct Flags {
     nocolor:     bool,
     timestamp:   bool,
     write_file:  Option<String>,
-    config_file: String,
 }
 
 impl Flags {
-    pub fn new(nocolor: bool, timestamp: bool, wf: Option<&str>, cf: &str) -> Self {
+    pub fn new(nocolor: bool, timestamp: bool, wf: Option<&str>) -> Self {
         Self {
             nocolor,
             timestamp,
@@ -15,7 +14,6 @@ impl Flags {
                 Some(file) => Some(file.to_string()),
                 None => None,
             },
-            config_file: cf.to_string(),
         }
     }
 
