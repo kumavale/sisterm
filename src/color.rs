@@ -7,18 +7,17 @@ use lazy_static::lazy_static;
 
 //  Predefined colors
 lazy_static! {
-    //static ref VALID_KEYWORDS: HashMap<&'static str, Keyword> = {
-    static ref PREDEFINED_COLORS: HashMap<String, &'static str> = {
+    static ref PREDEFINED_COLORS: HashMap<&'static str, &'static str> = {
         let mut m = HashMap::new();
-        m.insert("RESET".to_string(),   "\x1b[0m");
-        m.insert("BLACK".to_string(),   "\x1b[30m");
-        m.insert("RED".to_string(),     "\x1b[31m");
-        m.insert("GREEN".to_string(),   "\x1b[32m");
-        m.insert("YELLOW".to_string(),  "\x1b[33m");
-        m.insert("BLUE".to_string(),    "\x1b[34m");
-        m.insert("MAGENTA".to_string(), "\x1b[35m");
-        m.insert("CYAN".to_string(),    "\x1b[36m");
-        m.insert("WHITE".to_string(),   "\x1b[37m");
+        m.insert("RESET",   "\x1b[0m");
+        m.insert("BLACK",   "\x1b[30m");
+        m.insert("RED",     "\x1b[31m");
+        m.insert("GREEN",   "\x1b[32m");
+        m.insert("YELLOW",  "\x1b[33m");
+        m.insert("BLUE",    "\x1b[34m");
+        m.insert("MAGENTA", "\x1b[35m");
+        m.insert("CYAN",    "\x1b[36m");
+        m.insert("WHITE",   "\x1b[37m");
         m
     };
 }
@@ -41,7 +40,7 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
 
             if matched {
                 let color = params.syntaxes[index].color();  // assert Some()
-                print!("{}{}\x1b[0m", PREDEFINED_COLORS[color], token);
+                print!("{}{}{}", color, token, PREDEFINED_COLORS["RESET"]);
             } else {
                 print!("{}", token);
             }
@@ -108,6 +107,79 @@ fn split_whitespace(s: String) -> Vec<String> {
     tokens
 }
 
+/* Color example
+    * RED
+    * 001
+    * FF0000
+    * (255, 0, 0)
+ */
+pub fn valid_color_syntax(color: &str) -> Result<String, String> {
+    if color.is_empty() {
+        return Ok("".to_string());
+    }
+    if is_predefined_color(&color) {
+        return Ok(PREDEFINED_COLORS[color].to_string());
+    }
+    if is_8bit_color(&color) {
+        return Ok(to_8bit_color(&color));
+    }
+    if is_24bit_color(&color) {
+        return Ok(to_24bit_color(&color));
+    }
+    if is_rgb_color(&color) {
+        return Ok(to_rgb_color(&color));
+    }
+
+    Err(format!("invalid color syntax: \"{}\"", color))
+}
+
+fn is_predefined_color(color: &str) -> bool {
+    PREDEFINED_COLORS.get(color).is_some()
+}
+
+
+fn is_8bit_color(color: &str) -> bool {
+    if color.len() != 3 {
+        return false;
+    }
+    if let Ok(num) = color.parse::<i32>() {
+        0 <= num && num <= 255
+    } else {
+        false
+    }
+}
+
+fn to_8bit_color(color: &str) -> String {
+    format!("\x1b[38;5;{}m", color)
+}
+
+
+fn is_24bit_color(color: &str) -> bool {
+    if color.len() != 6 {
+        return false;
+    }
+
+    i32::from_str_radix(color, 16).is_ok()
+}
+
+fn to_24bit_color(color: &str) -> String {
+    let r: u8 = u8::from_str_radix(&color[..2],  16).unwrap();
+    let g: u8 = u8::from_str_radix(&color[2..4], 16).unwrap();
+    let b: u8 = u8::from_str_radix(&color[4..],  16).unwrap();
+
+    format!("\x1b[38;2;{};{};{}m", r, g, b)
+}
+
+
+fn is_rgb_color(color: &str) -> bool {
+    todo!();
+}
+
+fn to_rgb_color(color: &str) -> String {
+    todo!();
+}
+
+
 
 #[cfg(test)]
 mod tests {
@@ -124,5 +196,137 @@ aaa bbb  ccc
         let actual = split_whitespace(input.to_string());
 
         assert_eq!(expect, actual);
+    }
+
+    #[test]
+    fn test_is_predefined_color() {
+        let tests = vec![
+            (
+                "BLACK",
+                true,
+            ),
+            (
+                "black",
+                false,
+            ),
+            (
+                "",
+                false,
+            ),
+            (
+                "shiro",
+                false,
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(is_predefined_color(input), expect);
+        }
+    }
+
+    #[test]
+    fn test_is_8bit_color() {
+        let tests = vec![
+            (
+                "000",
+                true,
+            ),
+            (
+                "001",
+                true,
+            ),
+            (
+                "255",
+                true,
+            ),
+            (
+                "256",
+                false,
+            ),
+            (
+                "01",
+                false,
+            ),
+            (
+                "aaa",
+                false,
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(is_8bit_color(input), expect);
+        }
+    }
+
+    #[test]
+    fn test_is_24bit_color() {
+        let tests = vec![
+            (
+                "000000",
+                true,
+            ),
+            (
+                "FF0000",
+                true,
+            ),
+            (
+                "FFFFFF",
+                true,
+            ),
+            (
+                "abcdef",
+                true,
+            ),
+            (
+                "GGGGGG",
+                false,
+            ),
+            (
+                "ff000",
+                false,
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(is_24bit_color(input), expect);
+        }
+    }
+
+    #[test]
+    fn test_is_rgb_color() {
+        let tests = vec![
+            (
+                "(0, 0, 0)",
+                true,
+            ),
+            (
+                "(000, 000, 000)",
+                true,
+            ),
+            (
+                "(255, 0, 0)",
+                true,
+            ),
+            (
+                "(255, 255, 255)",
+                true,
+            ),
+            (
+                "(256, 255, 255)",
+                false,
+            ),
+            (
+                "(FF, FF, FF)",
+                false,
+            ),
+            (
+                "(255 255 255)",
+                false,
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(is_predefined_color(input), expect);
+        }
     }
 }

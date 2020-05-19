@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+use crate::color;
+
 use regex::Regex;
 use serde::Deserialize;
 
@@ -32,7 +34,8 @@ impl Params {
         let mut syntaxes: Vec<SyntaxDefinition> = Vec::new();
         for coloring in &setting.colorings {
             let re = Regex::new(&coloring.regex).expect("Failed compile regex");
-            syntaxes.push(SyntaxDefinition::new(&coloring.color, re));
+            let color = color::valid_color_syntax(&coloring.color).unwrap();
+            syntaxes.push(SyntaxDefinition::new(color, re));
         }
 
         Some( Self {
@@ -49,9 +52,9 @@ pub struct SyntaxDefinition {
 }
 
 impl SyntaxDefinition {
-    fn new(color: &str, regex: Regex) -> Self {
+    fn new(color: String, regex: Regex) -> Self {
         Self {
-            color: color.to_string(),
+            color,
             regex,
         }
     }
