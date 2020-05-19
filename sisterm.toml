@@ -1,15 +1,12 @@
 #
-#  POSIX Extended Regular Expression Syntax
-#  Blanks can not be colored.
+#  sisterm setting file
 #
-#  colorings = [
-#      [COLOR, REGEX],
-#      [COLOR, REGEX],
-#      ...
-#  ]
+#  Regular expressions support RE2 Syntax
 #
-#  If the color length is 6 => 24bit color (000000-FFFFFF)
-#  If the color length is 3 =>  8bit color (000-255)
+#  [[colorings]]
+#  color = "String"       # required
+#  regex = "String"       # required
+#  underlined = Boolean   # option
 #
 #  Color example
 #   * RED           [Uppercase]
@@ -32,6 +29,11 @@
 # port  = "/dev/ttyS0"
 # speed = "9600"
 
+# timestamp
+[[colorings]]
+color = ""  # no-color
+regex = "(\\[.*)|(.*\\])"
+
 # positive
 [[colorings]]
 color = "GREEN"
@@ -40,7 +42,7 @@ regex = "^(yes|YES|up|enable|enabled|active)$"
 # string
 [[colorings]]
 color = "184"
-regex = "[\"']*[\"']"
+regex = "(\".*\")|('.*')"
 
 # emphansis
 [[colorings]]
