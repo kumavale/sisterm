@@ -113,21 +113,32 @@ fn split_whitespace(s: String) -> Vec<String> {
     * FF0000
     * (255, 0, 0)
  */
-pub fn valid_color_syntax(color: &str) -> Result<String, String> {
+pub fn valid_color_syntax(coloring: &setting::Coloring) -> Result<String, String> {
+    let color      = coloring.color();
+    let underlined = coloring.underlined();
+
     if color.is_empty() {
-        return Ok("".to_string());
+        if underlined {
+            return Ok("\x1b[4m".to_string());
+        } else {
+            return Ok("".to_string());
+        }
     }
     if is_predefined_color(&color) {
-        return Ok(PREDEFINED_COLORS[color].to_string());
+        if underlined {
+            return Ok(format!("\x1b[4m{}", PREDEFINED_COLORS[color]));
+        } else {
+            return Ok(PREDEFINED_COLORS[color].to_string());
+        }
     }
     if is_8bit_color(&color) {
-        return Ok(to_8bit_color(&color));
+        return Ok(to_8bit_color(&color, underlined));
     }
     if is_24bit_color(&color) {
-        return Ok(to_24bit_color(&color));
+        return Ok(to_24bit_color(&color, underlined));
     }
     if is_rgb_color(&color) {
-        return Ok(to_rgb_color(&color));
+        return Ok(to_rgb_color(&color, underlined));
     }
 
     Err(format!("invalid color syntax: \"{}\"", color))
@@ -142,11 +153,7 @@ fn is_8bit_color(color: &str) -> bool {
 }
 
 fn is_24bit_color(color: &str) -> bool {
-    if color.len() != 6 {
-        return false;
-    }
-
-    i32::from_str_radix(color, 16).is_ok()
+    color.len() == 6 && i32::from_str_radix(color, 16).is_ok()
 }
 
 fn is_rgb_color(color: &str) -> bool {
@@ -167,23 +174,35 @@ fn is_rgb_color(color: &str) -> bool {
     true
 }
 
-fn to_8bit_color(color: &str) -> String {
-    format!("\x1b[38;5;{}m", color)
+fn to_8bit_color(color: &str, underlined: bool) -> String {
+    if underlined {
+        format!("\x1b[4;38;5;{}m", color)
+    } else {
+        format!("\x1b[38;5;{}m", color)
+    }
 }
 
-fn to_24bit_color(color: &str) -> String {
+fn to_24bit_color(color: &str, underlined: bool) -> String {
     let r: u8 = u8::from_str_radix(&color[..2],  16).unwrap();
     let g: u8 = u8::from_str_radix(&color[2..4], 16).unwrap();
     let b: u8 = u8::from_str_radix(&color[4..],  16).unwrap();
 
-    format!("\x1b[38;2;{};{};{}m", r, g, b)
+    if underlined {
+        format!("\x1b[4;38;2;{};{};{}m", r, g, b)
+    } else {
+        format!("\x1b[38;2;{};{};{}m", r, g, b)
+    }
 }
 
-fn to_rgb_color(color: &str) -> String {
+fn to_rgb_color(color: &str, underlined: bool) -> String {
     let color = &color[1..color.len()-1].replace(',', " ");
     let rgb: Vec<&str> = color.split_whitespace().collect();
 
-    format!("\x1b[38;2;{};{};{}m", rgb[0], rgb[1], rgb[2])
+    if underlined {
+        format!("\x1b[4;38;2;{};{};{}m", rgb[0], rgb[1], rgb[2])
+    } else {
+        format!("\x1b[38;2;{};{};{}m", rgb[0], rgb[1], rgb[2])
+    }
 }
 
 
@@ -371,7 +390,7 @@ aaa bbb  ccc
         ];
 
         for (input, expect) in tests {
-            assert_eq!(to_8bit_color(input), expect);
+            assert_eq!(to_8bit_color(input, false), expect);
         }
     }
 
@@ -397,7 +416,7 @@ aaa bbb  ccc
         ];
 
         for (input, expect) in tests {
-            assert_eq!(to_24bit_color(input), expect);
+            assert_eq!(to_24bit_color(input, false), expect);
         }
     }
 
@@ -427,7 +446,29 @@ aaa bbb  ccc
         ];
 
         for (input, expect) in tests {
-            assert_eq!(to_rgb_color(input), expect);
+            assert_eq!(to_rgb_color(input, false), expect);
+        }
+    }
+
+    #[test]
+    fn test_underlined() {
+        let tests = vec![
+            (
+                to_8bit_color("123", true),
+                "\x1b[4;38;5;123m",
+            ),
+            (
+                to_24bit_color("000000", true),
+                "\x1b[4;38;2;0;0;0m",
+            ),
+            (
+                to_rgb_color("(0, 0, 0)", true),
+                "\x1b[4;38;2;0;0;0m",
+            ),
+        ];
+
+        for (actual, expect) in tests {
+            assert_eq!(actual, expect);
         }
     }
 }

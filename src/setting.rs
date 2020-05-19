@@ -34,7 +34,7 @@ impl Params {
         let mut syntaxes: Vec<SyntaxDefinition> = Vec::new();
         for coloring in &setting.colorings {
             let re = Regex::new(&coloring.regex).expect("Failed compile regex");
-            let color = color::valid_color_syntax(&coloring.color).unwrap();
+            let color = color::valid_color_syntax(&coloring).unwrap();
             syntaxes.push(SyntaxDefinition::new(color, re));
         }
 
@@ -79,7 +79,22 @@ struct Setting {
 }
 
 #[derive(Deserialize)]
-struct Coloring {
-    color: String,
-    regex: String,
+pub struct Coloring {
+    color:      String,
+    regex:      String,
+    underlined: Option<bool>,
+}
+
+impl Coloring {
+    pub fn color(&self) -> &str {
+        &self.color
+    }
+
+    pub fn underlined(&self) -> bool {
+        if let Some(true) = self.underlined {
+            true
+        } else {
+            false
+        }
+    }
 }
