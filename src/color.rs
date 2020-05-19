@@ -1,17 +1,54 @@
-use regex::Regex;
+use std::collections::HashMap;
+
 use crate::setting;
 
-pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
-    let re_dbg = Regex::new("ip").unwrap();
-    let tokens = split_whitespace(text);
+use lazy_static::lazy_static;
 
-    for token in &tokens {
-        match re_dbg.captures(token) {
-            Some(_) => print!("\x1b[31m{}\x1b[0m", token),
-            None => print!("{}", token),
+
+//  Predefined colors
+lazy_static! {
+    //static ref VALID_KEYWORDS: HashMap<&'static str, Keyword> = {
+    static ref PREDEFINED_COLORS: HashMap<String, &'static str> = {
+        let mut m = HashMap::new();
+        m.insert("RESET".to_string(),   "\x1b[0m");
+        m.insert("BLACK".to_string(),   "\x1b[30m");
+        m.insert("RED".to_string(),     "\x1b[31m");
+        m.insert("GREEN".to_string(),   "\x1b[32m");
+        m.insert("YELLOW".to_string(),  "\x1b[33m");
+        m.insert("BLUE".to_string(),    "\x1b[34m");
+        m.insert("MAGENTA".to_string(), "\x1b[35m");
+        m.insert("CYAN".to_string(),    "\x1b[36m");
+        m.insert("WHITE".to_string(),   "\x1b[37m");
+        m
+    };
+}
+
+
+pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
+    if let Some(params) = params {
+        let tokens = split_whitespace(text);
+        for token in &tokens {
+            let mut matched = false;
+            let mut index: usize = 0;
+
+            for (i, syntax) in params.syntaxes.iter().enumerate() {
+                if syntax.regex().captures(token).is_some() {
+                    matched = true;
+                    index = i;
+                    break;
+                }
+            }
+
+            if matched {
+                let color = params.syntaxes[index].color();  // assert Some()
+                print!("{}{}\x1b[0m", PREDEFINED_COLORS[color], token);
+            } else {
+                print!("{}", token);
+            }
         }
+    } else {
+        println!("{}", text);
     }
-    //println!("{:?}", tokens);
 }
 
 // Split by whitespace while leaving whitespace

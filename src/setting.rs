@@ -26,7 +26,7 @@ impl Params {
         let setting: Result<Setting, toml::de::Error> = toml::from_str(&setting);
         let setting = match setting {
             Ok(s) => s,
-            Err(e) => panic!("{}", e),
+            Err(e) => panic!("Failed reading setting file: {}", e),
         };
 
         let mut syntaxes: Vec<SyntaxDefinition> = Vec::new();
@@ -38,7 +38,7 @@ impl Params {
         Some( Self {
             port:  setting.port,
             speed: setting.speed,
-            syntaxes: Vec::new(),
+            syntaxes,
         })
     }
 }
@@ -54,6 +54,14 @@ impl SyntaxDefinition {
             color: color.to_string(),
             regex,
         }
+    }
+
+    pub fn color(&self) -> &str {
+        &self.color
+    }
+
+    pub fn regex(&self) -> &Regex {
+        &self.regex
     }
 }
 

@@ -39,19 +39,19 @@
 
 colorings = [
     # positive
-    ["GREEN", "^([up]?|enable|enabled|active)$"],
+    ["GREEN", "^(up|enable|enabled|active)$"],
 
     # string
     ["YELLOW", "^(\"*\"|'*')$"],
 
     # emphansis
-    ["MAGENTA", "^(no|not|[confirm]?|warning|warnings|failed|failures|error|errors|crash)$"],
+    ["MAGENTA", "^(no|not|confirm|warning|warnings|failed|failures|error|errors|crash)$"],
 
     # interface
-    ["CYAN", "^((Tengigabit|Gigabit|Fast)Ethernet|(Fa|Gi))$"],
+    ["CYAN", "^((Tengigabit|Gigabit|Fast)?Ethernet|(Fa|Gi)).*"],
 
     # action
-    ["RED", "^(disable|disabled|deny|shutdown|[down]?|[administratively]?|none)$"],
+    ["RED", "^(disable|disabled|deny|shutdown|down|administratively|none)$"],
 
     # ipv4_net
     ["GREEN", "^(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"],
