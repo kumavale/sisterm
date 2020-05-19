@@ -137,22 +137,9 @@ fn is_predefined_color(color: &str) -> bool {
     PREDEFINED_COLORS.get(color).is_some()
 }
 
-
 fn is_8bit_color(color: &str) -> bool {
-    if color.len() != 3 {
-        return false;
-    }
-    if let Ok(num) = color.parse::<i32>() {
-        0 <= num && num <= 255
-    } else {
-        false
-    }
+    color.parse::<u8>().is_ok()
 }
-
-fn to_8bit_color(color: &str) -> String {
-    format!("\x1b[38;5;{}m", color)
-}
-
 
 fn is_24bit_color(color: &str) -> bool {
     if color.len() != 6 {
@@ -160,6 +147,28 @@ fn is_24bit_color(color: &str) -> bool {
     }
 
     i32::from_str_radix(color, 16).is_ok()
+}
+
+fn is_rgb_color(color: &str) -> bool {
+    if !color.starts_with('(') || !color.ends_with(')') {
+        return false;
+    }
+    let color = &color[1..color.len()-1].replace(',', " ");
+    let rgb: Vec<&str> = color.split_whitespace().collect();
+    if rgb.len() != 3 {
+        return false;
+    }
+    for color in rgb {
+        if color.parse::<u8>().is_err() {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn to_8bit_color(color: &str) -> String {
+    format!("\x1b[38;5;{}m", color)
 }
 
 fn to_24bit_color(color: &str) -> String {
@@ -170,13 +179,11 @@ fn to_24bit_color(color: &str) -> String {
     format!("\x1b[38;2;{};{};{}m", r, g, b)
 }
 
-
-fn is_rgb_color(color: &str) -> bool {
-    todo!();
-}
-
 fn to_rgb_color(color: &str) -> String {
-    todo!();
+    let color = &color[1..color.len()-1].replace(',', " ");
+    let rgb: Vec<&str> = color.split_whitespace().collect();
+
+    format!("\x1b[38;2;{};{};{}m", rgb[0], rgb[1], rgb[2])
 }
 
 
@@ -240,11 +247,19 @@ aaa bbb  ccc
                 true,
             ),
             (
-                "256",
+                "0",
+                true,
+            ),
+            (
+                "10",
+                true,
+            ),
+            (
+                "  1",
                 false,
             ),
             (
-                "01",
+                "256",
                 false,
             ),
             (
@@ -312,6 +327,10 @@ aaa bbb  ccc
                 true,
             ),
             (
+                "(255 255 255)",
+                true,
+            ),
+            (
                 "(256, 255, 255)",
                 false,
             ),
@@ -320,13 +339,95 @@ aaa bbb  ccc
                 false,
             ),
             (
-                "(255 255 255)",
+                "(0, 0, 0, 0)",
+                false,
+            ),
+            (
+                "[255, 255, 255]",
                 false,
             ),
         ];
 
         for (input, expect) in tests {
-            assert_eq!(is_predefined_color(input), expect);
+            assert_eq!(is_rgb_color(input), expect);
+        }
+    }
+
+    #[test]
+    fn test_to_8bit_color() {
+        let tests = vec![
+            (
+                "000",
+                "\x1b[38;5;000m",
+            ),
+            (
+                "001",
+                "\x1b[38;5;001m",
+            ),
+            (
+                "255",
+                "\x1b[38;5;255m",
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(to_8bit_color(input), expect);
+        }
+    }
+
+    #[test]
+    fn test_to_24bit_color() {
+        let tests = vec![
+            (
+                "000000",
+                "\x1b[38;2;0;0;0m",
+            ),
+            (
+                "FF0000",
+                "\x1b[38;2;255;0;0m",
+            ),
+            (
+                "FFFFFF",
+                "\x1b[38;2;255;255;255m",
+            ),
+            (
+                "abcdef",
+                "\x1b[38;2;171;205;239m",
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(to_24bit_color(input), expect);
+        }
+    }
+
+    #[test]
+    fn test_to_rgb_color() {
+        let tests = vec![
+            (
+                "(0, 0, 0)",
+                "\x1b[38;2;0;0;0m",
+            ),
+            (
+                "(000, 000, 000)",
+                "\x1b[38;2;000;000;000m",
+            ),
+            (
+                "(255, 0, 0)",
+                "\x1b[38;2;255;0;0m",
+            ),
+            (
+                "(255, 255, 255)",
+                "\x1b[38;2;255;255;255m",
+            ),
+            (
+                "(255 255 255)",
+                "\x1b[38;2;255;255;255m",
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(to_rgb_color(input), expect);
         }
     }
 }
