@@ -1,6 +1,7 @@
 use std::io::{self, BufWriter, Read, Write};
 use std::thread;
 use std::fs::File;
+use std::path::Path;
 
 use crate::queue::Queue;
 use crate::flag;
@@ -20,6 +21,19 @@ pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) 
     };
     let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
 
+    // If write_file is already exists
+    if let Some(write_file) = flags.write_file() {
+        if Path::new(write_file).exists() {
+            let g = Getch::new();
+            println!("\"{}\" is already exists!", write_file);
+            println!("Press ENTER to continue overwrite");
+            match g.getch() {
+                Ok(b'\n') | Ok(b'\r') => (),  // continue
+                _ => std::process::exit(0),   // exit
+            }
+        }
+    }
+
     println!("Connected. {}:", port_name);
     println!("Type \"~.\" to exit.");
 
@@ -35,10 +49,11 @@ pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) 
 fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: flag::Flags) {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
 
+    // Save log
     if let Some(write_file) = flags.write_file() {
-        // Save log
+
         let mut log_file = BufWriter::new(File::create(write_file).expect("File open failed"));
-        println!("Log record: {}", write_file);
+        println!("Log record: \"{}\"", write_file);
 
         loop {
             match port.read(serial_buf.as_mut_slice()) {
