@@ -53,6 +53,8 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: fl
     if let Some(write_file) = flags.write_file() {
 
         let mut log_file = BufWriter::new(File::create(write_file).expect("File open failed"));
+        let mut log_buf = String::new();
+        let mut write_flag = false;
         println!("Log record: \"{}\"", write_file);
 
         loop {
@@ -61,36 +63,41 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: fl
                     // Display received string
                     io::stdout().write_all(&serial_buf[..t]).unwrap();
 
+                    // Check exist '\n'
+                    for ch in &serial_buf[..t] {
+                        // If '\n' exists, set write_flag to true
+                        if ch == &b'\n' {
+                            write_flag = true;
+                            break;
+                        }
+                    }
+
                     // Write timestamp to log file
-                    if flags.is_timestamp() {
-                        let mut append_ts = false;
-                        for ch in &serial_buf[..t] {
-                            if ch == &b'\n' {
-                                append_ts = true;
-                                break;
-                            }
-                        }
-                        if append_ts {
-                            // Write to log file. Also the timestamp
-                            let log_buf = String::from_utf8(serial_buf[..t].to_vec()).unwrap();
-                            log_file.write_all(log_buf.replace("\n", &format_timestamp()).as_bytes()).unwrap();
-                        } else {
-                            // Write to log file
-                            log_file.write_all(&serial_buf[..t]).unwrap();
-                        }
+                    // If '\n' exists, replace to timestamp from '\n'
+                    if flags.is_timestamp() && write_flag {
+                        // Write to log file. Also the timestamp
+                        string_from_utf8_appearance(&mut log_buf, &serial_buf[..t]);
+                        log_buf = log_buf.replace("\n", &format_timestamp());
 
                     } else {
                         // Write to log file
-                        log_file.write_all(&serial_buf[..t]).unwrap();
+                        string_from_utf8_appearance(&mut log_buf, &serial_buf[..t]);
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                 Err(e) => eprintln!("{}", e),
             }
 
-            // Flush
+            // Flush stdout
             let _ = io::stdout().flush();
-            let _ = log_file.flush();
+
+            // If end of '\n' then write to log file
+            if write_flag {
+                log_file.write_all(log_buf.as_bytes()).unwrap();
+                log_file.flush().unwrap();
+                log_buf.clear();
+                write_flag = false;
+            }
         }
 
     } else {
@@ -162,4 +169,14 @@ fn transmitter_run(mut port: std::boxed::Box<dyn serialport::SerialPort>) {
 
 fn format_timestamp() -> String {
     Local::now().format("\n[%Y-%m-%d %H:%M:%S %Z] ").to_string()
+}
+
+fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
+    for c in serial_buf {
+        match *c {
+            0x7 => (),  // ignore BELL
+            0x8 => { log_buf.pop(); }  // BS
+            _ => *log_buf += &(*c as char).to_string(),
+        }
+    }
 }
