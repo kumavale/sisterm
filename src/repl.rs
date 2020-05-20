@@ -2,6 +2,7 @@ use std::io::{self, BufWriter, Read, Write};
 use std::thread;
 use std::fs::File;
 use std::path::Path;
+use std::sync::mpsc;
 
 use crate::queue::Queue;
 use crate::flag;
@@ -21,6 +22,8 @@ pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) 
     };
     let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
 
+    let (tx, rx) = mpsc::channel();
+
     // If write_file is already exists
     if let Some(write_file) = flags.write_file() {
         if Path::new(write_file).exists() {
@@ -37,16 +40,16 @@ pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) 
     println!("Connected. {}:", port_name);
     println!("Type \"~.\" to exit.");
 
-    // Receiver
+    // Transmitter
     thread::spawn(move || {
-        receiver_run(receiver, flags);
+        transmitter_run(transmitter, tx);
     });
 
-    // Transmitter
-    transmitter_run(transmitter);
+    // Receiver
+    receiver_run(receiver, rx, flags);
 }
 
-fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: flag::Flags) {
+fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, rx: std::sync::mpsc::Receiver<()>, flags: flag::Flags) {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
 
     // Save log
@@ -98,6 +101,13 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: fl
                 log_buf.clear();
                 write_flag = false;
             }
+
+            // if "~." is typed, exit
+            if rx.try_recv().is_ok() {
+                log_file.write_all(log_buf.as_bytes()).unwrap();
+                log_file.flush().unwrap();
+                break;
+            }
         }
 
     } else {
@@ -118,7 +128,7 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, flags: fl
     }
 }
 
-fn transmitter_run(mut port: std::boxed::Box<dyn serialport::SerialPort>) {
+fn transmitter_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, tx: std::sync::mpsc::Sender<()>) {
     let exit_char1 = b'~';
     let exit_char2 = b'.';
     let mut queue = Queue::new(exit_char1, exit_char2);
@@ -133,6 +143,7 @@ fn transmitter_run(mut port: std::boxed::Box<dyn serialport::SerialPort>) {
                 if queue.is_exit_chars() {
                     eprint!(".");
                     let _ = io::stdout().flush();
+                    tx.send(()).unwrap();
                     break;
                 }
                 // If the previous character is not a tilde and the current character is a tilde
