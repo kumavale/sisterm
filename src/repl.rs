@@ -6,13 +6,19 @@ use std::sync::mpsc;
 
 use crate::queue::Queue;
 use crate::flag;
+use crate::color;
+use crate::setting;
 
 use serialport::prelude::*;
 use getch::Getch;
 use chrono::Local;
 
 
-pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) {
+pub fn run(port_name: String,
+           settings:  SerialPortSettings,
+           flags:     flag::Flags,
+           params:    Option<setting::Params>)
+{
     let receiver = match serialport::open_with_settings(&port_name, &settings) {
         Ok(port) => port,
         Err(e) => {
@@ -46,25 +52,42 @@ pub fn run(port_name: String, settings: SerialPortSettings, flags: flag::Flags) 
     });
 
     // Receiver
-    receiver_run(receiver, rx, flags);
+    receiver_run(receiver, rx, flags, params);
 }
 
-fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, rx: std::sync::mpsc::Receiver<()>, flags: flag::Flags) {
+fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
+                rx:       std::sync::mpsc::Receiver<()>,
+                flags:    flag::Flags,
+                params:   Option<setting::Params>)
+{
     let mut serial_buf: Vec<u8> = vec![0; 1000];
 
     // Save log
     if let Some(write_file) = flags.write_file() {
 
-        let mut log_file = BufWriter::new(File::create(write_file).expect("File open failed"));
-        let mut log_buf = String::new();
+        let mut log_file   = BufWriter::new(File::create(write_file).expect("File open failed"));
+        let mut log_buf    = String::new();
+        let mut last_word  = (String::new(), false);  // (word, colored)
         let mut write_flag = false;
-        println!("Log record: \"{}\"", write_file);
+
+        println!("Log record: \"{}\"\n", write_file);
 
         loop {
+            // if "~." is typed, exit
+            if rx.try_recv().is_ok() {
+                log_file.write_all(log_buf.as_bytes()).unwrap();
+                log_file.flush().unwrap();
+                break;
+            }
+
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
-                    // Display received string
-                    io::stdout().write_all(&serial_buf[..t]).unwrap();
+                    // Display after Coloring received string
+                    if flags.is_nocolor() {
+                        io::stdout().write_all(&serial_buf[..t]).unwrap();
+                    } else {
+                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
+                    }
 
                     // Check exist '\n'
                     for ch in &serial_buf[..t] {
@@ -75,44 +98,39 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, rx: std::
                         }
                     }
 
-                    // Write timestamp to log file
-                    // If '\n' exists, replace to timestamp from '\n'
-                    if flags.is_timestamp() && write_flag {
-                        // Write to log file. Also the timestamp
-                        string_from_utf8_appearance(&mut log_buf, &serial_buf[..t]);
-                        log_buf = log_buf.replace("\n", &format_timestamp());
+                    // Write to log_buf from serial_buf
+                    string_from_utf8_appearance(&mut log_buf, &serial_buf[..t]);
 
-                    } else {
-                        // Write to log file
-                        string_from_utf8_appearance(&mut log_buf, &serial_buf[..t]);
-                    }
                 },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
                 Err(e) => eprintln!("{}", e),
             }
+
 
             // Flush stdout
             let _ = io::stdout().flush();
 
             // If end of '\n' then write to log file
             if write_flag {
+                // Write timestamp to log file
+                if flags.is_timestamp() {
+                    // If '\n' exists, replace to timestamp from '\n'
+                    log_buf = log_buf.replace("\n", &format_timestamp());
+                }
                 log_file.write_all(log_buf.as_bytes()).unwrap();
-                log_file.flush().unwrap();
                 log_buf.clear();
                 write_flag = false;
             }
-
-            // if "~." is typed, exit
-            if rx.try_recv().is_ok() {
-                log_file.write_all(log_buf.as_bytes()).unwrap();
-                log_file.flush().unwrap();
-                break;
-            }
         }
 
+    // Non save log
     } else {
-        // Non save log
         loop {
+            // if "~." is typed, exit
+            if rx.try_recv().is_ok() {
+                break;
+            }
+
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
                     // Display received string
@@ -187,7 +205,7 @@ fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
         match *c {
             0x7 => (),  // ignore BELL
             0x8 => { log_buf.pop(); }  // BS
-            _ => *log_buf += &(*c as char).to_string(),
+            _ => (*log_buf).push(*c as char),
         }
     }
 }

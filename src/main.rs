@@ -100,23 +100,23 @@ fn main() {
     } else {
         use sist::repl;
 
-        let (port_name, baud_rate) = if let Some(params) = params {
+        let (port_name, baud_rate) = if let Some(params) = &params {
             // If "port (-l)" is specified
             let port_name = if let Some(port) = matches.value_of("port") {
                 port.to_string()
-            } else if let Some(port) = params.port {
-                port
+            } else if let Some(port) = &params.port {
+                port.to_string()
             } else {
                 available_ports().expect("No serial port")[0].port_name.to_string()
             };
             // If "baudrate (-s)" is specified
-            let baud_rate = if let Some(baud) = params.speed {
+            let baud_rate = if let Some(baud) = &params.speed {
                 baud
             } else if let Some(baud) = matches.value_of("baud") {
-                baud.to_string()
+                baud
             } else {
                 panic!("No baud rate");
-            };
+            }.to_string();
 
             (port_name, baud_rate)
         } else {
@@ -143,7 +143,7 @@ fn main() {
         }
 
 
-        repl::run(port_name, settings, flags);
+        repl::run(port_name, settings, flags, params);
 
         println!("\nDisconnected.");
     }

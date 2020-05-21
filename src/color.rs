@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Write;
 
 use crate::setting;
 
@@ -50,6 +51,64 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
     }
 }
 
+pub fn coloring_words(serial_buf: &[u8], (word, colored): &mut (String, bool), params: &Option<setting::Params>) {
+    if let Some(params) = params {
+        let mut all_string = String::new();
+
+        for c in serial_buf {
+            let mut matched = false;
+            let mut index: usize = 0;
+            let c = *c as char;
+
+            if c == '\r' || c == '\n' {
+                word.clear();
+                if *colored {
+                    all_string.push_str(PREDEFINED_COLORS["RESET"]);
+                }
+                all_string.push(c);
+                *colored = false;
+                continue;
+            } else {
+                if word.ends_with(' ') {
+                    if c != ' ' {
+                        word.clear();
+                    }
+                } else if c == ' ' {
+                    word.clear();
+                }
+                word.push(c);
+            }
+
+            for (i, syntax) in params.syntaxes.iter().enumerate() {
+                if syntax.regex().captures(&word).is_some() {
+                    matched = true;
+                    index = i;
+                    break;
+                }
+            }
+
+            if matched {
+                let color = params.syntaxes[index].color();  // assert Some()
+                if *colored {
+                    all_string.push(c);
+                } else {
+                    all_string += &format!("{:\x08<1$}{2}{3}", "", word.len()-1, color, word);
+                    *colored = true;
+                }
+
+            } else {
+                if *colored {
+                    all_string.push_str(PREDEFINED_COLORS["RESET"]);
+                }
+                all_string.push(c);
+                *colored = false;
+            }
+        }
+
+        std::io::stdout().write_all(all_string.as_bytes()).unwrap();
+    }
+}
+
 // Split by whitespace while leaving whitespace
 fn split_whitespace(s: String) -> Vec<String> {
     let mut tokens = Vec::new();
@@ -61,7 +120,7 @@ fn split_whitespace(s: String) -> Vec<String> {
             ' ' => {
                 let mut token = String::new();
                 while i < chars.len() && chars[i] == ' ' {
-                    token += &" ".to_string();
+                    token.push(' ');
                     i += 1;
                 }
                 tokens.push(token);
@@ -69,7 +128,7 @@ fn split_whitespace(s: String) -> Vec<String> {
             '\r' => {
                 let mut token = String::new();
                 while i < chars.len() && chars[i] == '\r' {
-                    token += &"\r".to_string();
+                    token.push('\r');
                     i += 1;
                 }
                 tokens.push(token);
@@ -77,7 +136,7 @@ fn split_whitespace(s: String) -> Vec<String> {
             '\n' => {
                 let mut token = String::new();
                 while i < chars.len() && chars[i] == '\n' {
-                    token += &"\n".to_string();
+                    token.push('\n');
                     i += 1;
                 }
                 tokens.push(token);
@@ -85,7 +144,7 @@ fn split_whitespace(s: String) -> Vec<String> {
             '\t' => {
                 let mut token = String::new();
                 while i < chars.len() && chars[i] == '\t' {
-                    token += &"\t".to_string();
+                    token.push('\t');
                     i += 1;
                 }
                 tokens.push(token);
@@ -95,7 +154,7 @@ fn split_whitespace(s: String) -> Vec<String> {
                 while i < chars.len() {
                     match chars[i] {
                         ' ' | '\r' | '\n' | '\t' => break,
-                        _ => token += &chars[i].to_string(),
+                        _ => token.push(chars[i]),
                     }
                     i += 1;
                 }
