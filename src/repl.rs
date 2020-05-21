@@ -62,13 +62,15 @@ pub fn run(port_name: String,
     println!("Connected. {}:", port_name);
     println!("Type \"~.\" to exit.");
 
-    // Transmitter
-    thread::spawn(move || {
-        transmitter_run(transmitter, tx);
+    // Receiver
+    let handle = thread::spawn(move || {
+        receiver_run(receiver, rx, flags, params);
     });
 
-    // Receiver
-    receiver_run(receiver, rx, flags, params);
+    // Transmitter
+    transmitter_run(transmitter, tx);
+
+    handle.join().unwrap();
 }
 
 fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
