@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::Read;
 
 use crate::color;
 use crate::flag;
@@ -18,6 +18,5 @@ pub fn run(path: &str, flags: flag::Flags, params: Option<setting::Params>) {
     // Coloring
     } else {
         color::coloring_from_file(contents, params);
-        println!();
     }
 }

@@ -8,8 +8,7 @@ use sist::setting;
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg};
-use serialport::prelude::*;
-use serialport::available_ports;
+use serialport::{available_ports, SerialPortSettings};
 
 fn main() {
     let app = App::new("sisterm")
@@ -160,7 +159,7 @@ fn main() {
 
         repl::run(port_name, settings, flags, params);
 
-        println!("\nDisconnected.");
+        println!("\n{}Disconnected.", if nocolor { "\x1b[0m" } else { "" });
     }
 }
 

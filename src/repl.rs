@@ -9,7 +9,7 @@ use crate::flag;
 use crate::color;
 use crate::setting;
 
-use serialport::prelude::*;
+use serialport::SerialPortSettings;
 use getch::Getch;
 use chrono::Local;
 
@@ -78,7 +78,7 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
                 flags:    flag::Flags,
                 params:   Option<setting::Params>)
 {
-    let mut serial_buf: Vec<u8> = vec![0; 1000];
+    let mut serial_buf: Vec<u8> = vec![0; 1024];
     let mut last_word  = (String::new(), false);  // (word, colored)
 
     // Save log

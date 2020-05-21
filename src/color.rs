@@ -46,6 +46,7 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
                 print!("{}", token);
             }
         }
+        println!();
     } else {
         println!("{}", text);
     }
