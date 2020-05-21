@@ -116,7 +116,10 @@ fn main() {
             } else if let Some(port) = &params.port {
                 port.to_string()
             } else {
-                available_ports().expect("No serial port")[0].port_name.to_string()
+                match available_ports() {
+                    Ok(port) if !port.is_empty() => port[0].port_name.to_string(),
+                    _ => panic!("No serial port"),
+                }
             };
             // If "baudrate (-s)" is specified
             let baud_rate = if let Some(baud) = &params.speed {
@@ -133,7 +136,10 @@ fn main() {
             let port_name = if let Some(port) = matches.value_of("port") {
                 port.to_string()
             } else {
-                available_ports().expect("No serial port")[0].port_name.to_string()
+                match available_ports() {
+                    Ok(port) if !port.is_empty() => port[0].port_name.to_string(),
+                    _ => panic!("No serial port"),
+                }
             };
             // If "baudrate (-s)" is specified
             let baud_rate = matches.value_of("baud").expect("No baud rate");

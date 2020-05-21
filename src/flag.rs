@@ -23,6 +23,10 @@ impl Flags {
         self.nocolor
     }
 
+    pub fn set_nocolor(&mut self, nocolor: bool) {
+        self.nocolor = nocolor;
+    }
+
     pub fn is_timestamp(&self) -> bool {
         self.timestamp
     }

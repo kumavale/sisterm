@@ -18,7 +18,7 @@ impl Params {
             Ok(f) => f,
             Err(e) => {
                 eprintln!("{}", e);
-                eprintln!("Press ENTER to continue of without color mode");
+                eprintln!("Press ENTER to continue without color mode");
                 let _ = std::io::stdin().read_line(&mut String::new());
                 return None;
             },

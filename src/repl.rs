@@ -54,6 +54,11 @@ pub fn run(port_name: String,
         }
     }
 
+    // Check if params exists
+    if params.is_none() {
+        flags.set_nocolor(true);
+    }
+
     println!("Connected. {}:", port_name);
     println!("Type \"~.\" to exit.");
 
@@ -72,19 +77,27 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
                 params:   Option<setting::Params>)
 {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
+    let mut last_word  = (String::new(), false);  // (word, colored)
 
     // Save log
     if let Some(write_file) = flags.write_file() {
 
         let mut log_file   = {
             if flags.is_append() {
-                BufWriter::new(OpenOptions::new().append(true).open(write_file).expect("File open failed"))
+                BufWriter::new(OpenOptions::new()
+                    .append(true)
+                    .open(write_file)
+                    .expect("File open failed"))
             } else {
-                BufWriter::new(OpenOptions::new().write(true).create(true).open(write_file).expect("File open failed"))
+                BufWriter::new(OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .open(write_file)
+                    .expect("File open failed"))
             }
         };
         let mut log_buf    = String::new();
-        let mut last_word  = (String::new(), false);  // (word, colored)
         let mut write_flag = false;
 
         println!("Log record: \"{}\" ({})\n", write_file,
@@ -156,10 +169,14 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
 
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
-                    // Display received string
-                    io::stdout().write_all(&serial_buf[..t]).unwrap();
+                    // Display after Coloring received string
+                    if flags.is_nocolor() {
+                        io::stdout().write_all(&serial_buf[..t]).unwrap();
+                    } else {
+                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
+                    }
                 },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
                 Err(e) => eprintln!("{}", e),
             }
 
