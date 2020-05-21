@@ -18,7 +18,7 @@ fn main() {
         .setting(AppSettings::DeriveDisplayOrder)
         .arg(
             Arg::with_name("port")
-                .help("The device path to a serial port (auto detection)")
+                .help("The device path to a serial port  (auto detection)")
                 .short("l")
                 .long("line")
                 .takes_value(true)
@@ -64,6 +64,12 @@ fn main() {
                 .help("Add timestamp to log")
                 .short("t")
                 .long("time-stamp")
+        )
+        .arg(
+            Arg::with_name("append")
+                .help("Append to log  (default overwrite)")
+                .short("a")
+                .long("append")
         );
 
     let matches = app.get_matches();
@@ -81,11 +87,14 @@ fn main() {
     // Timestamp flag
     let timestamp = matches.is_present("timestamp");
 
+    // Append flag
+    let append = matches.is_present("append");
+
     // If "write file (-w)" is specified
     let write_file = matches.value_of("write file");
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, append, write_file);
 
 
     // If "read file (-r)" is specified

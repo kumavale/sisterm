@@ -1,6 +1,6 @@
 use std::io::{self, BufWriter, Read, Write};
 use std::thread;
-use std::fs::File;
+use std::fs::OpenOptions;
 use std::path::Path;
 use std::sync::mpsc;
 
@@ -16,7 +16,7 @@ use chrono::Local;
 
 pub fn run(port_name: String,
            settings:  SerialPortSettings,
-           flags:     flag::Flags,
+           mut flags: flag::Flags,
            params:    Option<setting::Params>)
 {
     let receiver = match serialport::open_with_settings(&port_name, &settings) {
@@ -33,13 +33,24 @@ pub fn run(port_name: String,
     // If write_file is already exists
     if let Some(write_file) = flags.write_file() {
         if Path::new(write_file).exists() {
+            if !flags.is_append() {
+                let g = Getch::new();
+                println!("\"{}\" is already exists!", write_file);
+                println!("Press ENTER to continue overwrite");
+                match g.getch() {
+                    Ok(b'\n') | Ok(b'\r') => (),  // continue
+                    _ => std::process::exit(0),   // exit
+                }
+            }
+        } else if flags.is_append() {
             let g = Getch::new();
-            println!("\"{}\" is already exists!", write_file);
-            println!("Press ENTER to continue overwrite");
+            println!("\"{}\" is not exists!", write_file);
+            println!("Press ENTER to create the file and continue");
             match g.getch() {
                 Ok(b'\n') | Ok(b'\r') => (),  // continue
                 _ => std::process::exit(0),   // exit
             }
+            flags.set_append(false);
         }
     }
 
@@ -65,12 +76,24 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
     // Save log
     if let Some(write_file) = flags.write_file() {
 
-        let mut log_file   = BufWriter::new(File::create(write_file).expect("File open failed"));
+        let mut log_file   = {
+            if flags.is_append() {
+                BufWriter::new(OpenOptions::new().append(true).open(write_file).expect("File open failed"))
+            } else {
+                BufWriter::new(OpenOptions::new().write(true).create(true).open(write_file).expect("File open failed"))
+            }
+        };
         let mut log_buf    = String::new();
         let mut last_word  = (String::new(), false);  // (word, colored)
         let mut write_flag = false;
 
-        println!("Log record: \"{}\"\n", write_file);
+        println!("Log record: \"{}\" ({})\n", write_file,
+            if flags.is_append() {
+                "Append"
+            } else {
+                "Overwrite"
+            }
+        );
 
         loop {
             // if "~." is typed, exit
