@@ -3,85 +3,64 @@
 ![version](https://img.shields.io/badge/version-2.0.0-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
-sisterm(`sist`) is Simplistic serial console for Router, Switch and Firewall.  
-![demo](https://user-images.githubusercontent.com/29778890/53171080-183f4400-3625-11e9-8204-83c20dcc6a3f.gif)
+sisterm(`sist`) is simplistic terminal with syntax hylight for network device.  
+![Screenshot](https://user-images.githubusercontent.com/29778890/82607032-087d2980-9bf3-11ea-8b47-bbf25bcc16e2.png)  
 
 
-## Usage
-If using WSL, execute `specificCOM.bat` with cmd or check with the device manager.  
-If using Linux, execute `dmesg | grep USB`. by way of example only.  
-After that `chmod 666 /path/to/port`.  
+
+## Command-line options
 ```
-Usage: sist [-l SERIAL_PORT] [-s BAUDRATE] [-r /path/to/file]
-            [-w /path/to/LOG] [-c /path/to/config] [-t] [-a] [-n] [-h] [-v]
-            [-p IPAddress[:port]]
-Options:
-  -h,--help          Show this help message and exit
-  -v,--version       Show sisterm version and exit
-  -l port            Use named device    (e.g. /dev/ttyS0)
-  -s speed           Use given speed     (default 9600)
-  -r path            Output log file     (e.g. /tmp/config.txt)
-  -w path            Saved log           (e.g. /tmp/sist.log)
-  -t                 Add timestamp to log
-  -a                 Append to log       (default overwrite)
-  -n                 Without color
-  -c path            Specification of config file  (e.g. /tmp/for_cisco.conf)
-* -p address[:port]  Telnet beta   Many bugs!!
+USAGE:
+    sist [FLAGS] [OPTIONS]
 
-Commands:
-  ~           Terminate the conversation
+FLAGS:
+    -n, --no-color      Without color
+    -t, --time-stamp    Add timestamp to log
+    -a, --append        Append to log  (default overwrite)
+    -h, --help          Prints help information
+    -V, --version       Prints version information
+
+OPTIONS:
+    -l, --line <port>             The device path to a serial port  (auto detection)
+    -s, --speed <baud>            The baud rate to connect at [default: 9600]
+    -r, --read <read file>        Output text from file
+    -w, --write <write file>      Saved log
+    -c, --config <config file>    Specify configuration file [default: sisterm.toml]
 ```
-(e.g. `sist -l /dev/ttyS0 -s 9600 -t -a -w /tmp/sist.log`)  
 
 
 ## Installation
-Once you have it set up, a simple `make && sudo make install` will compile sisterm and install it into `/usr/local/bin`.  
-After that `cp sist.conf $HOME/sist.conf` or copy the configuration file (`sist.conf`) from my [Gist](https://gist.github.com/kumavale/bbadf8e9ac47a478d00f532e15c7c7bf) to your home directory.  
 
 
-## Uninstall
-`sudo make uninstall` after remove this directory  
-And remove `sist.conf` in HOME directory  
-
-
-## Customizing
-> [NAME].color =  [COLOR]  
-> [NAME].color += [COLOR]  
-> [NAME].regex =  [REGEX]  
-
-POSIX Extended Regular Expression Syntax  
-Only lines beginning with '#' are comments.  
-The maximum length of one line is 2048 characters.  
-
-If the color length is 6 => 24bit color (000000\~FFFFFF)  
-If the color length is 3 =>  8bit color (000\~255)  
+## Building
+sisterm is written in Rust, so you'll need to grab a Rust installation in order to compile it. sisterm compiles with Rust 1.43.0 (stable) or newer.  
 
 ```.sh
-# Examples
-HOGE.color = RED
-HOGE.regex = fuga
-FGrgb_BGrgb_UB.color = \033[38;2;255;0;0;48;2;017;221;255;4m
-FGrgb_BGrgb_UB.regex = ^sisterm$
-add.color = \033[38;5;1m
-add.regex = piyo
-add.color += \033[48;5;2m
-
-others.regex = .*
-others.color = 99FF99
+$ git clone https://github.com/kumavale/sisterm
+$ cd sisterm
+$ cargo build --release
 ```
+
+## Customizing
+
+sisterm configuration file is written in [TOML](https://github.com/toml-lang/toml) format.  
+Its syntax is similar to Perl-style regular expressions, but lacks a few features like look around and backreferences.  
+For more specific details on the API for regular expressions, please see the documentation for the [Regex](https://docs.rs/regex/1.3.7/regex/struct.Regex.html) type.  
+
+```.toml
+[[colorings]]
+color = "String"       # required
+regex = "String"       # required
+underlined = Boolean   # option
+```
+
 ```.sh
 # Color example
 #   RED
 #   001
 #   FF0000
-#   #FF0000
-#   \e[31m
-#   \033[31m
-#   \x1b[31m
-#   \033[38;5;1m
-#   \033[38;2;255;0;0m
-#   \033[38;2;255;0;0;48;2;0;128;128;4m
- 
+#   (255, 0, 0)
+#
 # Predefined colors
 #   BLACK
 #   RED
@@ -95,7 +74,15 @@ others.color = 99FF99
 
 
 ## Environment
-* Linux
+* Linux (WSL1 is not support)
+* Windows
+
+
+## Dependencies
+For GNU Linux `pkg-config` and `libudev` headers are required  
+* Ubuntu: `sudo apt install pkg-config libudev-dev`
+* Fedora: `sudo dnf install pkgconf-pkg-config systemd-devel`
+* Other: Some Linux distros are providing pkgconf.org's `pkgconf` package instead of freedesktop.org's `pkg-config`.
 
 
 ## License
@@ -103,6 +90,4 @@ MIT
 
 
 ## Note
-<a name="note-1"></a>
-1. Standard input looks double in appearance.  
-2. Other than ASCII code can't be displayed.
+* If sisterm failed to open your COM port, it may be because the user who ran sisterm does not have privileges to access it. To give yourself access privileges, run: `sudo chmod 666 /path/to/serialport`
