@@ -72,9 +72,17 @@ pub fn coloring_words(serial_buf: &[u8], (word, colored): &mut (String, bool), p
                 if word.ends_with(' ') {
                     if c != ' ' {
                         word.clear();
+                        if *colored {
+                            all_string.push_str(PREDEFINED_COLORS["RESET"]);
+                        }
+                        *colored = false;
                     }
                 } else if c == ' ' {
                     word.clear();
+                    if *colored {
+                        all_string.push_str(PREDEFINED_COLORS["RESET"]);
+                    }
+                    *colored = false;
                 }
                 word.push(c);
             }
