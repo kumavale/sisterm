@@ -52,14 +52,13 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
     }
 }
 
-pub fn coloring_words(serial_buf: &[u8], (word, colored): &mut (String, bool), params: &Option<setting::Params>) {
+pub fn coloring_words(serial_buf: &str, (word, colored): &mut (String, bool), params: &Option<setting::Params>) {
     if let Some(params) = params {
         let mut all_string = String::new();
 
-        for c in serial_buf {
+        for c in serial_buf.chars() {
             let mut matched = false;
             let mut index: usize = 0;
-            let c = *c as char;
 
             if c == '\r' || c == '\n' {
                 word.clear();

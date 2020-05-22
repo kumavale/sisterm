@@ -62,9 +62,13 @@ where
                 Ok(t) => {
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        io::stdout().write_all(&serial_buf[..t]).unwrap();
+                        let mut buf = String::new();
+                        string_from_utf8_appearance(&mut buf, &serial_buf[..t]);
+                        io::stdout().write_all(buf.as_bytes()).unwrap();
                     } else {
-                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
+                        let mut buf = String::new();
+                        string_from_utf8_appearance(&mut buf, &serial_buf[..t]);
+                        color::coloring_words(&buf, &mut last_word, &params);
                     }
 
                     // Check exist '\n'
@@ -81,6 +85,7 @@ where
 
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => continue,
                 Err(e) => eprintln!("{}", e),
             }
 
@@ -113,9 +118,13 @@ where
                 Ok(t) => {
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        io::stdout().write_all(&serial_buf[..t]).unwrap();
+                        let mut buf = String::new();
+                        string_from_utf8_appearance(&mut buf, &serial_buf[..t]);
+                        io::stdout().write_all(buf.as_bytes()).unwrap();
                     } else {
-                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
+                        let mut buf = String::new();
+                        string_from_utf8_appearance(&mut buf, &serial_buf[..t]);
+                        color::coloring_words(&buf, &mut last_word, &params);
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -189,9 +198,16 @@ fn format_timestamp() -> String {
 fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
     for c in serial_buf {
         match *c {
-            0x7 => (),  // ignore BELL
-            0x8 => { log_buf.pop(); }  // BS
-            _ => (*log_buf).push(*c as char),
+            0x8 => { log_buf.pop(); }      // BS
+            0x9 => (*log_buf).push('\t'),  // HT
+            0xa => (*log_buf).push('\n'),  // LF
+            0xd => (*log_buf).push('\r'),  // CR
+            c => {
+                if 0x20 <= c && c <= 0x7e {
+                    (*log_buf).push(c as char);
+                }
+                // Ignore others
+            },
         }
     }
 }

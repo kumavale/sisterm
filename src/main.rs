@@ -102,7 +102,8 @@ fn main() {
     if let Some(ref matches) = matches.subcommand_matches("telnet") {
         let host = matches.value_of("host[:port]").unwrap();
         telnet::run(host, flags, params);
-        println!("\n{}Disconnected.", if nocolor { "\x1b[0m" } else { "" });
+
+        println!("\n\x1b[0mDisconnected.");
     }
 
     // Serialport
@@ -157,7 +158,6 @@ fn main() {
                 (port_name, baud_rate.to_string())
             };
 
-
             let mut settings: SerialPortSettings = Default::default();
             settings.timeout = Duration::from_millis(10);
             if let Ok(rate) = baud_rate.parse::<u32>() {
@@ -167,10 +167,9 @@ fn main() {
                 std::process::exit(1);
             }
 
-
             serial::run(port_name, settings, flags, params);
 
-            println!("\n{}Disconnected.", if nocolor { "\x1b[0m" } else { "" });
+            println!("\n\x1b[0mDisconnected.");
         }
     }
 }
