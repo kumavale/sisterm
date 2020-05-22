@@ -62,12 +62,10 @@ where
                 Ok(t) => {
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        let mut buf = String::new();
-                        string_from_utf8_appearance(&mut buf, &serial_buf[..t]);
+                        let buf = erase_control_char(&serial_buf[..t]);
                         io::stdout().write_all(buf.as_bytes()).unwrap();
                     } else {
-                        let mut buf = String::new();
-                        string_from_utf8_appearance(&mut buf, &serial_buf[..t]);
+                        let buf = erase_control_char(&serial_buf[..t]);
                         color::coloring_words(&buf, &mut last_word, &params);
                     }
 
@@ -118,12 +116,10 @@ where
                 Ok(t) => {
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        let mut buf = String::new();
-                        string_from_utf8_appearance(&mut buf, &serial_buf[..t]);
+                        let buf = erase_control_char(&serial_buf[..t]);
                         io::stdout().write_all(buf.as_bytes()).unwrap();
                     } else {
-                        let mut buf = String::new();
-                        string_from_utf8_appearance(&mut buf, &serial_buf[..t]);
+                        let buf = erase_control_char(&serial_buf[..t]);
                         color::coloring_words(&buf, &mut last_word, &params);
                     }
                 },
@@ -212,6 +208,25 @@ fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
     }
 }
 
+fn erase_control_char(serial_buf: &[u8]) -> String {
+    let mut buf = String::new();
+    for c in serial_buf {
+        match *c {
+            0x8 => (buf).push(*c as char),  // BS
+            0x9 => (buf).push(*c as char),  // HT
+            0xa => (buf).push(*c as char),  // LF
+            0xd => (buf).push(*c as char),  // CR
+            c => {
+                if 0x20 <= c && c <= 0x7e {
+                    (buf).push(c as char);
+                }
+                // Ignore others
+            },
+        }
+    }
+    buf
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -246,6 +261,36 @@ mod tests {
             let mut buf = String::new();
             string_from_utf8_appearance(&mut buf, &input);
             assert_eq!(buf, expect);
+        }
+    }
+
+    #[test]
+    fn test_erase_control_char() {
+        let tests = vec![
+            (
+                [0x34, 0x32],
+                "42",
+            ),
+            (
+                [0x00, 0x07],
+                "",
+            ),
+            (
+                [0x1f, 0x7f],
+                "",
+            ),
+            (
+                [0x08, 0x08],
+                "\x08\x08",
+            ),
+            (
+                [0x20, 0x7e],
+                " ~",
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(erase_control_char(&input), expect);
         }
     }
 }
