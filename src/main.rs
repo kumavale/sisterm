@@ -4,10 +4,11 @@ extern crate sist;
 
 use sist::flag;
 use sist::setting;
+use sist::telnet;
 
 use std::time::Duration;
 
-use clap::{App, AppSettings, Arg};
+use clap::{App, AppSettings, Arg, SubCommand};
 use serialport::{available_ports, SerialPortSettings};
 
 fn main() {
@@ -15,60 +16,60 @@ fn main() {
         .version(crate_version!())
         .about(crate_description!())
         .setting(AppSettings::DeriveDisplayOrder)
-        .arg(
-            Arg::with_name("port")
-                .help("The device path to a serial port  (auto detection)")
-                .short("l")
-                .long("line")
+        .arg(Arg::with_name("port")
+            .help("The device path to a serial port  (auto detection)")
+            .short("l")
+            .long("line")
+            .takes_value(true)
+        )
+        .arg(Arg::with_name("baud")
+            .help("The baud rate to connect at")
+            .short("s")
+            .long("speed")
+            .takes_value(true)
+            .default_value("9600")
+        )
+        .arg(Arg::with_name("read file")
+            .help("Output text from file")
+            .short("r")
+            .long("read")
+            .takes_value(true)
+        )
+        .arg(Arg::with_name("write file")
+            .help("Saved log")
+            .short("w")
+            .long("write")
+            .takes_value(true)
+        )
+        .arg(Arg::with_name("config file")
+            .help("Specify configuration file")
+            .short("c")
+            .long("config")
+            .takes_value(true)
+            .default_value("sisterm.toml")
+        )
+        .arg(Arg::with_name("nocolor")
+            .help("Without color")
+            .short("n")
+            .long("no-color")
+        )
+        .arg(Arg::with_name("timestamp")
+            .help("Add timestamp to log")
+            .short("t")
+            .long("time-stamp")
+        )
+        .arg(Arg::with_name("append")
+            .help("Append to log  (default overwrite)")
+            .short("a")
+            .long("append")
+        )
+        .subcommand(SubCommand::with_name("telnet")
+            .about("Login to remote system host with telnet")
+            .arg(Arg::with_name("host[:port]")
+                .help("Port number can be omitted. Then 23")
                 .takes_value(true)
-        )
-        .arg(
-            Arg::with_name("baud")
-                .help("The baud rate to connect at")
-                .short("s")
-                .long("speed")
-                .takes_value(true)
-                .default_value("9600")
-        )
-        .arg(
-            Arg::with_name("read file")
-                .help("Output text from file")
-                .short("r")
-                .long("read")
-                .takes_value(true)
-        )
-        .arg(
-            Arg::with_name("write file")
-                .help("Saved log")
-                .short("w")
-                .long("write")
-                .takes_value(true)
-        )
-        .arg(
-            Arg::with_name("config file")
-                .help("Specify configuration file")
-                .short("c")
-                .long("config")
-                .takes_value(true)
-                .default_value("sisterm.toml")
-        )
-        .arg(
-            Arg::with_name("nocolor")
-                .help("Without color")
-                .short("n")
-                .long("no-color")
-        )
-        .arg(
-            Arg::with_name("timestamp")
-                .help("Add timestamp to log")
-                .short("t")
-                .long("time-stamp")
-        )
-        .arg(
-            Arg::with_name("append")
-                .help("Append to log  (default overwrite)")
-                .short("a")
-                .long("append")
+                .required(true)
+            )
         );
 
     let matches = app.get_matches();
@@ -96,70 +97,80 @@ fn main() {
     let flags = flag::Flags::new(nocolor, timestamp, append, write_file);
 
 
-    // If "read file (-r)" is specified
-    // Output text from the file
-    if let Some(path) = matches.value_of("read file") {
-        use sist::read;
+    // Telnet, SSH or Serialport
+    // Telnet
+    if let Some(ref matches) = matches.subcommand_matches("telnet") {
+        let host = matches.value_of("host[:port]").unwrap();
+        telnet::run(host);
+    }
 
-        read::run(&path, flags, params);
+    // Serialport
+    else {
+        // If "read file (-r)" is specified
+        // Output text from the file
+        if let Some(path) = matches.value_of("read file") {
+            use sist::read;
+
+            read::run(&path, flags, params);
 
 
-    // Else REPL start
-    } else {
-        use sist::repl;
-
-        let (port_name, baud_rate) = if let Some(params) = &params {
-            // If "port (-l)" is specified
-            let port_name = if let Some(port) = matches.value_of("port") {
-                port.to_string()
-            } else if let Some(port) = &params.port {
-                port.to_string()
-            } else {
-                match available_ports() {
-                    Ok(port) if !port.is_empty() => port[0].port_name.to_string(),
-                    _ => panic!("No serial port"),
-                }
-            };
-            // If "baudrate (-s)" is specified
-            let baud_rate = if let Some(baud) = &params.speed {
-                baud
-            } else if let Some(baud) = matches.value_of("baud") {
-                baud
-            } else {
-                panic!("No baud rate");
-            }.to_string();
-
-            (port_name, baud_rate)
+            // Else REPL start
         } else {
-            // If "port (-l)" is specified
-            let port_name = if let Some(port) = matches.value_of("port") {
-                port.to_string()
+            use sist::repl;
+
+            let (port_name, baud_rate) = if let Some(params) = &params {
+                // If "port (-l)" is specified
+                let port_name = if let Some(port) = matches.value_of("port") {
+                    port.to_string()
+                } else if let Some(port) = &params.port {
+                    port.to_string()
+                } else {
+                    match available_ports() {
+                        Ok(port) if !port.is_empty() => port[0].port_name.to_string(),
+                        _ => panic!("No serial port"),
+                    }
+                };
+                // If "baudrate (-s)" is specified
+                let baud_rate = if let Some(baud) = &params.speed {
+                    baud
+                } else if let Some(baud) = matches.value_of("baud") {
+                    baud
+                } else {
+                    panic!("No baud rate");
+                }.to_string();
+
+                (port_name, baud_rate)
             } else {
-                match available_ports() {
-                    Ok(port) if !port.is_empty() => port[0].port_name.to_string(),
-                    _ => panic!("No serial port"),
-                }
+                // If "port (-l)" is specified
+                let port_name = if let Some(port) = matches.value_of("port") {
+                    port.to_string()
+                } else {
+                    match available_ports() {
+                        Ok(port) if !port.is_empty() => port[0].port_name.to_string(),
+                        _ => panic!("No serial port"),
+                    }
+                };
+                // If "baudrate (-s)" is specified
+                let baud_rate = matches.value_of("baud").expect("No baud rate");
+
+                (port_name, baud_rate.to_string())
             };
-            // If "baudrate (-s)" is specified
-            let baud_rate = matches.value_of("baud").expect("No baud rate");
-
-            (port_name, baud_rate.to_string())
-        };
 
 
-        let mut settings: SerialPortSettings = Default::default();
-        settings.timeout = Duration::from_millis(10);
-        if let Ok(rate) = baud_rate.parse::<u32>() {
-            settings.baud_rate = rate;
-        } else {
-            eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
-            std::process::exit(1);
+            let mut settings: SerialPortSettings = Default::default();
+            settings.timeout = Duration::from_millis(10);
+            if let Ok(rate) = baud_rate.parse::<u32>() {
+                settings.baud_rate = rate;
+            } else {
+                eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
+                std::process::exit(1);
+            }
+
+
+            repl::run(port_name, settings, flags, params);
+
+            println!("\n{}Disconnected.", if nocolor { "\x1b[0m" } else { "" });
         }
-
-
-        repl::run(port_name, settings, flags, params);
-
-        println!("\n{}Disconnected.", if nocolor { "\x1b[0m" } else { "" });
     }
 }
 

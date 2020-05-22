@@ -4,3 +4,4 @@ pub mod queue;
 pub mod read;
 pub mod repl;
 pub mod setting;
+pub mod telnet;
