@@ -14,14 +14,12 @@ pub fn run(host:      &str,
            mut flags: flag::Flags,
            params:    Option<setting::Params>)
 {
-    let remote = host.parse().unwrap(); // required port number
-
-    let receiver = TcpStream::connect_timeout(&remote, Duration::from_secs(1))
+    let receiver = TcpStream::connect_timeout(&to_SocketAddr(host), Duration::from_secs(4))
         .unwrap_or_else(|e| {
             eprintln!("Could not connect: {}", e);
             std::process::exit(1);
         });
-    receiver.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    receiver.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
     let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
 
     let (tx, rx) = mpsc::channel();
@@ -71,6 +69,14 @@ pub fn run(host:      &str,
 
 // Check if the port number is attached
 // If not attached, append ":23"
-fn check_port(host: &str) -> String {
-    todo!();
+#[allow(non_snake_case)]
+fn to_SocketAddr(host: &str) -> std::net::SocketAddr {
+    match host.parse() {
+        Ok(result) => result,
+        Err(_) => {
+            let mut host = host.to_string();
+            host.push_str(":23");
+            host.parse::<std::net::SocketAddr>().unwrap()
+        }
+    }
 }
