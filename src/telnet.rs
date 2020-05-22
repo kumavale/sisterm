@@ -14,7 +14,7 @@ pub fn run(host:      &str,
            mut flags: flag::Flags,
            params:    Option<setting::Params>)
 {
-    let receiver = TcpStream::connect_timeout(&to_SocketAddr(host), Duration::from_secs(4))
+    let receiver = TcpStream::connect_timeout(&to_SocketAddr_for_telnet(host), Duration::from_secs(4))
         .unwrap_or_else(|e| {
             eprintln!("Could not connect: {}", e);
             std::process::exit(1);
@@ -70,13 +70,43 @@ pub fn run(host:      &str,
 // Check if the port number is attached
 // If not attached, append ":23"
 #[allow(non_snake_case)]
-fn to_SocketAddr(host: &str) -> std::net::SocketAddr {
+fn to_SocketAddr_for_telnet(host: &str) -> std::net::SocketAddr {
     match host.parse() {
         Ok(result) => result,
         Err(_) => {
             let mut host = host.to_string();
             host.push_str(":23");
             host.parse::<std::net::SocketAddr>().unwrap()
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_to_SocketAddr_for_telnet() {
+        let tests = vec![
+            (
+                "127.0.0.1",
+                SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23)),
+            ),
+            (
+                "127.0.0.1:23",
+                SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23)),
+            ),
+            (
+                "127.0.0.1:12321",
+                SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 12321)),
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(to_SocketAddr_for_telnet(&input), expect);
         }
     }
 }

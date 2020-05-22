@@ -211,3 +211,41 @@ fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_string_from_utf8_appearancering() {
+        let tests = vec![
+            (
+                [0x34, 0x32],
+                "42",
+            ),
+            (
+                [0x00, 0x07],
+                "",
+            ),
+            (
+                [0x1f, 0x7f],
+                "",
+            ),
+            (
+                [0x08, 0x08],
+                "",
+            ),
+            (
+                [0x20, 0x7e],
+                " ~",
+            ),
+        ];
+
+        for (input, expect) in tests {
+            let mut buf = String::new();
+            string_from_utf8_appearance(&mut buf, &input);
+            assert_eq!(buf, expect);
+        }
+    }
+}
