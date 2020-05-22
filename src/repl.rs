@@ -1,82 +1,22 @@
-use std::io::{self, BufWriter, Read, Write};
-use std::thread;
+use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
-use std::path::Path;
-use std::sync::mpsc;
 
 use crate::queue::Queue;
 use crate::flag;
 use crate::color;
 use crate::setting;
 
-use serialport::SerialPortSettings;
 use getch::Getch;
 use chrono::Local;
 
 
-pub fn run(port_name: String,
-           settings:  SerialPortSettings,
-           mut flags: flag::Flags,
-           params:    Option<setting::Params>)
-{
-    let receiver = match serialport::open_with_settings(&port_name, &settings) {
-        Ok(port) => port,
-        Err(e) => {
-            eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
-            std::process::exit(1);
-        },
-    };
-    let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
-
-    let (tx, rx) = mpsc::channel();
-
-    // If write_file is already exists
-    if let Some(write_file) = flags.write_file() {
-        if Path::new(write_file).exists() {
-            if !flags.is_append() {
-                let g = Getch::new();
-                println!("\"{}\" is already exists!", write_file);
-                println!("Press ENTER to continue overwrite");
-                match g.getch() {
-                    Ok(b'\n') | Ok(b'\r') => (),  // continue
-                    _ => std::process::exit(0),   // exit
-                }
-            }
-        } else if flags.is_append() {
-            let g = Getch::new();
-            println!("\"{}\" is not exists!", write_file);
-            println!("Press ENTER to create the file and continue");
-            match g.getch() {
-                Ok(b'\n') | Ok(b'\r') => (),  // continue
-                _ => std::process::exit(0),   // exit
-            }
-            flags.set_append(false);
-        }
-    }
-
-    // Check if params exists
-    if params.is_none() {
-        flags.set_nocolor(true);
-    }
-
-    println!("Connected. {}:", port_name);
-    println!("Type \"~.\" to exit.");
-
-    // Receiver
-    let handle = thread::spawn(move || {
-        receiver_run(receiver, rx, flags, params);
-    });
-
-    // Transmitter
-    transmitter_run(transmitter, tx);
-
-    handle.join().unwrap();
-}
-
-fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
-                rx:       std::sync::mpsc::Receiver<()>,
-                flags:    flag::Flags,
-                params:   Option<setting::Params>)
+pub fn receiver_run<T>(
+    mut port: T,
+    rx:       std::sync::mpsc::Receiver<()>,
+    flags:    flag::Flags,
+    params:   Option<setting::Params>)
+where
+    T: std::io::Read,
 {
     let mut serial_buf: Vec<u8> = vec![0; 1024];
     let mut last_word  = (String::new(), false);  // (word, colored)
@@ -179,6 +119,7 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => continue,
                 Err(e) => eprintln!("{}", e),
             }
 
@@ -188,7 +129,10 @@ fn receiver_run(mut port: std::boxed::Box<dyn serialport::SerialPort>,
     }
 }
 
-fn transmitter_run(mut port: std::boxed::Box<dyn serialport::SerialPort>, tx: std::sync::mpsc::Sender<()>) {
+pub fn transmitter_run<T>(mut port: T, tx: std::sync::mpsc::Sender<()>)
+where
+    T: std::io::Write,
+{
     let exit_char1 = b'~';
     let exit_char2 = b'.';
     let mut queue = Queue::new(exit_char1, exit_char2);

@@ -101,7 +101,8 @@ fn main() {
     // Telnet
     if let Some(ref matches) = matches.subcommand_matches("telnet") {
         let host = matches.value_of("host[:port]").unwrap();
-        telnet::run(host);
+        telnet::run(host, flags, params);
+        println!("\n{}Disconnected.", if nocolor { "\x1b[0m" } else { "" });
     }
 
     // Serialport
@@ -109,14 +110,14 @@ fn main() {
         // If "read file (-r)" is specified
         // Output text from the file
         if let Some(path) = matches.value_of("read file") {
-            use sist::read;
+            use sist::file_read;
 
-            read::run(&path, flags, params);
+            file_read::run(&path, flags, params);
 
 
             // Else REPL start
         } else {
-            use sist::repl;
+            use sist::serial;
 
             let (port_name, baud_rate) = if let Some(params) = &params {
                 // If "port (-l)" is specified
@@ -167,7 +168,7 @@ fn main() {
             }
 
 
-            repl::run(port_name, settings, flags, params);
+            serial::run(port_name, settings, flags, params);
 
             println!("\n{}Disconnected.", if nocolor { "\x1b[0m" } else { "" });
         }

@@ -1,27 +1,24 @@
-use std::net::TcpStream;
-use std::time::Duration;
 use std::thread;
-use std::sync::mpsc;
 use std::path::Path;
+use std::sync::mpsc;
 
 use crate::repl;
 use crate::flag;
 use crate::setting;
 
+use serialport::SerialPortSettings;
 use getch::Getch;
 
-pub fn run(host:      &str,
+
+pub fn run(port_name: String,
+           settings:  SerialPortSettings,
            mut flags: flag::Flags,
            params:    Option<setting::Params>)
 {
-    let remote = host.parse().unwrap(); // required port number
-
-    let receiver = TcpStream::connect_timeout(&remote, Duration::from_secs(1))
-        .unwrap_or_else(|e| {
-            eprintln!("Could not connect: {}", e);
-            std::process::exit(1);
-        });
-    receiver.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    let receiver = serialport::open_with_settings(&port_name, &settings).unwrap_or_else(|e| {
+        eprintln!("Failed to open \"{}\". Error: {}", port_name, e);
+        std::process::exit(1);
+    });
     let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
 
     let (tx, rx) = mpsc::channel();
@@ -55,7 +52,7 @@ pub fn run(host:      &str,
         flags.set_nocolor(true);
     }
 
-    println!("Connected. {}:", host);
+    println!("Connected. {}:", port_name);
     println!("Type \"~.\" to exit.");
 
     // Receiver
@@ -67,10 +64,4 @@ pub fn run(host:      &str,
     repl::transmitter_run(transmitter, tx);
 
     handle.join().unwrap();
-}
-
-// Check if the port number is attached
-// If not attached, append ":23"
-fn check_port(host: &str) -> String {
-    todo!();
 }
