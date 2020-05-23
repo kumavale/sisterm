@@ -4,7 +4,6 @@ extern crate sist;
 
 use sist::flag;
 use sist::setting;
-use sist::telnet;
 
 use std::time::Duration;
 
@@ -20,12 +19,14 @@ fn main() {
             .help("The device path to a serial port  (auto detection)")
             .short("l")
             .long("line")
+            .value_name("PORT")
             .takes_value(true)
         )
         .arg(Arg::with_name("baud")
             .help("The baud rate to connect at")
             .short("s")
             .long("speed")
+            .value_name("BAUD")
             .takes_value(true)
             .default_value("9600")
         )
@@ -33,18 +34,21 @@ fn main() {
             .help("Output text from file")
             .short("r")
             .long("read")
+            .value_name("FILE")
             .takes_value(true)
         )
         .arg(Arg::with_name("write file")
             .help("Saved log")
             .short("w")
             .long("write")
+            .value_name("FILE")
             .takes_value(true)
         )
         .arg(Arg::with_name("config file")
             .help("Specify configuration file")
             .short("c")
             .long("config")
+            .value_name("FILE")
             .takes_value(true)
             .default_value("sisterm.toml")
         )
@@ -65,49 +69,65 @@ fn main() {
         )
         .subcommand(SubCommand::with_name("telnet")
             .about("Login to remote system host with telnet")
+            .setting(AppSettings::DeriveDisplayOrder)
             .arg(Arg::with_name("host[:port]")
                 .help("Port number can be omitted. Then 23")
                 .takes_value(true)
                 .required(true)
+            )
+            .arg(Arg::with_name("write file")
+                .help("Saved log")
+                .short("w")
+                .long("write")
+                .value_name("FILE")
+                .takes_value(true)
+            )
+            .arg(Arg::with_name("config file")
+                .help("Specify configuration file")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .takes_value(true)
+                .default_value("sisterm.toml")
+            )
+            .arg(Arg::with_name("nocolor")
+                .help("Without color")
+                .short("n")
+                .long("no-color")
+            )
+            .arg(Arg::with_name("timestamp")
+                .help("Add timestamp to log")
+                .short("t")
+                .long("time-stamp")
+            )
+            .arg(Arg::with_name("append")
+                .help("Append to log  (default overwrite)")
+                .short("a")
+                .long("append")
             )
         );
 
     let matches = app.get_matches();
 
 
-    // If "config file (-c)" is specified
-    let config_file = matches.value_of("config file").expect("Invalid file name");
-
-    // Parse configuration file
-    let params = setting::Params::new(config_file);
-
-    // Color display flag
-    let nocolor = matches.is_present("nocolor");
-
-    // Timestamp flag
-    let timestamp = matches.is_present("timestamp");
-
-    // Append flag
-    let append = matches.is_present("append");
-
-    // If "write file (-w)" is specified
-    let write_file = matches.value_of("write file");
-
-    // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, append, write_file);
-
-
-    // Telnet, SSH or Serialport
     // Telnet
     if let Some(ref matches) = matches.subcommand_matches("telnet") {
+        use sist::telnet;
+
+        // Hostname
         let host = matches.value_of("host[:port]").unwrap();
+
+        // Parse arguments
+        let (flags, params) = parse_arguments(matches);
+
         telnet::run(host, flags, params);
 
         println!("\n\x1b[0mDisconnected.");
-    }
 
-    // Serialport
-    else {
+    } else {
+        // Parse arguments
+        let (flags, params) = parse_arguments(&matches);
+
         // If "read file (-r)" is specified
         // Output text from the file
         if let Some(path) = matches.value_of("read file") {
@@ -116,7 +136,7 @@ fn main() {
             file_read::run(&path, flags, params);
 
 
-            // Else REPL start
+        // Serialport
         } else {
             use sist::serial;
 
@@ -174,3 +194,27 @@ fn main() {
     }
 }
 
+fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::Params>) {
+    // If "config file (-c)" is specified
+    let config_file = matches.value_of("config file").expect("Invalid file name");
+
+    // Parse configuration file
+    let params = setting::Params::new(config_file);
+
+    // Color display flag
+    let nocolor = matches.is_present("nocolor");
+
+    // Timestamp flag
+    let timestamp = matches.is_present("timestamp");
+
+    // Append flag
+    let append = matches.is_present("append");
+
+    // If "write file (-w)" is specified
+    let write_file = matches.value_of("write file");
+
+    // Setting flags
+    let flags = flag::Flags::new(nocolor, timestamp, append, write_file);
+
+    (flags, params)
+}
