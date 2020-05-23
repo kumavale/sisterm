@@ -1,5 +1,5 @@
 [package]
-name = "sist"
+name = "sisterm"
 version = "2.0.0"
 authors = ["kmgy <bhnk1270223@gn.iwasaki.ac.jp>"]
 edition = "2018"
@@ -9,7 +9,6 @@ repository = "https://github.com/kumavale/sisterm"
 readme = "README.md"
 keywords = ["serial", "terminal", "cli", "color"]
 categories = ["command-line-utilities"]
-
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -22,3 +21,7 @@ chrono = "0.4.11"
 serde = { version = "1.0.110", features = ["derive"] }
 toml = "0.5.6"
 lazy_static = "1.4.0"
+
+[[bin]]
+name = "sist"
+path = "src/main.rs"

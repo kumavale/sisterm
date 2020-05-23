@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate clap;
-extern crate sist;
+extern crate sisterm;
 
-use sist::flag;
-use sist::setting;
+use sisterm::flag;
+use sisterm::setting;
 
 use std::time::Duration;
 
@@ -112,7 +112,7 @@ fn main() {
 
     // Telnet
     if let Some(ref matches) = matches.subcommand_matches("telnet") {
-        use sist::telnet;
+        use sisterm::telnet;
 
         // Hostname
         let host = matches.value_of("host[:port]").unwrap();
@@ -131,14 +131,14 @@ fn main() {
         // If "read file (-r)" is specified
         // Output text from the file
         if let Some(path) = matches.value_of("read file") {
-            use sist::file_read;
+            use sisterm::file_read;
 
             file_read::run(&path, flags, params);
 
 
         // Serialport
         } else {
-            use sist::serial;
+            use sisterm::serial;
 
             let (port_name, baud_rate) = if let Some(params) = &params {
                 // If "port (-l)" is specified
