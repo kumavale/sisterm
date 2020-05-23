@@ -3,7 +3,13 @@ name = "sist"
 version = "2.0.0"
 authors = ["kmgy <bhnk1270223@gn.iwasaki.ac.jp>"]
 edition = "2018"
-description = "Serial console color syntax for Network devices"
+description = "A simple terminal with syntax highlighting for network devices"
+license = "MIT"
+repository = "https://github.com/kumavale/sisterm"
+readme = "README.md"
+keywords = ["serial", "terminal", "cli", "color"]
+categories = ["command-line-utilities"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
