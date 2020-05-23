@@ -14,11 +14,11 @@ use serialport::{available_ports, SerialPortSettings};
 fn main() {
 
     let config_file_help_message =
-        format!("Specify configuration file [default {}/.config/sisterm/config.toml]",
-            if cfg!(unix) {
-                "$HOME"
+        format!("Specify configuration file\n[default {}]",
+            if cfg!(windows) {
+                "%USERPROFILE%/AppData/Local/sisterm/config.toml"
             } else {
-                "%USERPROFILE%"
+                "$HOME/.config/sisterm/config.toml"
             });
 
     let app = App::new("sisterm")
@@ -113,10 +113,28 @@ fn main() {
                 .short("a")
                 .long("append")
             )
+        )
+        .subcommand(SubCommand::with_name("generate")
+            .about("Generate configuration file")
         );
 
     let matches = app.get_matches();
 
+    // Generate configuration file
+    if matches.subcommand_matches("generate").is_some() {
+        use sisterm::config;
+
+        match config::generate() {
+            Ok(path) => {
+                println!("Complete! --> {}", path);
+                std::process::exit(0);
+            },
+            Err(e) => {
+                eprintln!("{}", e);
+                std::process::exit(1);
+            },
+        }
+    }
 
     // Telnet
     if let Some(ref matches) = matches.subcommand_matches("telnet") {
@@ -231,14 +249,14 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     (flags, params)
 }
 
-#[cfg(unix)]
+#[cfg(windows)]
+fn get_config_file_path() -> String {
+    format!("{}/AppData/Local/sisterm/config.toml",
+        if let Ok(ref user) = env::var("USERPROFILE") { user } else { "%USERPROFILE%" } )
+}
+
+#[cfg(not(windows))]
 fn get_config_file_path() -> String {
     format!("{}/.config/sisterm/config.toml",
         if let Ok(ref home) = env::var("HOME") { home } else { "$HOME" } )
-}
-
-#[cfg(not(unix))]
-fn get_config_file_path() -> String {
-    format!("{}/.config/sisterm/config.toml",
-        if let Ok(ref home) = env::var("USERPROFILE") { home } else { "%USERPROFILE%" } )
 }
