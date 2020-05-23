@@ -17,7 +17,7 @@ impl Params {
         let mut f = match File::open(config_file) {
             Ok(f) => f,
             Err(e) => {
-                eprintln!("{}", e);
+                eprintln!("\"{}\": {}", config_file, e);
                 eprintln!("Press ENTER to continue without color mode");
                 let _ = std::io::stdin().read_line(&mut String::new());
                 return None;

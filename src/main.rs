@@ -5,12 +5,22 @@ extern crate sisterm;
 use sisterm::flag;
 use sisterm::setting;
 
+use std::env;
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 use serialport::{available_ports, SerialPortSettings};
 
 fn main() {
+
+    let config_file_help_message =
+        format!("Specify configuration file [default {}/.config/sisterm/config.toml]",
+            if cfg!(unix) {
+                "$HOME"
+            } else {
+                "%USERPROFILE%"
+            });
+
     let app = App::new("sisterm")
         .version(crate_version!())
         .about(crate_description!())
@@ -45,12 +55,11 @@ fn main() {
             .takes_value(true)
         )
         .arg(Arg::with_name("config file")
-            .help("Specify configuration file")
+            .help(&config_file_help_message)
             .short("c")
             .long("config")
             .value_name("FILE")
             .takes_value(true)
-            .default_value("sisterm.toml")
         )
         .arg(Arg::with_name("nocolor")
             .help("Without color")
@@ -83,12 +92,11 @@ fn main() {
                 .takes_value(true)
             )
             .arg(Arg::with_name("config file")
-                .help("Specify configuration file")
+                .help(&config_file_help_message)
                 .short("c")
                 .long("config")
                 .value_name("FILE")
                 .takes_value(true)
-                .default_value("sisterm.toml")
             )
             .arg(Arg::with_name("nocolor")
                 .help("Without color")
@@ -196,10 +204,14 @@ fn main() {
 
 fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::Params>) {
     // If "config file (-c)" is specified
-    let config_file = matches.value_of("config file").expect("Invalid file name");
+    let config_file = if let Some(file) = matches.value_of("config file") {
+        file.to_string()
+    } else {
+        get_config_file_path()
+    };
 
     // Parse configuration file
-    let params = setting::Params::new(config_file);
+    let params = setting::Params::new(&config_file);
 
     // Color display flag
     let nocolor = matches.is_present("nocolor");
@@ -217,4 +229,16 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     let flags = flag::Flags::new(nocolor, timestamp, append, write_file);
 
     (flags, params)
+}
+
+#[cfg(unix)]
+fn get_config_file_path() -> String {
+    format!("{}/.config/sisterm/config.toml",
+        if let Ok(ref home) = env::var("HOME") { home } else { "$HOME" } )
+}
+
+#[cfg(not(unix))]
+fn get_config_file_path() -> String {
+    format!("{}/.config/sisterm/config.toml",
+        if let Ok(ref home) = env::var("USERPROFILE") { home } else { "%USERPROFILE%" } )
 }
