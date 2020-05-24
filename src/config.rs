@@ -114,24 +114,21 @@ pub fn generate() -> Result<String, String> {
         let mut input = String::new();
         println!("configration file is already exists!");
         print!("Overwrite? [y/N]");
-        io::stdout().flush().unwrap();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdout().flush().map_err(|e| e.to_string())?;
+        io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
         match input.to_lowercase().trim_end() {
             "y" | "yes" => (),  // continue
-            _ => return Err("".to_string()),
+            _ => std::process::exit(0),
         }
     }
 
     // Create directory
-    match fs::create_dir_all(&*PARENT_PATH) {
-        Ok(_) => (),  // continue
-        Err(e) => return Err(e.to_string()),
-    }
+    fs::create_dir_all(&*PARENT_PATH).map_err(|e| e.to_string())?;
 
     // Write contents to file
-    let mut f = BufWriter::new(fs::File::create(&config_file_path).unwrap());
-    f.write_all(CONTENTS).unwrap();
-    f.flush().unwrap();
+    let mut f = BufWriter::new(fs::File::create(&config_file_path).map_err(|e| e.to_string())?);
+    f.write_all(CONTENTS).map_err(|e| e.to_string())?;
+    f.flush().map_err(|e| e.to_string())?;
 
     Ok(config_file_path)
 }

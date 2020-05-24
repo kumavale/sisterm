@@ -4,7 +4,7 @@
 ![version](https://img.shields.io/badge/version-2.0.0-success.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
-sisterm(`sist`) is a simple terminal with syntax highlighting for network devices  which supports:  
+sisterm(`sist`) is a simple terminal with syntax highlighting which supports:  
 * Serial port connections
 * TCP/IP (telnet) connections
 * Log replaying
@@ -67,7 +67,7 @@ $ cargo build --release
 ## Customizing
 
 * Windows  
-    `%USERPROFILE%\AppData\Local\sisterm\config.toml`  
+    `%LOCALAPPDATA%\sisterm\config.toml`  
 * Linux  
     `$HOME/.config/sisterm/config.toml`  
 
