@@ -88,7 +88,7 @@ regex = "^(0[.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-
 lazy_static! {
     static ref PARENT_PATH: String = {
         if cfg!(windows) {
-            format!("{}/AppData/Local/sisterm/", env::var("USERPROFILE").unwrap())
+            format!("{}/sisterm/", env::var("LOCALAPPDATA").unwrap())
         } else {
             format!("{}/.config/sisterm/", env::var("HOME").unwrap())
         }
