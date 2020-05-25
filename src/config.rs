@@ -10,7 +10,10 @@ static CONTENTS: &[u8] =
 br#"#
 #  sisterm setting file
 #
-#  Regular expressions support RE2 Syntax
+#  Its syntax is similar to Perl-style regular expressions, but lacks a few
+#  features like look around and backreferences.
+#  For more specific details on the API for regular expressions, please see
+#  the documentation for the Regex(https://docs.rs/regex) type.
 #
 #  [[colorings]]
 #  color = "String"       # required
@@ -40,6 +43,9 @@ br#"#
 
 # Specify default baud rate
 # speed = "9600"
+
+# Specify default Send '\r' instead of '\n'
+# instead_cr = true
 
 
 # positive
