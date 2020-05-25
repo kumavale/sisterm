@@ -22,6 +22,7 @@ FLAGS:
     -n, --no-color      Without color
     -t, --time-stamp    Add timestamp to log
     -a, --append        Append to log  (default overwrite)
+    -i, --instead-cr    Send '\r' instead of '\n'
     -h, --help          Prints help information
     -V, --version       Prints version information
 
@@ -73,7 +74,7 @@ $ cargo build --release
 
 sisterm configuration file is written in [TOML](https://github.com/toml-lang/toml) format.  
 Its syntax is similar to Perl-style regular expressions, but lacks a few features like look around and backreferences.  
-For more specific details on the API for regular expressions, please see the documentation for the [Regex](https://docs.rs/regex/1.3.7/regex/struct.Regex.html) type.  
+For more specific details on the API for regular expressions, please see the documentation for the [Regex](https://docs.rs/regex) type.  
 
 ```
 [[colorings]]
@@ -144,4 +145,6 @@ MIT
 
 ## Note
 
-* If sisterm failed to open your COM port, it may be because the user who ran sisterm does not have privileges to access it. To give yourself access privileges, run: `sudo chmod 666 /path/to/serialport`
+* If sisterm failed to open your COM port, it may be because the user who ran sisterm does not have privileges to access it. To give yourself access privileges, run: `sudo chmod 666 /path/to/serialport`, running your program as the super-user (root), or making your program set-userid so that it runs as the owner of the device file.  
+* If the characters couldn't be sent, try the `--instead-rc` option  
+
