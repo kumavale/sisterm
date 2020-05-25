@@ -32,7 +32,9 @@ impl Params {
             Err(e) => panic!("Failed reading setting file: {}", e),
         };
 
-        let mut syntaxes: Vec<SyntaxDefinition> = Vec::new();
+        let mut syntaxes: Vec<SyntaxDefinition> = vec![
+            SyntaxDefinition::new("\x1b[0m".to_string(), Regex::new("0^").unwrap()),
+        ];
         for coloring in &setting.colorings {
             let re = Regex::new(&coloring.regex).expect("Failed compile regex");
             let color = color::valid_color_syntax(&coloring).unwrap();

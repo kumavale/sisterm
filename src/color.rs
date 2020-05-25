@@ -23,33 +23,67 @@ lazy_static! {
     };
 }
 
-
 pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
-    if let Some(params) = params {
-        let tokens = split_whitespace(text);
-        for token in &tokens {
-            let mut matched = false;
-            let mut index: usize = 0;
+    if params.is_none() {
+        println!("{}", text);
+        return;
+    }
 
-            for (i, syntax) in params.syntaxes.iter().enumerate() {
-                if syntax.regex().captures(token).is_some() {
-                    matched = true;
-                    index = i;
-                    break;
+    let params = params.unwrap();
+    let mut all_string = String::new();
+
+    for line in text.lines() {
+        let mut line_str = String::new();
+        let mut increasing_str         = String::new();
+        let mut prev_matched   = false;
+        let mut substring_len  = 0;
+
+        'outer: for c in line.chars() {
+            increasing_str.push(c);
+            for (index, syntax) in params.syntaxes.iter().enumerate() {
+                if let Some(cap) = syntax.regex().captures(&increasing_str) {
+                    if prev_matched {
+                        let len = cap.get(0).unwrap().as_str().len();
+                        if substring_len == len {
+                            prev_matched = false;
+                            line_str.push_str(PREDEFINED_COLORS["RESET"]);
+                            increasing_str.clear();
+                        } else {
+                            substring_len = len;
+                        }
+                        line_str.push(c);
+                    } else {
+                        prev_matched = true;
+                        let substr = cap.get(0).unwrap().as_str();
+                        let len = substr.len();
+                        let color = params.syntaxes[index as usize].color();
+                        line_str.push_str(&increasing_str[..increasing_str.len()-len]);
+                        line_str.push_str(&color);
+                        line_str.push_str(&substr);
+                        increasing_str = substr.to_string();
+                        substring_len = len;
+                    }
+                    continue 'outer;
                 }
             }
 
-            if matched {
-                let color = params.syntaxes[index].color();  // assert Some()
-                print!("{}{}{}", color, token, PREDEFINED_COLORS["RESET"]);
-            } else {
-                print!("{}", token);
+            if prev_matched {
+                prev_matched = false;
+                line_str.push_str(PREDEFINED_COLORS["RESET"]);
+                line_str.push_str(&increasing_str);
+                increasing_str.clear();
             }
         }
-        println!();
-    } else {
-        println!("{}", text);
+
+        if !prev_matched {
+            line_str.push_str(&increasing_str);
+        }
+        line_str.push_str(PREDEFINED_COLORS["RESET"]);
+        all_string.push_str(&line_str);
+        all_string.push('\n');
     }
+
+    println!("{}", all_string);
 }
 
 pub fn coloring_words(serial_buf: &str, (word, colored): &mut (String, bool), params: &Option<setting::Params>) {
@@ -117,63 +151,6 @@ pub fn coloring_words(serial_buf: &str, (word, colored): &mut (String, bool), pa
     }
 }
 
-// Split by whitespace while leaving whitespace
-fn split_whitespace(s: String) -> Vec<String> {
-    let mut tokens = Vec::new();
-    let chars = s.chars().collect::<Vec<char>>();
-
-    let mut i = 0;
-    while i < chars.len() {
-        match chars[i] {
-            ' ' => {
-                let mut token = String::new();
-                while i < chars.len() && chars[i] == ' ' {
-                    token.push(' ');
-                    i += 1;
-                }
-                tokens.push(token);
-            },
-            '\r' => {
-                let mut token = String::new();
-                while i < chars.len() && chars[i] == '\r' {
-                    token.push('\r');
-                    i += 1;
-                }
-                tokens.push(token);
-            },
-            '\n' => {
-                let mut token = String::new();
-                while i < chars.len() && chars[i] == '\n' {
-                    token.push('\n');
-                    i += 1;
-                }
-                tokens.push(token);
-            },
-            '\t' => {
-                let mut token = String::new();
-                while i < chars.len() && chars[i] == '\t' {
-                    token.push('\t');
-                    i += 1;
-                }
-                tokens.push(token);
-            },
-            _ => {
-                let mut token = String::new();
-                while i < chars.len() {
-                    match chars[i] {
-                        ' ' | '\r' | '\n' | '\t' => break,
-                        _ => token.push(chars[i]),
-                    }
-                    i += 1;
-                }
-                tokens.push(token);
-            },
-        }
-    }
-
-    tokens
-}
-
 /* Color example
     * RED
     * 001
@@ -188,7 +165,7 @@ pub fn valid_color_syntax(coloring: &setting::Coloring) -> Result<String, String
         if underlined {
             return Ok("\x1b[4m".to_string());
         } else {
-            return Ok("".to_string());
+            return Ok("\x1b[0m".to_string());
         }
     }
     if is_predefined_color(&color) {
@@ -277,19 +254,6 @@ fn to_rgb_color(color: &str, underlined: bool) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_split_whitespace() {
-        let input = r#"
-aaa bbb  ccc   
-    dddeee
-
-"#;
-        let expect = vec!["\n","aaa"," ","bbb","  ","ccc","   ","\n","    ","dddeee","\n\n"];
-        let actual = split_whitespace(input.to_string());
-
-        assert_eq!(expect, actual);
-    }
 
     #[test]
     fn test_is_predefined_color() {

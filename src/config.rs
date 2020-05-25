@@ -51,7 +51,7 @@ br#"#
 # positive
 [[colorings]]
 color = "GREEN"
-regex = "^(yes|YES|up|enable|enabled|active)$"
+regex = "(?i)yes|up|enable|enabled|active(?-i)"
 
 # string
 [[colorings]]
@@ -61,34 +61,33 @@ regex = "(\".*\")|('.*')"
 # emphansis
 [[colorings]]
 color = "MAGENTA"
-regex = "^(no|NO|not|confirm|warning|warnings|failed|failures|error|errors|crash)$"
+regex = "not?|confirm|warning|warnings|failed|failures|errors?|crash"
 
 # interface
 [[colorings]]
 color = "CYAN"
-regex = "^((Tengigabit|Gigabit|Fast)?Ethernet|(Fa|Gi)).*"
+regex = "(([Tt]engigabit|[Gg]igabit|[Ff]ast)?[Ee]thernet|[Ff]a|[Gg]i)\\d/\\d"
 
 # negative
 [[colorings]]
 underlined = true
 color = "RED"
-regex = "^(unassigned|disable|disabled|deny|shutdown|down|administratively|none)$"
+regex = "unassigned|disable|disabled|deny|shutdown|down|administratively|none"
 
 # ipv4_net
 [[colorings]]
 color = "YELLOW"
-regex = "^(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])[.]((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
+regex = "([^0-9]|^)(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])\\.((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"
 
 # ipv4_sub
 [[colorings]]
 color = "BLUE"
-regex = "^((25[0-5]|24[89])[.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
+regex = "((25[0-5]|24[89])\\.)((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"
 
 # ipv4_wild
 [[colorings]]
 color = "MAGENTA"
-regex = "^(0[.])((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"
-
+regex = "(0\\.)((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"
 "#;
 
 lazy_static! {
