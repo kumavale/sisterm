@@ -57,12 +57,13 @@ pub fn run(host:      &str,
     println!("Type \"~.\" to exit.");
 
     // Receiver
+    let flags_clone = flags.clone();
     let handle = thread::spawn(move || {
-        repl::receiver_run(receiver, rx, flags, params);
+        repl::receiver_run(receiver, rx, flags_clone, params);
     });
 
     // Transmitter
-    repl::transmitter_run(transmitter, tx);
+    repl::transmitter_run(transmitter, tx, flags);
 
     handle.join().unwrap();
 }

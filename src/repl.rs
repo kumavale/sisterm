@@ -134,7 +134,7 @@ where
     }
 }
 
-pub fn transmitter_run<T>(mut port: T, tx: std::sync::mpsc::Sender<()>)
+pub fn transmitter_run<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: flag::Flags)
 where
     T: std::io::Write,
 {
@@ -176,6 +176,14 @@ where
                     }
                 }
                 last_is_tilde = false;
+
+                if flags.is_instead_cr() && key == b'\n' {
+                    // Send carriage return
+                    if let Err(e) = port.write(&[b'\r']) {
+                        eprintln!("{}", e);
+                    }
+                    continue;
+                }
 
                 // Send key
                 if let Err(e) = port.write(&[key]) {

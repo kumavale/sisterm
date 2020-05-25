@@ -7,9 +7,10 @@ use regex::Regex;
 use serde::Deserialize;
 
 pub struct Params {
-    pub port:     Option<String>,
-    pub speed:    Option<String>,
-    pub syntaxes: Vec<SyntaxDefinition>,
+    pub port:       Option<String>,
+    pub speed:      Option<String>,
+    pub instead_cr: bool,
+    pub syntaxes:   Vec<SyntaxDefinition>,
 }
 
 impl Params {
@@ -39,8 +40,9 @@ impl Params {
         }
 
         Some( Self {
-            port:  setting.port,
-            speed: setting.speed,
+            port:       setting.port,
+            speed:      setting.speed,
+            instead_cr: setting.instead_cr,
             syntaxes,
         })
     }
@@ -70,10 +72,14 @@ impl SyntaxDefinition {
 
 #[derive(Deserialize)]
 struct Setting {
-    port:      Option<String>,
-    speed:     Option<String>,
-    //timestamp: Option<bool>,
-    //nocolor:   Option<bool>,
+    port:       Option<String>,
+    speed:      Option<String>,
+
+    #[serde(default)]
+    instead_cr: bool,
+
+    //timestamp:  Option<bool>,
+    //nocolor:    Option<bool>,
 
     colorings: Vec<Coloring>,
 }

@@ -76,6 +76,11 @@ fn main() {
             .short("a")
             .long("append")
         )
+        .arg(Arg::with_name("instead_cr")
+            .help("Send '\\r' instead of '\\n'")
+            .short("i")
+            .long("instead-cr")
+        )
         .subcommand(SubCommand::with_name("telnet")
             .about("Login to remote system host with telnet")
             .setting(AppSettings::DeriveDisplayOrder)
@@ -112,6 +117,11 @@ fn main() {
                 .help("Append to log  (default overwrite)")
                 .short("a")
                 .long("append")
+            )
+            .arg(Arg::with_name("instead_cr")
+                .help("Send '\\r' instead of '\\n'")
+                .short("i")
+                .long("instead-cr")
             )
         )
         .subcommand(SubCommand::with_name("generate")
@@ -240,11 +250,19 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     // Append flag
     let append = matches.is_present("append");
 
+    // Instead_CR flag
+    let instead_cr = matches.is_present("instead_cr");
+    let instead_cr = if let Some(ref params) = params {
+        if params.instead_cr { true } else { instead_cr }
+    } else {
+        instead_cr
+    };
+
     // If "write file (-w)" is specified
     let write_file = matches.value_of("write file");
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, append, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, append, instead_cr, write_file);
 
     (flags, params)
 }
