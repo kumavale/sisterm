@@ -7,7 +7,7 @@ use std::io::{self, BufWriter, Write};
 use lazy_static::lazy_static;
 
 static CONTENTS: &[u8] =
-br#"#
+br#"##
 ## This is the configuration file for the sisterm
 ##
 ## Its syntax is similar to Perl-style regular expressions, but lacks a few
@@ -72,7 +72,7 @@ regex = ["(\".*\")|('.*')"]
 # emphansis
 [[colorings]]
 color = "MAGENTA"
-regex = ["( |^)(not?|confirm|warning|warnings|failed|failures|errors?|crash) "]
+regex = ["( |^)(not?|confirm|warning|warnings|failed|failures|errors?|crash)( |$)"]
 
 # interface
 [[colorings]]

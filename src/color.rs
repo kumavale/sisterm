@@ -95,22 +95,23 @@ pub fn coloring_words(serial_buf: &str,
 {
     let params = params.as_ref().expect("assert Some");
     let mut substring_len = increasing_str.len();
+    let mut line_str = String::new();
 
     'outer: for c in serial_buf.chars() {
 
         if c == '\r' || c == '\n' {
             increasing_str.clear();
             if *prev_matched {
-                std::io::stdout().write_all(PREDEFINED_COLORS["RESET"].as_bytes()).unwrap();
+                line_str.push_str(&PREDEFINED_COLORS["RESET"]);
             }
             *prev_matched = false;
-            std::io::stdout().write_all(&[c as u8]).unwrap();
+            line_str.push(c);
             continue;
         }
 
         if c == '\x08' { // BS
             increasing_str.pop();
-            std::io::stdout().write_all(&[c as u8]).unwrap();
+            line_str.push(c);
             continue;
         }
 
@@ -123,26 +124,24 @@ pub fn coloring_words(serial_buf: &str,
                         let len = cap.get(0).unwrap().as_str().len();
                         if substring_len == len {
                             *prev_matched = false;
-                            std::io::stdout().write_all(PREDEFINED_COLORS["RESET"].as_bytes()).unwrap();
+                            line_str.push_str(&PREDEFINED_COLORS["RESET"]);
                             substring_len = 0;
                             increasing_str.clear();
                             increasing_str.push(c);
                         } else {
                             substring_len = len;
                         }
-                        std::io::stdout().write_all(&[c as u8]).unwrap();
+                        line_str.push(c);
                     } else {
                         *prev_matched = true;
                         let substr = cap.get(0).unwrap().as_str();
                         let len = substr.len();
                         let color = params.syntaxes[index as usize].color();
-                        let mut line_str = String::new();
                         line_str.push_str(&format!("{:\x08<1$}", "", len-1));
                         line_str.push_str(&color);
                         line_str.push_str(&substr);
                         *increasing_str = substr.to_string();
                         substring_len = len;
-                        std::io::stdout().write_all(&line_str.as_bytes()).unwrap();
                     }
                     continue 'outer;
                 }
@@ -151,13 +150,15 @@ pub fn coloring_words(serial_buf: &str,
 
         if *prev_matched {
             *prev_matched = false;
-            std::io::stdout().write_all(PREDEFINED_COLORS["RESET"].as_bytes()).unwrap();
+            line_str.push_str(&PREDEFINED_COLORS["RESET"]);
             increasing_str.clear();
             increasing_str.push(c);
         }
 
-        std::io::stdout().write_all(&[c as u8]).unwrap();
+        line_str.push(c);
     }
+
+    std::io::stdout().write_all(&line_str.as_bytes()).unwrap();
 }
 
 /* Color example
