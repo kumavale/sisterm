@@ -33,8 +33,8 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
     let mut all_string = String::new();
 
     for line in text.lines() {
-        let mut line_str = String::new();
-        let mut increasing_str         = String::new();
+        let mut line_str       = String::new();
+        let mut increasing_str = String::new();
         let mut prev_matched   = false;
         let mut substring_len  = 0;
 
@@ -49,10 +49,11 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
                                 prev_matched = false;
                                 line_str.push_str(PREDEFINED_COLORS["RESET"]);
                                 increasing_str.clear();
+                                increasing_str.push(c);
                             } else {
                                 substring_len = len;
+                                line_str.push(c);
                             }
-                            line_str.push(c);
                         } else {
                             prev_matched = true;
                             let substr = cap.get(0).unwrap().as_str();

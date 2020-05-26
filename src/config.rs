@@ -8,45 +8,51 @@ use lazy_static::lazy_static;
 
 static CONTENTS: &[u8] =
 br#"#
-#  sisterm setting file
-#
-#  Its syntax is similar to Perl-style regular expressions, but lacks a few
-#  features like look around and backreferences.
-#  For more specific details on the API for regular expressions, please see
-#  the documentation for the Regex(https://docs.rs/regex) type.
-#
-#  [[colorings]]
-#  color = "String"       # required
-#  regex = "String"       # required
-#  underlined = Boolean   # option
-#
-#  Color example
-#   * RED           [Uppercase]
-#   * 001           [Decimal number]
-#   * FF0000        [Hexadecimal]
-#   * (255, 0, 0)   [Decimal number]
-#
-#  Predefined colors
-#   * BLACK
-#   * RED
-#   * GREEN
-#   * YELLOW
-#   * BLUE
-#   * MAGENTA
-#   * CYAN
-#   * WHITE
-#
+## This is the configuration file for the sisterm
+##
+## Its syntax is similar to Perl-style regular expressions, but lacks a few
+## features like look around and backreferences.
+## For more specific details on the API for regular expressions, please see
+## the documentation for the Regex(https://docs.rs/regex) type.
+##
+## [[colorings]]
+## color = "String"       # required
+## regex = "String"       # required
+## underlined = Boolean   # option
+##
+## Color example
+##  * RED           [Uppercase]
+##  * 001           [Decimal number]
+##  * FF0000        [Hexadecimal]
+##  * (255, 0, 0)   [Decimal number]
+##
+## Predefined colors
+##  * BLACK
+##  * RED
+##  * GREEN
+##  * YELLOW
+##  * BLUE
+##  * MAGENTA
+##  * CYAN
+##  * WHITE
+##
 
 
-# Specify default serial port
-# port  = "/dev/ttyS0"
+## Specify default serial port
+#port  = "/dev/ttyS0"
 
-# Specify default baud rate
-# speed = "9600"
+## Specify default baud rate
+#speed = "9600"
 
-# Specify default Send '\r' instead of '\n'
-# instead_cr = true
+## Specify default Send '\r' instead of '\n'
+#instead_cr = true
 
+
+##############################
+#_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+#_/_/  SAMPLE COLORINGS  _/_/#
+#_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
+##############################
 
 # comments
 [[colorings]]
@@ -66,7 +72,7 @@ regex = ["(\".*\")|('.*')"]
 # emphansis
 [[colorings]]
 color = "MAGENTA"
-regex = ["( |^)(not?|confirm|warning|warnings|failed|failures|errors?|crash)( |$)"]
+regex = ["( |^)(not?|confirm|warning|warnings|failed|failures|errors?|crash) "]
 
 # interface
 [[colorings]]
