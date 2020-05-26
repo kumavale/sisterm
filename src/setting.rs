@@ -33,12 +33,15 @@ impl Params {
         };
 
         let mut syntaxes: Vec<SyntaxDefinition> = vec![
-            SyntaxDefinition::new("\x1b[0m".to_string(), Regex::new("0^").unwrap()),
+            SyntaxDefinition::new("\x1b[0m".to_string(), vec![Regex::new("0^").unwrap()]),
         ];
         for coloring in &setting.colorings {
-            let re = Regex::new(&coloring.regex).expect("Failed compile regex");
+            let mut re_vec = Vec::new();
+            for regex in &coloring.regex {
+                re_vec.push(Regex::new(regex).expect("Failed compile regex"));
+            }
             let color = color::valid_color_syntax(&coloring).unwrap();
-            syntaxes.push(SyntaxDefinition::new(color, re));
+            syntaxes.push(SyntaxDefinition::new(color, re_vec));
         }
 
         Some( Self {
@@ -52,11 +55,11 @@ impl Params {
 
 pub struct SyntaxDefinition {
     color: String,
-    regex: Regex,
+    regex: Vec<Regex>,
 }
 
 impl SyntaxDefinition {
-    fn new(color: String, regex: Regex) -> Self {
+    fn new(color: String, regex: Vec<Regex>) -> Self {
         Self {
             color,
             regex,
@@ -67,7 +70,7 @@ impl SyntaxDefinition {
         &self.color
     }
 
-    pub fn regex(&self) -> &Regex {
+    pub fn regex(&self) -> &Vec<Regex> {
         &self.regex
     }
 }
@@ -89,7 +92,7 @@ struct Setting {
 #[derive(Deserialize)]
 pub struct Coloring {
     color:      String,
-    regex:      String,
+    regex:      Vec<String>,
     underlined: Option<bool>,
 }
 

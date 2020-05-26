@@ -41,29 +41,31 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
         'outer: for c in line.chars() {
             increasing_str.push(c);
             for (index, syntax) in params.syntaxes.iter().enumerate() {
-                if let Some(cap) = syntax.regex().captures(&increasing_str) {
-                    if prev_matched {
-                        let len = cap.get(0).unwrap().as_str().len();
-                        if substring_len == len {
-                            prev_matched = false;
-                            line_str.push_str(PREDEFINED_COLORS["RESET"]);
-                            increasing_str.clear();
+                for regex in syntax.regex() {
+                    if let Some(cap) = regex.captures(&increasing_str) {
+                        if prev_matched {
+                            let len = cap.get(0).unwrap().as_str().len();
+                            if substring_len == len {
+                                prev_matched = false;
+                                line_str.push_str(PREDEFINED_COLORS["RESET"]);
+                                increasing_str.clear();
+                            } else {
+                                substring_len = len;
+                            }
+                            line_str.push(c);
                         } else {
+                            prev_matched = true;
+                            let substr = cap.get(0).unwrap().as_str();
+                            let len = substr.len();
+                            let color = params.syntaxes[index as usize].color();
+                            line_str.push_str(&increasing_str[..increasing_str.len()-len]);
+                            line_str.push_str(&color);
+                            line_str.push_str(&substr);
+                            increasing_str = substr.to_string();
                             substring_len = len;
                         }
-                        line_str.push(c);
-                    } else {
-                        prev_matched = true;
-                        let substr = cap.get(0).unwrap().as_str();
-                        let len = substr.len();
-                        let color = params.syntaxes[index as usize].color();
-                        line_str.push_str(&increasing_str[..increasing_str.len()-len]);
-                        line_str.push_str(&color);
-                        line_str.push_str(&substr);
-                        increasing_str = substr.to_string();
-                        substring_len = len;
+                        continue 'outer;
                     }
-                    continue 'outer;
                 }
             }
 
@@ -114,33 +116,35 @@ pub fn coloring_words(serial_buf: &str,
         increasing_str.push(c);
 
         for (index, syntax) in params.syntaxes.iter().enumerate() {
-            if let Some(cap) = syntax.regex().captures(&increasing_str) {
-                if *prev_matched {
-                    let len = cap.get(0).unwrap().as_str().len();
-                    if substring_len == len {
-                        *prev_matched = false;
-                        std::io::stdout().write_all(PREDEFINED_COLORS["RESET"].as_bytes()).unwrap();
-                        substring_len = 0;
-                        increasing_str.clear();
-                        increasing_str.push(c);
+            for regex in syntax.regex() {
+                if let Some(cap) = regex.captures(&increasing_str) {
+                    if *prev_matched {
+                        let len = cap.get(0).unwrap().as_str().len();
+                        if substring_len == len {
+                            *prev_matched = false;
+                            std::io::stdout().write_all(PREDEFINED_COLORS["RESET"].as_bytes()).unwrap();
+                            substring_len = 0;
+                            increasing_str.clear();
+                            increasing_str.push(c);
+                        } else {
+                            substring_len = len;
+                        }
+                        std::io::stdout().write_all(&[c as u8]).unwrap();
                     } else {
+                        *prev_matched = true;
+                        let substr = cap.get(0).unwrap().as_str();
+                        let len = substr.len();
+                        let color = params.syntaxes[index as usize].color();
+                        let mut line_str = String::new();
+                        line_str.push_str(&format!("{:\x08<1$}", "", len-1));
+                        line_str.push_str(&color);
+                        line_str.push_str(&substr);
+                        *increasing_str = substr.to_string();
                         substring_len = len;
+                        std::io::stdout().write_all(&line_str.as_bytes()).unwrap();
                     }
-                    std::io::stdout().write_all(&[c as u8]).unwrap();
-                } else {
-                    *prev_matched = true;
-                    let substr = cap.get(0).unwrap().as_str();
-                    let len = substr.len();
-                    let color = params.syntaxes[index as usize].color();
-                    let mut line_str = String::new();
-                    line_str.push_str(&format!("{:\x08<1$}", "", len-1));
-                    line_str.push_str(&color);
-                    line_str.push_str(&substr);
-                    *increasing_str = substr.to_string();
-                    substring_len = len;
-                    std::io::stdout().write_all(&line_str.as_bytes()).unwrap();
+                    continue 'outer;
                 }
-                continue 'outer;
             }
         }
 
