@@ -19,7 +19,7 @@ where
     T: std::io::Read,
 {
     let mut serial_buf: Vec<u8> = vec![0; 1024];
-    let mut last_word  = (String::new(), false);  // (word, colored)
+    let mut last_word  = (String::new(), false);  // (increasing_str, prev_matched)
 
     // Save log
     if let Some(write_file) = flags.write_file() {

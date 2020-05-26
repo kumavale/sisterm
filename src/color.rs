@@ -86,68 +86,72 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
     println!("{}", all_string);
 }
 
-pub fn coloring_words(serial_buf: &str, (word, colored): &mut (String, bool), params: &Option<setting::Params>) {
-    if let Some(params) = params {
-        let mut all_string = String::new();
+pub fn coloring_words(serial_buf: &str,
+                     (increasing_str, prev_matched): &mut (String, bool),
+                      params: &Option<setting::Params>)
+{
+    let params = params.as_ref().expect("assert Some");
+    let mut substring_len = increasing_str.len();
 
-        for c in serial_buf.chars() {
-            let mut matched = false;
-            let mut index: usize = 0;
+    'outer: for c in serial_buf.chars() {
 
-            if c == '\r' || c == '\n' {
-                word.clear();
-                if *colored {
-                    all_string.push_str(PREDEFINED_COLORS["RESET"]);
-                }
-                all_string.push(c);
-                *colored = false;
-                continue;
-            } else {
-                if word.ends_with(' ') {
-                    if c != ' ' {
-                        word.clear();
-                        if *colored {
-                            all_string.push_str(PREDEFINED_COLORS["RESET"]);
-                        }
-                        *colored = false;
-                    }
-                } else if c == ' ' {
-                    word.clear();
-                    if *colored {
-                        all_string.push_str(PREDEFINED_COLORS["RESET"]);
-                    }
-                    *colored = false;
-                }
-                word.push(c);
+        if c == '\r' || c == '\n' {
+            increasing_str.clear();
+            if *prev_matched {
+                std::io::stdout().write_all(PREDEFINED_COLORS["RESET"].as_bytes()).unwrap();
             }
+            *prev_matched = false;
+            std::io::stdout().write_all(&[c as u8]).unwrap();
+            continue;
+        }
 
-            for (i, syntax) in params.syntaxes.iter().enumerate() {
-                if syntax.regex().captures(&word).is_some() {
-                    matched = true;
-                    index = i;
-                    break;
-                }
-            }
+        if c == '\x08' { // BS
+            increasing_str.pop();
+            std::io::stdout().write_all(&[c as u8]).unwrap();
+            continue;
+        }
 
-            if matched {
-                let color = params.syntaxes[index].color();  // assert Some()
-                if *colored {
-                    all_string.push(c);
+        increasing_str.push(c);
+
+        for (index, syntax) in params.syntaxes.iter().enumerate() {
+            if let Some(cap) = syntax.regex().captures(&increasing_str) {
+                if *prev_matched {
+                    let len = cap.get(0).unwrap().as_str().len();
+                    if substring_len == len {
+                        *prev_matched = false;
+                        std::io::stdout().write_all(PREDEFINED_COLORS["RESET"].as_bytes()).unwrap();
+                        substring_len = 0;
+                        increasing_str.clear();
+                        increasing_str.push(c);
+                    } else {
+                        substring_len = len;
+                    }
+                    std::io::stdout().write_all(&[c as u8]).unwrap();
                 } else {
-                    all_string += &format!("{:\x08<1$}{2}{3}", "", word.len()-1, color, word);
-                    *colored = true;
+                    *prev_matched = true;
+                    let substr = cap.get(0).unwrap().as_str();
+                    let len = substr.len();
+                    let color = params.syntaxes[index as usize].color();
+                    let mut line_str = String::new();
+                    line_str.push_str(&format!("{:\x08<1$}", "", len-1));
+                    line_str.push_str(&color);
+                    line_str.push_str(&substr);
+                    *increasing_str = substr.to_string();
+                    substring_len = len;
+                    std::io::stdout().write_all(&line_str.as_bytes()).unwrap();
                 }
-
-            } else {
-                if *colored {
-                    all_string.push_str(PREDEFINED_COLORS["RESET"]);
-                }
-                all_string.push(c);
-                *colored = false;
+                continue 'outer;
             }
         }
 
-        std::io::stdout().write_all(all_string.as_bytes()).unwrap();
+        if *prev_matched {
+            *prev_matched = false;
+            std::io::stdout().write_all(PREDEFINED_COLORS["RESET"].as_bytes()).unwrap();
+            increasing_str.clear();
+            increasing_str.push(c);
+        }
+
+        std::io::stdout().write_all(&[c as u8]).unwrap();
     }
 }
 

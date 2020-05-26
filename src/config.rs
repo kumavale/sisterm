@@ -48,10 +48,15 @@ br#"#
 # instead_cr = true
 
 
+# comments
+[[colorings]]
+color = "(128, 150, 200)"
+regex = "(//.*)|(/\\*.*\\*/)|(/\\*.*)"  # C style
+
 # positive
 [[colorings]]
 color = "GREEN"
-regex = "(?i)yes|up|enable|enabled|active(?-i)"
+regex = "( |^)((?i)yes|up|enable|enabled|active(?-i))( |$)"
 
 # string
 [[colorings]]
@@ -61,12 +66,12 @@ regex = "(\".*\")|('.*')"
 # emphansis
 [[colorings]]
 color = "MAGENTA"
-regex = "not?|confirm|warning|warnings|failed|failures|errors?|crash"
+regex = "( |^)(not?|confirm|warning|warnings|failed|failures|errors?|crash)( |$)"
 
 # interface
 [[colorings]]
 color = "CYAN"
-regex = "(([Tt]engigabit|[Gg]igabit|[Ff]ast)?[Ee]thernet|[Ff]a|[Gg]i)\\d/\\d"
+regex = "(([Tt]engigabit|[Gg]igabit|[Ff]ast)?[Ee]thernet|[Ff]a|[Gg]i)\\d+/\\d+"
 
 # negative
 [[colorings]]
