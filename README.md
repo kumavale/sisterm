@@ -78,9 +78,9 @@ For more specific details on the API for regular expressions, please see the doc
 
 ```
 [[colorings]]
-color = "String"       # required
-regex = "String"       # required
-underlined = Boolean   # option
+color = "String"         # required
+regex = ["String", ...]  # required
+underlined = Boolean     # option
 ```
 
 ### Color syntax
@@ -109,18 +109,18 @@ underlined = Boolean   # option
 # string
 [[colorings]]
 color = "184"
-regex = "(\".*\")|('.*')"
+regex = ["(\".*\")|('.*')"]
 
 # positive
 [[colorings]]
 color = "GREEN"
-regex = "^(yes|YES|up|enable|enabled|active)$"
+regex = ["( |^)((?i)yes|up|enable|enabled|active(?-i))( |$)"]
 
 # negative
 [[colorings]]
-color = "(255, 0, 0)"
-regex = "^(unassigned|disable|disabled|deny|shutdown|down|administratively|none)$"
 underlined = true
+color = "(255, 0, 0)"
+regex = ["unassigned|disable|disabled|deny|shutdown|down|administratively|none"]
 ```
 
 
