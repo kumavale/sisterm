@@ -10,6 +10,7 @@ pub struct Params {
     pub port:       Option<String>,
     pub speed:      Option<String>,
     pub instead_cr: bool,
+    pub buf_size:   usize,
     pub syntaxes:   Vec<SyntaxDefinition>,
 }
 
@@ -48,6 +49,7 @@ impl Params {
             port:       setting.port,
             speed:      setting.speed,
             instead_cr: setting.instead_cr,
+            buf_size:   setting.buf_size.unwrap(),
             syntaxes,
         })
     }
@@ -77,16 +79,32 @@ impl SyntaxDefinition {
 
 #[derive(Deserialize)]
 struct Setting {
-    port:       Option<String>,
-    speed:      Option<String>,
+    port:  Option<String>,
+    speed: Option<String>,
 
     #[serde(default)]
     instead_cr: bool,
+
+    #[serde(default)]
+    buf_size: BufSize,
 
     //timestamp:  Option<bool>,
     //nocolor:    Option<bool>,
 
     colorings: Vec<Coloring>,
+}
+
+#[derive(Deserialize)]
+struct BufSize(usize);
+impl Default for BufSize {
+    fn default() -> Self {
+        BufSize(16)
+    }
+}
+impl BufSize {
+    fn unwrap(&self) -> usize {
+        self.0
+    }
 }
 
 #[derive(Deserialize)]

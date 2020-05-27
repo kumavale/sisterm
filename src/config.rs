@@ -47,6 +47,9 @@ br#"##
 ## Specify default Send '\r' instead of '\n'
 #instead_cr = true
 
+## Specify default read buffer size
+#buf_size = 16
+
 
 ##############################
 #_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
