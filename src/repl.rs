@@ -5,8 +5,8 @@ use crate::queue::Queue;
 use crate::flag;
 use crate::color;
 use crate::setting;
+use crate::getch::Getch;
 
-use getch::Getch;
 use chrono::Local;
 
 
@@ -147,6 +147,31 @@ where
     loop {
         match g.getch() {
             Ok(key) => {
+                // Arrow keys
+                if cfg!(windows) && key == 0 || key == 224 { // ESC
+                    match g.getch() {
+                        Ok(72) => if let Err(e) = port.write(&[27, 91, 65]) { eprintln!("{}", e); }, // Up
+                        Ok(80) => if let Err(e) = port.write(&[27, 91, 66]) { eprintln!("{}", e); }, // Down
+                        Ok(77) => if let Err(e) = port.write(&[27, 91, 67]) { eprintln!("{}", e); }, // Right
+                        Ok(75) => if let Err(e) = port.write(&[27, 91, 68]) { eprintln!("{}", e); }, // Left
+                        Ok(k)  => if let Err(e) = port.write(&[224, k])     { eprintln!("{}", e); }, // Other
+                        Err(e) => eprintln!("{}", e),
+                    }
+                    continue;
+                }
+                if cfg!(not(windows)) && key == 27 { // ESC
+                    let _ = g.getch();
+                    match g.getch() {
+                        Ok(b'A') => if let Err(e) = port.write(&[27, 91, 65]) { eprintln!("{}", e); }, // Up
+                        Ok(b'B') => if let Err(e) = port.write(&[27, 91, 66]) { eprintln!("{}", e); }, // Down
+                        Ok(b'C') => if let Err(e) = port.write(&[27, 91, 67]) { eprintln!("{}", e); }, // Right
+                        Ok(b'D') => if let Err(e) = port.write(&[27, 91, 68]) { eprintln!("{}", e); }, // Left
+                        Ok(k)    => if let Err(e) = port.write(&[27, 91, k])  { eprintln!("{}", e); }, // Other
+                        Err(e) => eprintln!("{}", e),
+                    }
+                    continue;
+                }
+
                 queue.enqueue(key);
                 // If input "~." to exit
                 if queue.is_exit_chars() {

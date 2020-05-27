@@ -5,9 +5,9 @@ use std::sync::mpsc;
 use crate::repl;
 use crate::flag;
 use crate::setting;
+use crate::getch::Getch;
 
 use serialport::SerialPortSettings;
-use getch::Getch;
 
 
 pub fn run(port_name: String,

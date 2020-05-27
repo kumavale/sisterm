@@ -7,8 +7,7 @@ use std::path::Path;
 use crate::repl;
 use crate::flag;
 use crate::setting;
-
-use getch::Getch;
+use crate::getch::Getch;
 
 pub fn run(host:      &str,
            mut flags: flag::Flags,
