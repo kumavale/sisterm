@@ -165,6 +165,7 @@ pub fn coloring_words(serial_buf: &str,
     * RED
     * 001
     * FF0000
+    * #FF0000
     * (255, 0, 0)
  */
 pub fn valid_color_syntax(coloring: &setting::Coloring) -> Result<String, String> {
@@ -191,6 +192,9 @@ pub fn valid_color_syntax(coloring: &setting::Coloring) -> Result<String, String
     if is_24bit_color(&color) {
         return Ok(to_24bit_color(&color, underlined));
     }
+    if is_24bit_color_hash(&color) {
+        return Ok(to_24bit_color(&color[1..], underlined));
+    }
     if is_rgb_color(&color) {
         return Ok(to_rgb_color(&color, underlined));
     }
@@ -208,6 +212,10 @@ fn is_8bit_color(color: &str) -> bool {
 
 fn is_24bit_color(color: &str) -> bool {
     color.len() == 6 && i32::from_str_radix(color, 16).is_ok()
+}
+
+fn is_24bit_color_hash(color: &str) -> bool {
+    color.len() == 7 && color.starts_with('#') && i32::from_str_radix(&color[1..], 16).is_ok()
 }
 
 fn is_rgb_color(color: &str) -> bool {
@@ -360,10 +368,52 @@ mod tests {
                 "ff000",
                 false,
             ),
+            (
+                "#ff000",
+                false,
+            ),
         ];
 
         for (input, expect) in tests {
             assert_eq!(is_24bit_color(input), expect);
+        }
+    }
+
+    #[test]
+    fn test_is_24bit_color_hash() {
+        let tests = vec![
+            (
+                "#000000",
+                true,
+            ),
+            (
+                "#FF0000",
+                true,
+            ),
+            (
+                "#FFFFFF",
+                true,
+            ),
+            (
+                "#abcdef",
+                true,
+            ),
+            (
+                "#GGGGGG",
+                false,
+            ),
+            (
+                "#ff000",
+                false,
+            ),
+            (
+                "ff000",
+                false,
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(is_24bit_color_hash(input), expect);
         }
     }
 

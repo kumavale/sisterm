@@ -24,6 +24,7 @@ br#"##
 ##  * RED           [Uppercase]
 ##  * 001           [Decimal number]
 ##  * FF0000        [Hexadecimal]
+##  * #FF0000       [Hexadecimal]
 ##  * (255, 0, 0)   [Decimal number]
 ##
 ## Predefined colors
@@ -48,7 +49,7 @@ br#"##
 #instead_cr = true
 
 ## Specify default read buffer size
-#buf_size = 16
+#read_buf_size = 16
 
 ## Specify default TCP connect timeout
 #tcp_connect_timeout = 5
