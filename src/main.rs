@@ -258,18 +258,11 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
         instead_cr
     };
 
-    // Buffer size
-    let buf_size = if let Some(ref params) = params {
-        params.buf_size
-    } else {
-        16  // Default buffer size
-    };
-
     // If "write file (-w)" is specified
     let write_file = matches.value_of("write file");
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, append, instead_cr, buf_size, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, append, instead_cr, write_file);
 
     (flags, params)
 }

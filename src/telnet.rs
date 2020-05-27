@@ -8,12 +8,19 @@ use crate::repl;
 use crate::flag;
 use crate::setting;
 use crate::getch::Getch;
+use crate::default;
 
 pub fn run(host:      &str,
            mut flags: flag::Flags,
            params:    Option<setting::Params>)
 {
-    let receiver = TcpStream::connect_timeout(&to_SocketAddr_for_telnet(host), Duration::from_secs(4))
+    let tcp_connect_timeout = if let Some(ref p) = params {
+        p.tcp_connect_timeout
+    } else {
+        default::TCP_CONNECT_TIMEOUT
+    };
+    let receiver = TcpStream::connect_timeout(
+        &to_SocketAddr_for_telnet(host), Duration::from_secs(tcp_connect_timeout))
         .unwrap_or_else(|e| {
             eprintln!("Could not connect: {}", e);
             std::process::exit(1);

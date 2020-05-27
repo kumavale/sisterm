@@ -50,6 +50,9 @@ br#"##
 ## Specify default read buffer size
 #buf_size = 16
 
+## Specify default TCP connect timeout
+#tcp_connect_timeout = 5
+
 
 ##############################
 #_/_/_/_/_/_/_/_/_/_/_/_/_/_/#

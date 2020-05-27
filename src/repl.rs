@@ -6,6 +6,7 @@ use crate::flag;
 use crate::color;
 use crate::setting;
 use crate::getch::Getch;
+use crate::default;
 
 use chrono::Local;
 
@@ -18,9 +19,12 @@ pub fn receiver_run<T>(
 where
     T: std::io::Read,
 {
-    let buf_size = flags.buf_size();
-    dbg!(buf_size);
-    let mut serial_buf: Vec<u8> = vec![0; buf_size];
+    let read_buf_size = if let Some(ref p) = params {
+        p.read_buf_size
+    } else {
+        default::READ_BUFFER_SIZE
+    };
+    let mut serial_buf: Vec<u8> = vec![0; read_buf_size];
     let mut last_word  = (String::new(), false);  // (increasing_str, prev_matched)
 
     // Save log

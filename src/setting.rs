@@ -2,16 +2,18 @@ use std::fs::File;
 use std::io::Read;
 
 use crate::color;
+use crate::default;
 
 use regex::Regex;
 use serde::Deserialize;
 
 pub struct Params {
-    pub port:       Option<String>,
-    pub speed:      Option<String>,
-    pub instead_cr: bool,
-    pub buf_size:   usize,
-    pub syntaxes:   Vec<SyntaxDefinition>,
+    pub port:                Option<String>,
+    pub speed:               Option<String>,
+    pub instead_cr:          bool,
+    pub read_buf_size:       usize,
+    pub tcp_connect_timeout: u64,
+    pub syntaxes:            Vec<SyntaxDefinition>,
 }
 
 impl Params {
@@ -46,10 +48,11 @@ impl Params {
         }
 
         Some( Self {
-            port:       setting.port,
-            speed:      setting.speed,
-            instead_cr: setting.instead_cr,
-            buf_size:   setting.buf_size.unwrap(),
+            port:                setting.port,
+            speed:               setting.speed,
+            instead_cr:          setting.instead_cr,
+            read_buf_size:       setting.read_buf_size.unwrap(),
+            tcp_connect_timeout: setting.tcp_connect_timeout.unwrap(),
             syntaxes,
         })
     }
@@ -86,7 +89,10 @@ struct Setting {
     instead_cr: bool,
 
     #[serde(default)]
-    buf_size: BufSize,
+    read_buf_size: ReadBufSize,
+
+    #[serde(default)]
+    tcp_connect_timeout: TcpConnectTimeout,
 
     //timestamp:  Option<bool>,
     //nocolor:    Option<bool>,
@@ -95,14 +101,27 @@ struct Setting {
 }
 
 #[derive(Deserialize)]
-struct BufSize(usize);
-impl Default for BufSize {
+struct ReadBufSize(usize);
+impl Default for ReadBufSize {
     fn default() -> Self {
-        BufSize(16)
+        ReadBufSize(default::READ_BUFFER_SIZE)
     }
 }
-impl BufSize {
+impl ReadBufSize {
     fn unwrap(&self) -> usize {
+        self.0
+    }
+}
+
+#[derive(Deserialize)]
+struct TcpConnectTimeout(u64);
+impl Default for TcpConnectTimeout {
+    fn default() -> Self {
+        TcpConnectTimeout(default::TCP_CONNECT_TIMEOUT)
+    }
+}
+impl TcpConnectTimeout {
+    fn unwrap(&self) -> u64 {
         self.0
     }
 }

@@ -1,24 +1,21 @@
 
 #[derive(Clone)]
 pub struct Flags {
-    nocolor:     bool,
-    timestamp:   bool,
-    append:      bool,
-    instead_cr:  bool,
-    buf_size:    usize,
-    write_file:  Option<String>,
+    nocolor:    bool,
+    timestamp:  bool,
+    append:     bool,
+    instead_cr: bool,
+    write_file: Option<String>,
 }
 
 impl Flags {
-    pub fn new(nocolor: bool, timestamp: bool, append: bool, instead_cr: bool,
-        buf_size: usize, wf: Option<&str>) -> Self
+    pub fn new(nocolor: bool, timestamp: bool, append: bool, instead_cr: bool, wf: Option<&str>) -> Self
     {
         Self {
             nocolor,
             timestamp,
             append,
             instead_cr,
-            buf_size,
             write_file: match wf {
                 Some(file) => Some(file.to_string()),
                 None => None,
@@ -48,10 +45,6 @@ impl Flags {
 
     pub fn is_instead_cr(&self) -> bool {
         self.instead_cr
-    }
-
-    pub fn buf_size(&self) -> usize {
-        self.buf_size
     }
 
     pub fn write_file(&self) -> Option<&String> {
