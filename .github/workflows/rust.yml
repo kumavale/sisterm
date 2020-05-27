@@ -16,8 +16,8 @@ jobs:
 
     - name: prepare
       run: |
-          sudo apt install pkg-config -y
-          sudo apt install libudev-dev -y
+          sudo apt update
+          sudo apt install -y pkg-config libudev-dev
 
     - name: Build
       run: cargo build --verbose --all-targets
