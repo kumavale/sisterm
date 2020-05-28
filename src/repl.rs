@@ -22,12 +22,12 @@ where
     let (read_buf_size, timestamp_format) = if let Some(ref p) = params {
         (
             p.read_buf_size,
-            format!("\n{}", p.timestamp_format)
+            &*p.timestamp_format
         )
     } else {
         (
             default::READ_BUFFER_SIZE,
-            format!("\n{}", default::TIMESTAMP_FORMAT)
+            default::TIMESTAMP_FORMAT
         )
     };
     let mut serial_buf: Vec<u8> = vec![0; read_buf_size];
@@ -62,17 +62,30 @@ where
             }
         );
 
-        // If timestamp flag is true then write to log file
-        if flags.is_timestamp() {
-            log_buf = format_timestamp(&timestamp_format);
-            log_file.write_all(log_buf.as_bytes()).unwrap();
-            log_buf.clear();
-        }
+        // First, insert return to log
+        log_file.write_all(b"\n").unwrap();
 
         loop {
             // if "~." is typed, exit
             if rx.try_recv().is_ok() {
-                log_file.write_all(log_buf.as_bytes()).unwrap();
+                // Write to log
+                if flags.is_timestamp() {
+                    let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
+                    let log_buf_last = log_buf_vec.pop().unwrap().to_string();
+                    log_file.write_all(
+                        log_buf_vec
+                        .iter()
+                        .map(|line| format_timestamp(&timestamp_format) + &line + "\n")
+                        .collect::<String>()
+                        .as_bytes()
+                    ).unwrap();
+                    log_file.write_all(
+                        (format_timestamp(&timestamp_format) + &log_buf_last)
+                        .as_bytes()).unwrap();
+                } else {
+                    log_file.write_all(log_buf.as_bytes()).unwrap();
+                }
+
                 log_file.flush().unwrap();
                 break;
             }
@@ -114,11 +127,20 @@ where
             if write_flag {
                 // Write timestamp to log file
                 if flags.is_timestamp() {
-                    // If '\n' exists, replace to timestamp from '\n'
-                    log_buf = log_buf.replace("\n", &format_timestamp(&timestamp_format));
+                    let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
+                    let log_buf_last = log_buf_vec.pop().unwrap().to_string();
+                    log_file.write_all(
+                        log_buf_vec
+                            .iter()
+                            .map(|line| format_timestamp(&timestamp_format) + &line + "\n")
+                            .collect::<String>()
+                            .as_bytes()
+                    ).unwrap();
+                    log_buf = log_buf_last;
+                } else {
+                    log_file.write_all(log_buf.as_bytes()).unwrap();
+                    log_buf.clear();
                 }
-                log_file.write_all(log_buf.as_bytes()).unwrap();
-                log_buf.clear();
                 write_flag = false;
             }
         }
