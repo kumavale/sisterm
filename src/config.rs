@@ -48,11 +48,16 @@ br#"##
 ## Specify default Send '\r' instead of '\n'
 #instead_cr = true
 
-## Specify default read buffer size
+## Specify read buffer size
 #read_buf_size = 16
 
-## Specify default TCP connect timeout
+## Specify TCP connect timeout
 #tcp_connect_timeout = 5
+
+## Specify timestamp format
+## See below for detailed documentation
+## https://docs.rs/chrono/0.4.11/chrono/format/strftime/index.html
+#timestamp_format = "[%Y-%m-%d %H:%M:%S %Z] "
 
 
 ##############################

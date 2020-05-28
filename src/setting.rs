@@ -13,6 +13,7 @@ pub struct Params {
     pub instead_cr:          bool,
     pub read_buf_size:       usize,
     pub tcp_connect_timeout: u64,
+    pub timestamp_format:   String,
     pub syntaxes:            Vec<SyntaxDefinition>,
 }
 
@@ -53,6 +54,7 @@ impl Params {
             instead_cr:          setting.instead_cr,
             read_buf_size:       setting.read_buf_size.unwrap(),
             tcp_connect_timeout: setting.tcp_connect_timeout.unwrap(),
+            timestamp_format:   setting.timestamp_format,
             syntaxes,
         })
     }
@@ -94,6 +96,9 @@ struct Setting {
     #[serde(default)]
     tcp_connect_timeout: TcpConnectTimeout,
 
+    #[serde(default = "default_timestamp_format")]
+    timestamp_format: String,
+
     //timestamp:  Option<bool>,
     //nocolor:    Option<bool>,
 
@@ -124,6 +129,10 @@ impl TcpConnectTimeout {
     fn unwrap(&self) -> u64 {
         self.0
     }
+}
+
+fn default_timestamp_format() -> String {
+    default::TIMESTAMP_FORMAT.to_string()
 }
 
 #[derive(Deserialize)]

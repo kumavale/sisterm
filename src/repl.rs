@@ -19,18 +19,24 @@ pub fn receiver_run<T>(
 where
     T: std::io::Read,
 {
-    let read_buf_size = if let Some(ref p) = params {
-        p.read_buf_size
+    let (read_buf_size, timestamp_format) = if let Some(ref p) = params {
+        (
+            p.read_buf_size,
+            format!("\n{}", p.timestamp_format)
+        )
     } else {
-        default::READ_BUFFER_SIZE
+        (
+            default::READ_BUFFER_SIZE,
+            format!("\n{}", default::TIMESTAMP_FORMAT)
+        )
     };
     let mut serial_buf: Vec<u8> = vec![0; read_buf_size];
-    let mut last_word  = (String::new(), false);  // (increasing_str, prev_matched)
+    let mut last_word = (String::new(), false);  // (increasing_str, prev_matched)
 
     // Save log
     if let Some(write_file) = flags.write_file() {
 
-        let mut log_file   = {
+        let mut log_file = {
             if flags.is_append() {
                 BufWriter::new(OpenOptions::new()
                     .append(true)
@@ -102,7 +108,7 @@ where
                 // Write timestamp to log file
                 if flags.is_timestamp() {
                     // If '\n' exists, replace to timestamp from '\n'
-                    log_buf = log_buf.replace("\n", &format_timestamp());
+                    log_buf = log_buf.replace("\n", &format_timestamp(&timestamp_format));
                 }
                 log_file.write_all(log_buf.as_bytes()).unwrap();
                 log_buf.clear();
@@ -226,8 +232,8 @@ where
     }
 }
 
-fn format_timestamp() -> String {
-    Local::now().format("\n[%Y-%m-%d %H:%M:%S %Z] ").to_string()
+fn format_timestamp(timestamp_format: &str) -> String {
+    Local::now().format(timestamp_format).to_string()
 }
 
 fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
