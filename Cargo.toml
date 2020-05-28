@@ -1,6 +1,6 @@
 [package]
 name = "sisterm"
-version = "2.0.0"
+version = "2.1.0"
 authors = ["kmgy <bhnk1270223@gn.iwasaki.ac.jp>"]
 edition = "2018"
 description = "A simple terminal with syntax highlighting"
