@@ -1,7 +1,7 @@
 # sisterm
 
 [![Actions Status](https://github.com/kumavale/sisterm/workflows/Build/badge.svg)](https://github.com/kumavale/sisterm/actions)
-![version](https://img.shields.io/badge/version-2.0.0-success.svg)
+[![Crate](https://img.shields.io/crates/v/sisterm.svg)](https://crates.io/crates/sisterm)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
   
 sisterm(`sist`) is a simple terminal with syntax highlighting which supports:  
@@ -90,6 +90,7 @@ underlined = Boolean     # option
 #   RED
 #   001
 #   FF0000
+#   #FF0000
 #   (255, 0, 0)
 #
 # Predefined colors
