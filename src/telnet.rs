@@ -1,4 +1,4 @@
-use std::net::TcpStream;
+use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
 use std::thread;
 use std::sync::mpsc;
@@ -19,12 +19,30 @@ pub fn run(host:      &str,
     } else {
         default::TCP_CONNECT_TIMEOUT
     };
-    let receiver = TcpStream::connect_timeout(
-        &to_SocketAddr_for_telnet(host), Duration::from_secs(tcp_connect_timeout))
-        .unwrap_or_else(|e| {
-            eprintln!("Could not connect: {}", e);
+
+    let receiver = {
+        let hosts = to_SocketAddr_for_telnet(host);
+        if hosts.is_empty() {
+            eprintln!("Could not connect: {}", host);
             std::process::exit(1);
-        });
+        } else {
+            let mut result = None;
+            for host in hosts {
+                let r = TcpStream::connect_timeout(&host, Duration::from_secs(tcp_connect_timeout));
+                if r.is_ok() {
+                    result = Some(r);
+                    break;
+                }
+            }
+            result.unwrap_or_else(|| {
+                eprintln!("Could not connect: {}", host);
+                std::process::exit(1);
+            }).unwrap_or_else(|e| {
+                eprintln!("Could not connect: {}", e);
+                std::process::exit(1);
+            })
+        }
+    };
     receiver.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
     let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
 
@@ -77,13 +95,13 @@ pub fn run(host:      &str,
 // Check if the port number is attached
 // If not attached, append ":23"
 #[allow(non_snake_case)]
-fn to_SocketAddr_for_telnet(host: &str) -> std::net::SocketAddr {
-    match host.parse() {
-        Ok(result) => result,
+fn to_SocketAddr_for_telnet(host: &str) -> Vec<std::net::SocketAddr> {
+    match host.to_socket_addrs() {
+        Ok(result) => result.collect(),
         Err(_) => {
             let mut host = host.to_string();
             host.push_str(":23");
-            host.parse::<std::net::SocketAddr>().unwrap()
+            host.to_socket_addrs().unwrap().collect()
         }
     }
 }
@@ -100,15 +118,23 @@ mod tests {
         let tests = vec![
             (
                 "127.0.0.1",
-                SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23)),
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
             ),
             (
                 "127.0.0.1:23",
-                SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23)),
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
             ),
             (
                 "127.0.0.1:12321",
-                SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 12321)),
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 12321))],
+            ),
+            (
+                "localhost",
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))], // Environmental dependence
+            ),
+            (
+                "localhost:23",
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))], // Environmental dependence
             ),
         ];
 
