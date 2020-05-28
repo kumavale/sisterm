@@ -83,11 +83,11 @@ pub fn run(host:      &str,
     // Receiver
     let flags_clone = flags.clone();
     let handle = thread::spawn(move || {
-        repl::receiver_run(receiver, rx, flags_clone, params);
+        repl::receiver_telnet(receiver, rx, flags_clone, params);
     });
 
     // Transmitter
-    repl::transmitter_run(transmitter, tx, flags);
+    repl::transmitter_telnet(transmitter, tx, flags);
 
     handle.join().unwrap();
 }
