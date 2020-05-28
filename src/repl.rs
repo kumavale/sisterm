@@ -62,6 +62,13 @@ where
             }
         );
 
+        // If timestamp flag is true then write to log file
+        if flags.is_timestamp() {
+            log_buf = format_timestamp(&timestamp_format);
+            log_file.write_all(log_buf.as_bytes()).unwrap();
+            log_buf.clear();
+        }
+
         loop {
             // if "~." is typed, exit
             if rx.try_recv().is_ok() {
