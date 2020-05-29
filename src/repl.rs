@@ -231,39 +231,31 @@ where
         loop {
             // if "~." is typed, exit
             if rx.try_recv().is_ok() {
-                // Write to log
-                if flags.is_timestamp() {
-                    let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
-                    let log_buf_last = log_buf_vec.pop().unwrap().to_string();
-                    log_file.write_all(
-                        log_buf_vec
-                        .iter()
-                        .map(|line| format_timestamp(&timestamp_format) + &line + "\n")
-                        .collect::<String>()
-                        .as_bytes()
-                    ).unwrap();
-                    log_file.write_all(
-                        (format_timestamp(&timestamp_format) + &log_buf_last)
-                        .as_bytes()).unwrap();
-                } else {
-                    log_file.write_all(log_buf.as_bytes()).unwrap();
-                }
-
-                log_file.flush().unwrap();
                 break;
             }
 
             match port.read(serial_buf.as_mut_slice()) {
+                Ok(0) => break,
                 Ok(t) => {
+                    // Telnet command
+                    let start = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
+
+                    if start != 0 {
+                        if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
+                            eprintln!("{}", e);
+                        }
+                        send_neg.clear();
+                    }
+
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        io::stdout().write_all(&serial_buf[..t]).unwrap();
+                        io::stdout().write_all(&serial_buf[start..t]).unwrap();
                     } else {
-                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
+                        color::coloring_words(&serial_buf[start..t], &mut last_word, &params);
                     }
 
                     // Check exist '\n'
-                    for ch in &serial_buf[..t] {
+                    for ch in &serial_buf[start..t] {
                         // If '\n' exists, set write_flag to true
                         if ch == &b'\n' {
                             write_flag = true;
@@ -272,7 +264,7 @@ where
                     }
 
                     // Write to log_buf from serial_buf
-                    string_from_utf8_appearance(&mut log_buf, &serial_buf[..t]);
+                    string_from_utf8_appearance(&mut log_buf, &serial_buf[start..t]);
 
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -306,6 +298,26 @@ where
             }
         }
 
+        // Write to log
+        if flags.is_timestamp() {
+            let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
+            let log_buf_last = log_buf_vec.pop().unwrap().to_string();
+            log_file.write_all(
+                log_buf_vec
+                .iter()
+                .map(|line| format_timestamp(&timestamp_format) + &line + "\n")
+                .collect::<String>()
+                .as_bytes()
+            ).unwrap();
+            log_file.write_all(
+                (format_timestamp(&timestamp_format) + &log_buf_last)
+                .as_bytes()).unwrap();
+                } else {
+                    log_file.write_all(log_buf.as_bytes()).unwrap();
+        }
+
+        log_file.flush().unwrap();
+
     // Non save log
     } else {
         loop {
@@ -315,14 +327,13 @@ where
             }
 
             match port.read(serial_buf.as_mut_slice()) {
-                Ok(0) => continue,
+                Ok(0) => break,
                 Ok(t) => {
                     //println!("{:?}", &serial_buf[..t]);
                     // Telnet command
                     let start = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
 
                     if start != 0 {
-                        //println!("send_neg: {:?}", &send_neg[..send_neg.len()]);
                         if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
                             eprintln!("{}", e);
                         }

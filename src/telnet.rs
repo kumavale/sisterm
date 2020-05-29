@@ -88,6 +88,9 @@ pub fn run(host:      &str,
     let flags_clone = flags.clone();
     let handle = thread::spawn(move || {
         repl::receiver_telnet(receiver, rx, flags_clone, params);
+
+        println!("\n\x1b[0mDisconnected.");
+        std::process::exit(0);
     });
 
     // Transmitter
