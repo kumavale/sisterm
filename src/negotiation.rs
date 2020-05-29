@@ -19,6 +19,12 @@ mod commands {
     pub const DONT :u8 = 0xFE;  // 254
 
     pub const IAC  :u8 = 0xFF;  // 255
+
+    // Authentication Types
+    pub const IS    :u8 = 0x00;
+    pub const SEND  :u8 = 0x01;
+    pub const REPLY :u8 = 0x02;
+    pub const NAME  :u8 = 0x03;
 }
 
 #[allow(dead_code)]
@@ -141,48 +147,43 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> us
                             commands::WILL,
                             options::SUPPRESS_GO_AHEAD,
                         ]),
-                    //options::WINDOW_SIZE =>
-                    //    send_neg.extend_from_slice(&[
-                    //        commands::IAC,
-                    //        commands::SB,
-                    //        options::WINDOW_SIZE,
-                    //        //0x00,
-                    //        //0x50, // 80
-                    //        //0x00,
-                    //        //0x18, // 24
-                    //        commands::IAC,
-                    //        commands::SE,
-                    //    ]),
-                    options::TERMINAL_TYPE =>
+                    options::WINDOW_SIZE => {
                         send_neg.extend_from_slice(&[
                             commands::IAC,
                             commands::SB,
-                            options::TERMINAL_TYPE,
-                            0x01,
+                            options::WINDOW_SIZE,
+                        ]);
+                        send_neg.extend_from_slice(&get_window_size());
+                        send_neg.extend_from_slice(&[
                             commands::IAC,
                             commands::SE,
+                        ]);
+                    },
+                    options::TERMINAL_TYPE =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::WILL,
+                            options::TERMINAL_TYPE,
                         ]),
-                    //options::TERMINAL_SPEED =>
-                    //    send_neg.extend_from_slice(&[
-                    //        commands::IAC,
-                    //        commands::SB,
-                    //        options::TERMINAL_SPEED,
-                    //        0x00,
-                    //        0x33,  // 3
-                    //        0x38,  // 8
-                    //        0x34,  // 4
-                    //        0x30,  // 0
-                    //        0x30,  // 0
-                    //        0x2C,  // ,
-                    //        0x33,  // 3
-                    //        0x38,  // 8
-                    //        0x34,  // 4
-                    //        0x30,  // 0
-                    //        0x30,  // 0
-                    //        commands::IAC,
-                    //        commands::SE,
-                    //    ]),
+                    options::TERMINAL_SPEED =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::WILL,
+                            options::TERMINAL_SPEED,
+                        ]),
                     options::ECHO =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::WONT,
+                            options::ECHO,
+                        ]),
+                    options::LINE_MODE =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::WONT,
+                            options::LINE_MODE,
+                        ]),
+                    options::REMOTE_FLOW_CONTROL =>
                         send_neg.extend_from_slice(&[
                             commands::IAC,
                             commands::WONT,
@@ -204,9 +205,36 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> us
                 ]);
             },
             commands::SB => {
-                while serial_buf[i] != commands::SE {
-                    i += 1;
+                i += 1;
+                match serial_buf[i] {
+                    options::TERMINAL_TYPE =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::SB,
+                            options::TERMINAL_TYPE,
+                            commands::IS,
+                            //0x58, 0x54, 0x45, 0x52, 0x4d, 0x2d, 0x32,  // XTERM-
+                            //0x35, 0x36, 0x43, 0x4f, 0x4c, 0x4f, 0x52,  //   256COLOR
+                            0x58, 0x54, 0x45, 0x52, 0x4d, // XTERM
+                            //0x56, 0x54, 0x32, 0x32, 0x30, // VT200
+                            commands::IAC,
+                            commands::SE,
+                        ]),
+                    options::TERMINAL_SPEED =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::SB,
+                            options::TERMINAL_SPEED,
+                            commands::IS,
+                            0x33, 0x38, 0x34, 0x30, 0x30,  // 38400
+                            0x2C,                          // ,
+                            0x33, 0x38, 0x34, 0x30, 0x30,  // 38400
+                            commands::IAC,
+                            commands::SE,
+                        ]),
+                    _ => (),
                 }
+                while serial_buf[i] != commands::SE { i += 1; }
             },
             _ => (),
         }
@@ -217,3 +245,53 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> us
     i
 }
 
+#[cfg(windows)]
+fn get_window_size() -> [u8; 4] {
+    use winapi::um::processenv::GetStdHandle;
+    use winapi::um::winbase::STD_OUTPUT_HANDLE;
+    use winapi::um::wincon::{
+        GetConsoleScreenBufferInfo, CONSOLE_SCREEN_BUFFER_INFO, COORD, SMALL_RECT,
+    };
+
+    let zc = COORD { X: 0, Y: 0 };
+    let mut csbi = CONSOLE_SCREEN_BUFFER_INFO {
+        dwSize:           zc,
+        dwCursorPosition: zc,
+        wAttributes:       0,
+        srWindow: SMALL_RECT {
+            Left:   0,
+            Top:    0,
+            Right:  0,
+            Bottom: 0,
+        },
+        dwMaximumWindowSize: zc,
+    };
+
+    if unsafe { GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &mut csbi) } == 0 {
+        return [0, 0x50, 0, 0x18];  // 80x24
+    }
+
+    let width  = (csbi.srWindow.Right - csbi.srWindow.Left + 1) as u16;
+    let height = (csbi.srWindow.Bottom - csbi.srWindow.Top + 1) as u16;
+
+    [((width & 0b1111_1111_0000_0000) >> 8) as u8,  (width & 0b0000_0000_1111_1111) as u8,
+    ((height & 0b1111_1111_0000_0000) >> 8) as u8, (height & 0b0000_0000_1111_1111) as u8]
+}
+#[cfg(not(windows))]
+fn get_window_size() -> [u8; 4] {
+    use libc::{ioctl, winsize, TIOCGWINSZ, STDOUT_FILENO};
+    use std::mem;
+
+    let fd = STDOUT_FILENO;
+    let mut ws: winsize = unsafe { mem::zeroed() };
+
+    if unsafe { ioctl(fd, TIOCGWINSZ, &mut ws) } == -1 {
+        return [0, 0x50, 0, 0x18];  // 80x24
+    }
+
+    let width:  u16 = ws.ws_col;
+    let height: u16 = ws.ws_row;
+
+    [((width & 0b1111_1111_0000_0000) >> 8) as u8,  (width & 0b0000_0000_1111_1111) as u8,
+    ((height & 0b1111_1111_0000_0000) >> 8) as u8, (height & 0b0000_0000_1111_1111) as u8]
+}
