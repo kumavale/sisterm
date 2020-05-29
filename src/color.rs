@@ -89,7 +89,7 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
     println!("{}", all_string);
 }
 
-pub fn coloring_words(serial_buf: &[u8],
+pub fn coloring_words(serial_buf: &str,
                      (increasing_str, prev_matched): &mut (String, bool),
                       params: &Option<setting::Params>)
 {
@@ -97,9 +97,7 @@ pub fn coloring_words(serial_buf: &[u8],
     let mut substring_len = increasing_str.len();
     let mut line_str = String::new();
 
-    'outer: for c in serial_buf {
-
-        let c = *c as char;
+    'outer: for c in serial_buf.chars() {
 
         if c == '\r' || c == '\n' {
             increasing_str.clear();

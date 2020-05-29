@@ -97,7 +97,8 @@ where
                     if flags.is_nocolor() {
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
-                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
+                        color::coloring_words(
+                            &String::from_utf8(serial_buf[..t].to_vec()).unwrap(), &mut last_word, &params);
                     }
 
                     // Check exist '\n'
@@ -158,7 +159,8 @@ where
                     if flags.is_nocolor() {
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
-                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
+                        color::coloring_words(
+                            &String::from_utf8(serial_buf[..t].to_vec()).unwrap(), &mut last_word, &params);
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -237,10 +239,10 @@ where
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(0) => break,
                 Ok(t) => {
-                    // Telnet command
-                    let start = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
+                    // Check telnet command
+                    let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
 
-                    if start != 0 {
+                    if !send_neg.is_empty() {
                         if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
                             eprintln!("{}", e);
                         }
@@ -249,22 +251,22 @@ where
 
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        io::stdout().write_all(&serial_buf[start..t]).unwrap();
+                        io::stdout().write_all(&output.as_bytes()).unwrap();
                     } else {
-                        color::coloring_words(&serial_buf[start..t], &mut last_word, &params);
+                        color::coloring_words(&output, &mut last_word, &params);
                     }
 
                     // Check exist '\n'
-                    for ch in &serial_buf[start..t] {
+                    for ch in output.bytes() {
                         // If '\n' exists, set write_flag to true
-                        if ch == &b'\n' {
+                        if ch == b'\n' {
                             write_flag = true;
                             break;
                         }
                     }
 
                     // Write to log_buf from serial_buf
-                    string_from_utf8_appearance(&mut log_buf, &serial_buf[start..t]);
+                    string_from_utf8_appearance(&mut log_buf, &output.as_bytes());
 
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -330,10 +332,11 @@ where
                 Ok(0) => break,
                 Ok(t) => {
                     //println!("{:?}", &serial_buf[..t]);
-                    // Telnet command
-                    let start = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
+                    // Check telnet command
+                    let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
+                    //println!("{:?}", &output);
 
-                    if start != 0 {
+                    if !send_neg.is_empty() {
                         if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
                             eprintln!("{}", e);
                         }
@@ -342,9 +345,9 @@ where
 
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        io::stdout().write_all(&serial_buf[start..t]).unwrap();
+                        io::stdout().write_all(&output.as_bytes()).unwrap();
                     } else {
-                        color::coloring_words(&serial_buf[start..t], &mut last_word, &params);
+                        color::coloring_words(&output, &mut last_word, &params);
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,

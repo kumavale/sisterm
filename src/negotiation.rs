@@ -106,10 +106,19 @@ pub fn init(transmitter: &mut std::net::TcpStream) {
     }
 }
 
-pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> usize {
+pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> String {
+    let mut output = String::new();
     let mut i = 0;
 
-    while i < t && serial_buf[i] == commands::IAC {
+    while i < t {
+        if serial_buf[i] != commands::IAC {
+            if is_appear(serial_buf[i]) {
+                output.push(serial_buf[i] as char);
+            }
+            i += 1;
+            continue;
+        }
+
         i += 1;
 
         match serial_buf[i] {
@@ -242,7 +251,7 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> us
         i += 1;
     }
 
-    i
+    output
 }
 
 #[cfg(windows)]
@@ -294,4 +303,8 @@ fn get_window_size() -> [u8; 4] {
 
     [((width & 0b1111_1111_0000_0000) >> 8) as u8,  (width & 0b0000_0000_1111_1111) as u8,
     ((height & 0b1111_1111_0000_0000) >> 8) as u8, (height & 0b0000_0000_1111_1111) as u8]
+}
+
+fn is_appear(code: u8) -> bool {
+    0x08 <= code && code <= 0x0D || code == 0x1B || 0x20 <= code && code <= 0x7E
 }
