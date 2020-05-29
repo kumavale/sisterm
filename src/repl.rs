@@ -95,11 +95,9 @@ where
                 Ok(t) => {
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        let buf = erase_control_char(&serial_buf[..t]);
-                        io::stdout().write_all(buf.as_bytes()).unwrap();
+                        io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
-                        let buf = erase_control_char(&serial_buf[..t]);
-                        color::coloring_words(&buf, &mut last_word, &params);
+                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
                     }
 
                     // Check exist '\n'
@@ -158,11 +156,9 @@ where
                 Ok(t) => {
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        let buf = erase_control_char(&serial_buf[..t]);
-                        io::stdout().write_all(buf.as_bytes()).unwrap();
+                        io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
-                        let buf = erase_control_char(&serial_buf[..t]);
-                        color::coloring_words(&buf, &mut last_word, &params);
+                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -261,11 +257,9 @@ where
                 Ok(t) => {
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        let buf = erase_control_char(&serial_buf[..t]);
-                        io::stdout().write_all(buf.as_bytes()).unwrap();
+                        io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
-                        let buf = erase_control_char(&serial_buf[..t]);
-                        color::coloring_words(&buf, &mut last_word, &params);
+                        color::coloring_words(&serial_buf[..t], &mut last_word, &params);
                     }
 
                     // Check exist '\n'
@@ -323,12 +317,12 @@ where
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(0) => continue,
                 Ok(t) => {
-                    println!("{:?}", &serial_buf[..t]);
+                    //println!("{:?}", &serial_buf[..t]);
                     // Telnet command
                     let start = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
 
                     if start != 0 {
-                        println!("send_neg: {:?}", &send_neg[..send_neg.len()]);
+                        //println!("send_neg: {:?}", &send_neg[..send_neg.len()]);
                         if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
                             eprintln!("{}", e);
                         }
@@ -337,11 +331,9 @@ where
 
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        let buf = erase_control_char(&serial_buf[start..t]);
-                        io::stdout().write_all(buf.as_bytes()).unwrap();
+                        io::stdout().write_all(&serial_buf[start..t]).unwrap();
                     } else {
-                        let buf = erase_control_char(&serial_buf[start..t]);
-                        color::coloring_words(&buf, &mut last_word, &params);
+                        color::coloring_words(&serial_buf[start..t], &mut last_word, &params);
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -454,6 +446,7 @@ where
     loop {
         match g.getch() {
             Ok(key) => {
+                //print!("[{}]", key); io::stdout().flush().unwrap();
                 // Arrow keys
                 if cfg!(windows) && key == 0 || key == 224 { // ESC
                     match g.getch() {
@@ -534,10 +527,11 @@ fn format_timestamp(timestamp_format: &str) -> String {
 fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
     for c in serial_buf {
         match *c {
-            0x8 => { log_buf.pop(); }      // BS
-            0x9 => (*log_buf).push('\t'),  // HT
-            0xa => (*log_buf).push('\n'),  // LF
-            0xd => (*log_buf).push('\r'),  // CR
+            0x8 =>  { log_buf.pop(); }        // BS
+            0x9 =>  (*log_buf).push('\t'),    // HT
+            0xa =>  (*log_buf).push('\n'),    // LF
+            0xd =>  (*log_buf).push('\r'),    // CR
+            0x1b => (*log_buf).push('\x1b'),  // ESC
             c => {
                 if 0x20 <= c && c <= 0x7e {
                     (*log_buf).push(c as char);
@@ -546,25 +540,6 @@ fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
             },
         }
     }
-}
-
-fn erase_control_char(serial_buf: &[u8]) -> String {
-    let mut buf = String::new();
-    for c in serial_buf {
-        match *c {
-            0x8 => (buf).push(*c as char),  // BS
-            0x9 => (buf).push(*c as char),  // HT
-            0xa => (buf).push(*c as char),  // LF
-            0xd => (buf).push(*c as char),  // CR
-            c => {
-                if 0x20 <= c && c <= 0x7e {
-                    (buf).push(c as char);
-                }
-                // Ignore others
-            },
-        }
-    }
-    buf
 }
 
 #[cfg(test)]
@@ -600,36 +575,6 @@ mod tests {
             let mut buf = String::new();
             string_from_utf8_appearance(&mut buf, &input);
             assert_eq!(buf, expect);
-        }
-    }
-
-    #[test]
-    fn test_erase_control_char() {
-        let tests = vec![
-            (
-                [0x34, 0x32],
-                "42",
-            ),
-            (
-                [0x00, 0x07],
-                "",
-            ),
-            (
-                [0x1f, 0x7f],
-                "",
-            ),
-            (
-                [0x08, 0x08],
-                "\x08\x08",
-            ),
-            (
-                [0x20, 0x7e],
-                " ~",
-            ),
-        ];
-
-        for (input, expect) in tests {
-            assert_eq!(erase_control_char(&input), expect);
         }
     }
 }

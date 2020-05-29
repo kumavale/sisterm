@@ -9,6 +9,7 @@ use crate::flag;
 use crate::setting;
 use crate::getch::Getch;
 use crate::default;
+use crate::negotiation;
 
 pub fn run(host:      &str,
            mut flags: flag::Flags,
@@ -44,7 +45,7 @@ pub fn run(host:      &str,
         }
     };
     receiver.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
-    let transmitter = receiver.try_clone().expect("Failed to clone from receiver");
+    let mut transmitter = receiver.try_clone().expect("Failed to clone from receiver");
 
     let (tx, rx) = mpsc::channel();
 
@@ -76,6 +77,9 @@ pub fn run(host:      &str,
     if params.is_none() {
         flags.set_nocolor(true);
     }
+
+    // The first negotiation
+    negotiation::init(&mut transmitter);
 
     println!("Connected. {}:", host);
     println!("Type \"~.\" to exit.");
@@ -110,12 +114,12 @@ fn to_SocketAddr_for_telnet(host: &str) -> Vec<std::net::SocketAddr> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+    use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
     #[test]
     #[allow(non_snake_case)]
     fn test_to_SocketAddr_for_telnet() {
-        let tests = vec![
+        let tests_ipaddr = vec![
             (
                 "127.0.0.1",
                 vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
@@ -128,18 +132,35 @@ mod tests {
                 "127.0.0.1:12321",
                 vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 12321))],
             ),
+        ];
+
+        let tests_hostname = vec![
             (
                 "localhost",
-                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))], // Environmental dependence
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
+                vec![
+                    SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0)),
+                    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23)),
+                ],
             ),
             (
                 "localhost:23",
-                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))], // Environmental dependence
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
+                vec![
+                    SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0)),
+                    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23)),
+                ],
             ),
         ];
 
-        for (input, expect) in tests {
+        for (input, expect) in tests_ipaddr {
             assert_eq!(to_SocketAddr_for_telnet(&input), expect);
+        }
+        for (input, expect, or_expect) in tests_hostname {
+            assert!(
+                to_SocketAddr_for_telnet(&input) == expect
+             || to_SocketAddr_for_telnet(&input) == or_expect
+            );
         }
     }
 }

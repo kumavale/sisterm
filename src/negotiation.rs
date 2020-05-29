@@ -81,6 +81,24 @@ mod options {
     //pub const                       :u8 = 0xFF;  // 255
 }
 
+pub fn init(transmitter: &mut std::net::TcpStream) {
+    use std::io::Write;
+
+    let data = [
+        commands::IAC, commands::DO,   options::SUPPRESS_GO_AHEAD,
+        commands::IAC, commands::WILL, options::TERMINAL_TYPE,
+        commands::IAC, commands::WILL, options::WINDOW_SIZE,
+        commands::IAC, commands::WILL, options::TERMINAL_SPEED,
+        commands::IAC, commands::WILL, options::REMOTE_FLOW_CONTROL,
+        //commands::IAC, commands::WILL, options::LINE_MODE,
+        commands::IAC, commands::WILL, options::NEW_ENVIRONMENT,
+        commands::IAC, commands::DO,   options::STATUS,
+    ];
+
+    if let Err(e) = transmitter.write(&data) {
+        eprintln!("{}", e);
+    }
+}
 
 pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> usize {
     let mut i = 0;
@@ -104,6 +122,12 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> us
                             commands::DO,
                             options::SUPPRESS_GO_AHEAD,
                         ]),
+                    options::TERMINAL_TYPE =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::DO,
+                            options::TERMINAL_TYPE,
+                        ]),
                     _ => (),
                 }
             },
@@ -120,21 +144,50 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> us
                     //options::WINDOW_SIZE =>
                     //    send_neg.extend_from_slice(&[
                     //        commands::IAC,
-                    //        //commands::SB,
-                    //        commands::WONT,
+                    //        commands::SB,
                     //        options::WINDOW_SIZE,
                     //        //0x00,
                     //        //0x50, // 80
                     //        //0x00,
                     //        //0x18, // 24
+                    //        commands::IAC,
+                    //        commands::SE,
                     //    ]),
-                    //options::TERMINAL_TYPE =>
+                    options::TERMINAL_TYPE =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::SB,
+                            options::TERMINAL_TYPE,
+                            0x01,
+                            commands::IAC,
+                            commands::SE,
+                        ]),
+                    //options::TERMINAL_SPEED =>
                     //    send_neg.extend_from_slice(&[
                     //        commands::IAC,
-                    //        commands::WONT,
-                    //        options::TERMINAL_TYPE,
+                    //        commands::SB,
+                    //        options::TERMINAL_SPEED,
+                    //        0x00,
+                    //        0x33,  // 3
+                    //        0x38,  // 8
+                    //        0x34,  // 4
+                    //        0x30,  // 0
+                    //        0x30,  // 0
+                    //        0x2C,  // ,
+                    //        0x33,  // 3
+                    //        0x38,  // 8
+                    //        0x34,  // 4
+                    //        0x30,  // 0
+                    //        0x30,  // 0
+                    //        commands::IAC,
+                    //        commands::SE,
                     //    ]),
-                    //_ => (),
+                    options::ECHO =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::WONT,
+                            options::ECHO,
+                        ]),
                     _ => send_neg.extend_from_slice(&[
                         commands::IAC,
                         commands::WONT,
@@ -142,9 +195,19 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> us
                     ]),
                 }
             },
-            commands::DONT => {},
-            commands::SB   => {},
-            commands::SE   => {},
+            commands::DONT => {
+                i += 1;
+                send_neg.extend_from_slice(&[
+                    commands::IAC,
+                    commands::DONT,
+                    serial_buf[i],
+                ]);
+            },
+            commands::SB => {
+                while serial_buf[i] != commands::SE {
+                    i += 1;
+                }
+            },
             _ => (),
         }
 
