@@ -197,7 +197,7 @@ where
         )
     };
     let mut serial_buf: Vec<u8> = vec![0; read_buf_size];
-    let mut send_neg:   Vec<u8> = vec![0; 64];
+    let mut send_neg:   Vec<u8> = Vec::new();
     let mut last_word = (String::new(), false);  // (increasing_str, prev_matched)
 
     // Save log
@@ -321,22 +321,26 @@ where
             }
 
             match port.read(serial_buf.as_mut_slice()) {
+                Ok(0) => continue,
                 Ok(t) => {
+                    println!("{:?}", &serial_buf[..t]);
                     // Telnet command
-                    let i = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
+                    let start = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
 
-                    if i != 0 {
-                        if let Err(e) = port.write(send_neg.as_mut_slice()) {
+                    if start != 0 {
+                        println!("send_neg: {:?}", &send_neg[..send_neg.len()]);
+                        if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
                             eprintln!("{}", e);
                         }
+                        send_neg.clear();
                     }
 
                     // Display after Coloring received string
                     if flags.is_nocolor() {
-                        let buf = erase_control_char(&serial_buf[i..t]);
+                        let buf = erase_control_char(&serial_buf[start..t]);
                         io::stdout().write_all(buf.as_bytes()).unwrap();
                     } else {
-                        let buf = erase_control_char(&serial_buf[i..t]);
+                        let buf = erase_control_char(&serial_buf[start..t]);
                         color::coloring_words(&buf, &mut last_word, &params);
                     }
                 },
