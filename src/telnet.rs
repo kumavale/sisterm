@@ -135,6 +135,22 @@ mod tests {
                 "127.0.0.1:12321",
                 vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 12321))],
             ),
+            (
+                "::1",
+                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0))],
+            ),
+            (
+                "::1:23",
+                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0))],
+            ),
+            (
+                "[::1]:23",
+                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0))],
+            ),
+            (
+                "[::1]:12321",
+                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 12321, 0, 0))],
+            ),
         ];
 
         let tests_hostname = vec![
