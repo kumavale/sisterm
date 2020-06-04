@@ -258,11 +258,18 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
         instead_cr
     };
 
+    // Debug mode flag
+    let debug = if let Some(ref params) = params {
+        params.debug
+    } else {
+        false
+    };
+
     // If "write file (-w)" is specified
     let write_file = matches.value_of("write file");
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, append, instead_cr, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, append, instead_cr, debug, write_file);
 
     (flags, params)
 }

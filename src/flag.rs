@@ -5,17 +5,19 @@ pub struct Flags {
     timestamp:  bool,
     append:     bool,
     instead_cr: bool,
+    debug:      bool,
     write_file: Option<String>,
 }
 
 impl Flags {
-    pub fn new(nocolor: bool, timestamp: bool, append: bool, instead_cr: bool, wf: Option<&str>) -> Self
+    pub fn new(nocolor: bool, timestamp: bool, append: bool, instead_cr: bool, debug: bool, wf: Option<&str>) -> Self
     {
         Self {
             nocolor,
             timestamp,
             append,
             instead_cr,
+            debug,
             write_file: match wf {
                 Some(file) => Some(file.to_string()),
                 None => None,
@@ -45,6 +47,10 @@ impl Flags {
 
     pub fn is_instead_cr(&self) -> bool {
         self.instead_cr
+    }
+
+    pub fn is_debug(&self) -> bool {
+        self.debug
     }
 
     pub fn write_file(&self) -> Option<&String> {

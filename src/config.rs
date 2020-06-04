@@ -59,6 +59,10 @@ br#"##
 ## https://docs.rs/chrono/0.4.11/chrono/format/strftime/index.html
 #timestamp_format = "[%Y-%m-%d %H:%M:%S %Z] "
 
+## Debug mode
+## Display all byte characters
+#debug = false
+
 
 ##############################
 #_/_/_/_/_/_/_/_/_/_/_/_/_/_/#

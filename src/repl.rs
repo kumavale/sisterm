@@ -93,6 +93,10 @@ where
 
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
+                    if flags.is_debug() {
+                        print!("{:?}", &serial_buf[..t]);
+                    }
+
                     // Display after Coloring received string
                     if flags.is_nocolor() {
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
@@ -155,6 +159,10 @@ where
 
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
+                    if flags.is_debug() {
+                        print!("{:?}", &serial_buf[..t]);
+                    }
+
                     // Display after Coloring received string
                     if flags.is_nocolor() {
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
@@ -249,6 +257,10 @@ where
                         send_neg.clear();
                     }
 
+                    if flags.is_debug() {
+                        print!("{:?}", &serial_buf[..t]);
+                    }
+
                     // Display after Coloring received string
                     if flags.is_nocolor() {
                         io::stdout().write_all(&output.as_bytes()).unwrap();
@@ -331,16 +343,18 @@ where
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(0) => break,
                 Ok(t) => {
-                    //println!("{:?}", &serial_buf[..t]);
                     // Check telnet command
                     let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
-                    //println!("{:?}", &output);
 
                     if !send_neg.is_empty() {
                         if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
                             eprintln!("{}", e);
                         }
                         send_neg.clear();
+                    }
+
+                    if flags.is_debug() {
+                        print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
@@ -374,6 +388,10 @@ where
     loop {
         match g.getch() {
             Ok(key) => {
+                if flags.is_debug() {
+                    io::stdout().write_all(&[b'[', key, b']']).unwrap();
+                }
+
                 // Arrow keys
                 if cfg!(windows) && key == 0 || key == 224 { // ESC
                     match g.getch() {
@@ -460,7 +478,10 @@ where
     loop {
         match g.getch() {
             Ok(key) => {
-                //print!("[{}]", key); io::stdout().flush().unwrap();
+                if flags.is_debug() {
+                    io::stdout().write_all(&[b'[', key, b']']).unwrap();
+                }
+
                 // Arrow keys
                 if cfg!(windows) && key == 0 || key == 224 { // ESC
                     match g.getch() {

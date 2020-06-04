@@ -13,7 +13,8 @@ pub struct Params {
     pub instead_cr:          bool,
     pub read_buf_size:       usize,
     pub tcp_connect_timeout: u64,
-    pub timestamp_format:   String,
+    pub timestamp_format:    String,
+    pub debug:               bool,
     pub syntaxes:            Vec<SyntaxDefinition>,
 }
 
@@ -54,7 +55,8 @@ impl Params {
             instead_cr:          setting.instead_cr,
             read_buf_size:       setting.read_buf_size.unwrap(),
             tcp_connect_timeout: setting.tcp_connect_timeout.unwrap(),
-            timestamp_format:   setting.timestamp_format,
+            timestamp_format:    setting.timestamp_format,
+            debug:               setting.debug,
             syntaxes,
         })
     }
@@ -98,6 +100,9 @@ struct Setting {
 
     #[serde(default = "default_timestamp_format")]
     timestamp_format: String,
+
+    #[serde(default)]
+    debug: bool,
 
     //timestamp:  Option<bool>,
     //nocolor:    Option<bool>,
