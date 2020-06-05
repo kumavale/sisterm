@@ -9,4 +9,5 @@ pub mod queue;
 pub mod repl;
 pub mod serial;
 pub mod setting;
+pub mod tcp;
 pub mod telnet;

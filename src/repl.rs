@@ -12,7 +12,7 @@ use crate::negotiation;
 use chrono::Local;
 
 
-pub fn receiver_serial<T>(
+pub fn receiver<T>(
     mut port: T,
     rx:       std::sync::mpsc::Receiver<()>,
     flags:    flag::Flags,
@@ -102,7 +102,7 @@ where
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
                         color::coloring_words(
-                            &String::from_utf8(serial_buf[..t].to_vec()).unwrap(), &mut last_word, &params);
+                            &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
                     }
 
                     // Check exist '\n'
@@ -168,7 +168,7 @@ where
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
                         color::coloring_words(
-                            &String::from_utf8(serial_buf[..t].to_vec()).unwrap(), &mut last_word, &params);
+                            &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -375,7 +375,7 @@ where
     }
 }
 
-pub fn transmitter_serial<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: flag::Flags)
+pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: flag::Flags)
 where
     T: std::io::Write,
 {

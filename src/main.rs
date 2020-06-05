@@ -124,6 +124,49 @@ fn main() {
                 .long("instead-cr")
             )
         )
+        .subcommand(SubCommand::with_name("tcp")
+            .about("TCP connection without telnet")
+            .setting(AppSettings::DeriveDisplayOrder)
+            .arg(Arg::with_name("host:port")
+                .help("Host and port number")
+                .takes_value(true)
+                .required(true)
+            )
+            .arg(Arg::with_name("write file")
+                .help("Saved log")
+                .short("w")
+                .long("write")
+                .value_name("FILE")
+                .takes_value(true)
+            )
+            .arg(Arg::with_name("config file")
+                .help(&config_file_help_message)
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .takes_value(true)
+            )
+            .arg(Arg::with_name("nocolor")
+                .help("Without color")
+                .short("n")
+                .long("no-color")
+            )
+            .arg(Arg::with_name("timestamp")
+                .help("Add timestamp to log")
+                .short("t")
+                .long("time-stamp")
+            )
+            .arg(Arg::with_name("append")
+                .help("Append to log  (default overwrite)")
+                .short("a")
+                .long("append")
+            )
+            .arg(Arg::with_name("instead_cr")
+                .help("Send '\\r' instead of '\\n'")
+                .short("i")
+                .long("instead-cr")
+            )
+        )
         .subcommand(SubCommand::with_name("generate")
             .about("Generate configuration file")
         );
@@ -157,6 +200,20 @@ fn main() {
         let (flags, params) = parse_arguments(matches);
 
         telnet::run(host, flags, params);
+
+        println!("\n\x1b[0mDisconnected.");
+
+    // TCP connection witout telnet
+    } else if let Some(ref matches) = matches.subcommand_matches("tcp") {
+        use sisterm::tcp;
+
+        // Hostname
+        let host = matches.value_of("host:port").unwrap();
+
+        // Parse arguments
+        let (flags, params) = parse_arguments(matches);
+
+        tcp::run(host, flags, params);
 
         println!("\n\x1b[0mDisconnected.");
 
