@@ -157,16 +157,7 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             options::SUPPRESS_GO_AHEAD,
                         ]),
                     options::WINDOW_SIZE => {
-                        send_neg.extend_from_slice(&[
-                            commands::IAC,
-                            commands::SB,
-                            options::WINDOW_SIZE,
-                        ]);
-                        send_neg.extend_from_slice(&get_window_size());
-                        send_neg.extend_from_slice(&[
-                            commands::IAC,
-                            commands::SE,
-                        ]);
+                        send_neg.extend_from_slice(&window_size());
                     },
                     options::TERMINAL_TYPE =>
                         send_neg.extend_from_slice(&[
@@ -254,8 +245,26 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
     output
 }
 
+pub fn window_size() -> [u8; 9] {
+    let mut ret = [0; 9];
+    let mut neg = Vec::new();
+    neg.extend_from_slice(&[
+        commands::IAC,
+        commands::SB,
+        options::WINDOW_SIZE,
+    ]);
+    neg.extend_from_slice(&get_window_size());
+    neg.extend_from_slice(&[
+        commands::IAC,
+        commands::SE,
+    ]);
+
+    ret.copy_from_slice(&neg[..9]);
+    ret
+}
+
 #[cfg(windows)]
-fn get_window_size() -> [u8; 4] {
+pub fn get_window_size() -> [u8; 4] {
     use winapi::um::processenv::GetStdHandle;
     use winapi::um::winbase::STD_OUTPUT_HANDLE;
     use winapi::um::wincon::{
@@ -287,7 +296,7 @@ fn get_window_size() -> [u8; 4] {
     ((height & 0b1111_1111_0000_0000) >> 8) as u8, (height & 0b0000_0000_1111_1111) as u8]
 }
 #[cfg(not(windows))]
-fn get_window_size() -> [u8; 4] {
+pub fn get_window_size() -> [u8; 4] {
     use libc::{ioctl, winsize, TIOCGWINSZ, STDOUT_FILENO};
     use std::mem;
 

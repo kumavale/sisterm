@@ -205,6 +205,7 @@ where
     let mut serial_buf: Vec<u8> = vec![0; read_buf_size];
     let mut send_neg:   Vec<u8> = Vec::new();
     let mut last_word = (String::new(), false);  // (increasing_str, prev_matched)
+    let mut window_size = negotiation::get_window_size();
 
     // Save log
     if let Some(write_file) = flags.write_file() {
@@ -242,6 +243,17 @@ where
             // if "~." is typed, exit
             if rx.try_recv().is_ok() {
                 break;
+            }
+
+            // If the window size are different, negotiate
+            let window_size_current = negotiation::get_window_size();
+            if window_size != window_size_current {
+                window_size = window_size_current;
+                send_neg.extend_from_slice(&negotiation::window_size());
+                if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
+                    eprintln!("{}", e);
+                }
+                send_neg.clear();
             }
 
             match port.read(serial_buf.as_mut_slice()) {
@@ -338,6 +350,17 @@ where
             // if "~." is typed, exit
             if rx.try_recv().is_ok() {
                 break;
+            }
+
+            // If the window size are different, negotiate
+            let window_size_current = negotiation::get_window_size();
+            if window_size != window_size_current {
+                window_size = window_size_current;
+                send_neg.extend_from_slice(&negotiation::window_size());
+                if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
+                    eprintln!("{}", e);
+                }
+                send_neg.clear();
             }
 
             match port.read(serial_buf.as_mut_slice()) {
