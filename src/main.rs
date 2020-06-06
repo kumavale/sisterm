@@ -36,12 +36,12 @@ fn main() {
         use sisterm::telnet;
 
         // Hostname
-        let host = matches.value_of("host[:port]").unwrap();
+        let host = matches.values_of("host[:port]").unwrap().collect::<Vec<_>>().join(":");
 
         // Parse arguments
         let (flags, params) = parse_arguments(matches);
 
-        telnet::run(host, flags, params);
+        telnet::run(&host, flags, params);
 
         println!("\n\x1b[0mDisconnected.");
 
@@ -50,12 +50,12 @@ fn main() {
         use sisterm::tcp;
 
         // Hostname
-        let host = matches.value_of("host:port").unwrap();
+        let host = matches.values_of("host:port").unwrap().collect::<Vec<_>>().join(":");
 
         // Parse arguments
         let (flags, params) = parse_arguments(matches);
 
-        tcp::run(host, flags, params);
+        tcp::run(&host, flags, params);
 
         println!("\n\x1b[0mDisconnected.");
 
@@ -242,6 +242,7 @@ fn build_app() -> App<'static, 'static> {
                 .help("Port number can be omitted. Then 23")
                 .takes_value(true)
                 .required(true)
+                .min_values(1)
             )
             .arg(Arg::with_name("write file")
                 .help("Saved log")
@@ -285,6 +286,7 @@ fn build_app() -> App<'static, 'static> {
                 .help("Host and port number")
                 .takes_value(true)
                 .required(true)
+                .min_values(1)
             )
             .arg(Arg::with_name("write file")
                 .help("Saved log")
