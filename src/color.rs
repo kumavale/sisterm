@@ -90,7 +90,7 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
 }
 
 pub fn coloring_words(serial_buf: &str,
-                     (increasing_str, prev_matched): &mut (String, bool),
+                     (increasing_str, prev_matched, comment_now): &mut (String, bool, bool),
                       params: &Option<setting::Params>)
 {
     let params = params.as_ref().expect("assert Some");
@@ -98,6 +98,16 @@ pub fn coloring_words(serial_buf: &str,
     let mut line_str = String::new();
 
     'outer: for c in serial_buf.chars() {
+
+        if c == ' ' && !*comment_now {
+            increasing_str.clear();
+            if *prev_matched {
+                line_str.push_str(&PREDEFINED_COLORS["RESET"]);
+            }
+            *prev_matched = false;
+            line_str.push(c);
+            continue;
+        }
 
         if c == '\r' || c == '\n' {
             increasing_str.clear();
@@ -137,6 +147,7 @@ pub fn coloring_words(serial_buf: &str,
                         let substr = cap.get(0).unwrap().as_str();
                         let len = substr.len();
                         let color = params.syntaxes[index as usize].color();
+                        *comment_now = params.syntaxes[index as usize].comment();
                         line_str.push_str(&format!("{:\x08<1$}", "", len-1));
                         line_str.push_str(&color);
                         line_str.push_str(&substr);

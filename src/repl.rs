@@ -32,7 +32,7 @@ where
         )
     };
     let mut serial_buf: Vec<u8> = vec![0; read_buf_size];
-    let mut last_word = (String::new(), false);  // (increasing_str, prev_matched)
+    let mut last_word = (String::new(), false, false);  // (increasing_str, prev_matched, comment_now)
 
     // Save log
     if let Some(write_file) = flags.write_file() {
@@ -204,7 +204,7 @@ where
     };
     let mut serial_buf: Vec<u8> = vec![0; read_buf_size];
     let mut send_neg:   Vec<u8> = Vec::new();
-    let mut last_word = (String::new(), false);  // (increasing_str, prev_matched)
+    let mut last_word = (String::new(), false, false);  // (increasing_str, prev_matched, comment_now)
     let mut window_size = negotiation::get_window_size();
 
     // Save log

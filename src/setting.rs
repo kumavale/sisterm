@@ -38,7 +38,7 @@ impl Params {
         };
 
         let mut syntaxes: Vec<SyntaxDefinition> = vec![
-            SyntaxDefinition::new("\x1b[0m".to_string(), vec![Regex::new("0^").unwrap()]),
+            SyntaxDefinition::new("\x1b[0m".to_string(), vec![Regex::new("0^").unwrap()], false),
         ];
         for coloring in &setting.colorings {
             let mut re_vec = Vec::new();
@@ -46,7 +46,8 @@ impl Params {
                 re_vec.push(Regex::new(regex).expect("Failed compile regex"));
             }
             let color = color::valid_color_syntax(&coloring).unwrap();
-            syntaxes.push(SyntaxDefinition::new(color, re_vec));
+            let comment = coloring.comment();
+            syntaxes.push(SyntaxDefinition::new(color, re_vec, comment));
         }
 
         Some( Self {
@@ -63,15 +64,17 @@ impl Params {
 }
 
 pub struct SyntaxDefinition {
-    color: String,
-    regex: Vec<Regex>,
+    color:   String,
+    regex:   Vec<Regex>,
+    comment: bool,
 }
 
 impl SyntaxDefinition {
-    fn new(color: String, regex: Vec<Regex>) -> Self {
+    fn new(color: String, regex: Vec<Regex>, comment: bool) -> Self {
         Self {
             color,
             regex,
+            comment,
         }
     }
 
@@ -81,6 +84,10 @@ impl SyntaxDefinition {
 
     pub fn regex(&self) -> &Vec<Regex> {
         &self.regex
+    }
+
+    pub fn comment(&self) -> bool {
+        self.comment
     }
 }
 
@@ -145,6 +152,7 @@ pub struct Coloring {
     color:      String,
     regex:      Vec<String>,
     underlined: Option<bool>,
+    comment:    Option<bool>,
 }
 
 impl Coloring {
@@ -153,10 +161,10 @@ impl Coloring {
     }
 
     pub fn underlined(&self) -> bool {
-        if let Some(true) = self.underlined {
-            true
-        } else {
-            false
-        }
+        self.underlined.unwrap_or_else(|| false)
+    }
+
+    pub fn comment(&self) -> bool {
+        self.comment.unwrap_or_else(|| false)
     }
 }

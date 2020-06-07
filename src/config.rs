@@ -19,6 +19,7 @@ br#"##
 ## color = "String"       # required
 ## regex = "String"       # required
 ## underlined = Boolean   # option
+## comment = Boolean      # option
 ##
 ## Color example
 ##  * RED           [Uppercase]
@@ -74,6 +75,7 @@ br#"##
 [[colorings]]
 color = "(128, 150, 200)"
 regex = ["(//.*)|(/\\*.*\\*/)|(/\\*.*)"]  # C style
+comment = true
 
 # positive
 [[colorings]]
