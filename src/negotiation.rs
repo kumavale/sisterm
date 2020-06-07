@@ -1,3 +1,7 @@
+use std::sync::Mutex;
+
+use lazy_static::lazy_static;
+
 
 #[allow(dead_code)]
 mod commands {
@@ -25,6 +29,12 @@ mod commands {
     pub const SEND  :u8 = 0x01;
     pub const REPLY :u8 = 0x02;
     pub const NAME  :u8 = 0x03;
+
+    // NEW-ENVIRON
+    pub const VAR     :u8 = 0x00;
+    pub const VALUE   :u8 = 0x01;
+    pub const ESC     :u8 = 0x02;
+    pub const USERVAR :u8 = 0x03;
 }
 
 #[allow(dead_code)]
@@ -87,9 +97,19 @@ mod options {
     //pub const                       :u8 = 0xFF;  // 255
 }
 
-pub fn init(transmitter: &mut std::net::TcpStream) {
+lazy_static! {
+    static ref LOGIN_USER: Mutex<String> = Mutex::new(String::new());
+}
+
+pub fn init(transmitter: &mut std::net::TcpStream, login_user: Option<&str>) {
     use std::io::Write;
 
+    // Initiarize default login user
+    if let Some(username) = login_user {
+        *LOGIN_USER.lock().unwrap() = username.to_string();
+    }
+
+    // Negotiations sent first
     let data = [
         commands::IAC, commands::DO,   options::SUPPRESS_GO_AHEAD,
         commands::IAC, commands::WILL, options::TERMINAL_TYPE,
@@ -189,6 +209,16 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             commands::WONT,
                             options::ECHO,
                         ]),
+                    options::NEW_ENVIRONMENT =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            if (*LOGIN_USER.lock().unwrap()).is_empty() {
+                                commands::WONT
+                            } else {
+                                commands::WILL
+                            },
+                            options::NEW_ENVIRONMENT,
+                        ]),
                     _ => send_neg.extend_from_slice(&[
                         commands::IAC,
                         commands::WONT,
@@ -232,6 +262,24 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             commands::IAC,
                             commands::SE,
                         ]),
+                    options::NEW_ENVIRONMENT => {
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::SB,
+                            options::NEW_ENVIRONMENT,
+                            commands::IS,
+                            commands::VAR,
+                        ]);
+                        send_neg.extend_from_slice(&[
+                            b'U',b'S',b'E',b'R', // USER
+                            commands::VALUE,
+                        ]);
+                        send_neg.extend_from_slice(&*LOGIN_USER.lock().unwrap().as_bytes());
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::SE,
+                        ]);
+                    },
                     _ => (),
                 }
                 while serial_buf[i] != commands::SE { i += 1; }

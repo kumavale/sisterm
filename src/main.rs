@@ -41,7 +41,10 @@ fn main() {
         // Parse arguments
         let (flags, params) = parse_arguments(matches);
 
-        telnet::run(&host, flags, params);
+        // Login user
+        let login_user = matches.value_of("login_user");
+
+        telnet::run(&host, flags, params, login_user);
 
         println!("\n\x1b[0mDisconnected.");
 
@@ -277,6 +280,13 @@ fn build_app() -> App<'static, 'static> {
                 .help("Send '\\r' instead of '\\n'")
                 .short("i")
                 .long("instead-cr")
+            )
+            .arg(Arg::with_name("login_user")
+                .help("Specify login user")
+                .short("l")
+                .long("login-user")
+                .value_name("USER")
+                .takes_value(true)
             )
         )
         .subcommand(SubCommand::with_name("tcp")

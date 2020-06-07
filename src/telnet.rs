@@ -11,9 +11,10 @@ use crate::getch::Getch;
 use crate::default;
 use crate::negotiation;
 
-pub fn run(host:      &str,
-           mut flags: flag::Flags,
-           params:    Option<setting::Params>)
+pub fn run(host:       &str,
+           mut flags:  flag::Flags,
+           params:     Option<setting::Params>,
+           login_user: Option<&str>)
 {
     let tcp_connect_timeout = if let Some(ref p) = params {
         p.tcp_connect_timeout
@@ -79,7 +80,7 @@ pub fn run(host:      &str,
     }
 
     // The first negotiation
-    negotiation::init(&mut transmitter);
+    negotiation::init(&mut transmitter, login_user);
 
     println!("Type \"~.\" to exit.");
     println!("Connecting... {}", host);
