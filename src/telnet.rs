@@ -81,8 +81,8 @@ pub fn run(host:      &str,
     // The first negotiation
     negotiation::init(&mut transmitter);
 
-    println!("Connected. {}:", host);
     println!("Type \"~.\" to exit.");
+    println!("Connecting... {}", host);
 
     // Receiver
     let flags_clone = flags.clone();

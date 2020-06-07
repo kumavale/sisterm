@@ -77,8 +77,8 @@ pub fn run(host:      &str,
         flags.set_nocolor(true);
     }
 
-    println!("Connected. {}:", host);
     println!("Type \"~.\" to exit.");
+    println!("Connecting... {}", host);
 
     // Receiver
     let flags_clone = flags.clone();

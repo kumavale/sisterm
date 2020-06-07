@@ -52,8 +52,8 @@ pub fn run(port_name: String,
         flags.set_nocolor(true);
     }
 
-    println!("Connected. {}:", port_name);
     println!("Type \"~.\" to exit.");
+    println!("Connecting... {}", port_name);
 
     // Receiver
     let flags_clone = flags.clone();
