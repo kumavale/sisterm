@@ -55,6 +55,8 @@ br#"##
 ## Specify TCP connect timeout
 #tcp_connect_timeout = 5
 
+## Enable timestamp by default
+#timestamp = true
 ## Specify timestamp format
 ## See below for detailed documentation
 ## https://docs.rs/chrono/0.4.11/chrono/format/strftime/index.html

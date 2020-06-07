@@ -15,6 +15,7 @@ pub struct Params {
     pub tcp_connect_timeout: u64,
     pub timestamp_format:    String,
     pub debug:               bool,
+    pub timestamp:           bool,
     pub syntaxes:            Vec<SyntaxDefinition>,
 }
 
@@ -58,6 +59,7 @@ impl Params {
             tcp_connect_timeout: setting.tcp_connect_timeout.unwrap(),
             timestamp_format:    setting.timestamp_format,
             debug:               setting.debug,
+            timestamp:           setting.timestamp,
             syntaxes,
         })
     }
@@ -111,7 +113,9 @@ struct Setting {
     #[serde(default)]
     debug: bool,
 
-    //timestamp:  Option<bool>,
+    #[serde(default)]
+    timestamp: bool,
+
     //nocolor:    Option<bool>,
 
     colorings: Vec<Coloring>,

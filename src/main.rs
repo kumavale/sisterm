@@ -148,6 +148,11 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
 
     // Timestamp flag
     let timestamp = matches.is_present("timestamp");
+    let timestamp = if let Some(ref params) = params {
+        if timestamp { true } else { params.timestamp }
+    } else {
+        timestamp
+    };
 
     // Append flag
     let append = matches.is_present("append");
