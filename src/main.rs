@@ -160,7 +160,7 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     // Instead_CR flag
     let instead_cr = matches.is_present("instead_cr");
     let instead_cr = if let Some(ref params) = params {
-        if params.instead_cr { true } else { instead_cr }
+        if instead_cr { true } else { params.instead_cr }
     } else {
         instead_cr
     };
