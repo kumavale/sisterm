@@ -16,10 +16,10 @@ br#"##
 ## the documentation for the Regex(https://docs.rs/regex) type.
 ##
 ## [[colorings]]
-## color = "String"       # required
-## regex = "String"       # required
-## underlined = Boolean   # option
-## comment = Boolean      # option
+## color = "String"             # required
+## regex = "String"             # required
+## underlined = Boolean         # option
+## ignore_whitespace = Boolean  # option
 ##
 ## Color example
 ##  * RED           [Uppercase]
