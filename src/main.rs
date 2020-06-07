@@ -328,24 +328,22 @@ fn build_app() -> App<'static, 'static> {
         )
 }
 
-#[cfg(windows)]
 fn get_config_file_path() -> String {
-    format!("{}/sisterm/config.toml",
-        if let Ok(ref user) = env::var("LOCALAPPDATA") { user } else { "%LOCALAPPDATA%" } )
-}
-#[cfg(not(windows))]
-fn get_config_file_path() -> String {
-    format!("{}/.config/sisterm/config.toml",
-        if let Ok(ref home) = env::var("HOME") { home } else { "$HOME" } )
+    #[cfg(windows)]
+    return format!("{}/sisterm/config.toml",
+        if let Ok(ref user) = env::var("LOCALAPPDATA") { user } else { "%LOCALAPPDATA%" } );
+
+    #[cfg(not(windows))]
+    return format!("{}/.config/sisterm/config.toml",
+        if let Ok(ref home) = env::var("HOME") { home } else { "$HOME" } );
 }
 
-#[cfg(windows)]
 fn config_file_help_message() -> &'static str {
-    "Specify configuration file\n[default %LOCALAPPDATA%/sisterm/config.toml]"
-}
-#[cfg(not(windows))]
-fn config_file_help_message() -> &'static str {
-    "Specify configuration file\n[default $HOME/.config/sisterm/config.toml]"
+    #[cfg(windows)]
+    return "Specify configuration file\n[default %LOCALAPPDATA%/sisterm/config.toml]";
+
+    #[cfg(not(windows))]
+    return "Specify configuration file\n[default $HOME/.config/sisterm/config.toml]";
 }
 
 #[cfg(test)]
@@ -359,17 +357,14 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
     fn test_config_file_help_message() {
+        #[cfg(windows)]
         assert_eq!(
             config_file_help_message(),
             "Specify configuration file\n[default %LOCALAPPDATA%/sisterm/config.toml]"
         );
-    }
 
-    #[test]
-    #[cfg(not(windows))]
-    fn test_config_file_help_message() {
+        #[cfg(not(windows))]
         assert_eq!(
             config_file_help_message(),
             "Specify configuration file\n[default $HOME/.config/sisterm/config.toml]"
