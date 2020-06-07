@@ -75,22 +75,23 @@ br#"##
 [[colorings]]
 color = "(128, 150, 200)"
 regex = ["(//.*)|(/\\*.*\\*/)|(/\\*.*)"]  # C style
-comment = true
+ignore_whitespace = true
 
 # positive
 [[colorings]]
 color = "GREEN"
-regex = ["( |^)((?i)yes|up|enable|enabled|active(?-i))( |$)"]
+regex = ["(?i)yes|up|enable|enabled|active(?-i)"]
 
 # string
 [[colorings]]
 color = "184"
-regex = ["(\".*\")|('.*')"]
+regex = ["(\".*\")|('.*')|(\".*)|('.*)"]
+ignore_whitespace = true
 
 # emphansis
 [[colorings]]
 color = "MAGENTA"
-regex = ["( |^)(not?|confirm|warning|warnings|failed|failures|errors?|crash)( |$)"]
+regex = ["not?|confirm|warning|warnings|failed|failures|errors?|crash"]
 
 # interface
 [[colorings]]

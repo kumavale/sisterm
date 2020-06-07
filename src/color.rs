@@ -37,8 +37,24 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
         let mut increasing_str = String::new();
         let mut prev_matched   = false;
         let mut substring_len  = 0;
+        let mut comment_now    = false;
 
         'outer: for c in line.chars() {
+
+            if c == ' ' && !comment_now {
+                if !increasing_str.is_empty() {
+                    if prev_matched {
+                        line_str.push_str(&PREDEFINED_COLORS["RESET"]);
+                        prev_matched = false;
+                    } else {
+                        line_str.push_str(&increasing_str[..increasing_str.len()]);
+                    }
+                    increasing_str.clear();
+                }
+                line_str.push(' ');
+                continue;
+            }
+
             increasing_str.push(c);
             for (index, syntax) in params.syntaxes.iter().enumerate() {
                 for regex in syntax.regex() {
@@ -48,6 +64,7 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
                             if substring_len == len {
                                 prev_matched = false;
                                 line_str.push_str(PREDEFINED_COLORS["RESET"]);
+                                substring_len = 0;
                                 increasing_str.clear();
                                 increasing_str.push(c);
                             } else {
@@ -55,15 +72,16 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
                                 line_str.push(c);
                             }
                         } else {
-                            prev_matched = true;
                             let substr = cap.get(0).unwrap().as_str();
                             let len = substr.len();
                             let color = params.syntaxes[index as usize].color();
+                            comment_now = params.syntaxes[index as usize].ignore_whitespace();
                             line_str.push_str(&increasing_str[..increasing_str.len()-len]);
                             line_str.push_str(&color);
                             line_str.push_str(&substr);
                             increasing_str = substr.to_string();
                             substring_len = len;
+                            prev_matched = true;
                         }
                         continue 'outer;
                     }
@@ -105,7 +123,7 @@ pub fn coloring_words(serial_buf: &str,
                 line_str.push_str(&PREDEFINED_COLORS["RESET"]);
             }
             *prev_matched = false;
-            line_str.push(c);
+            line_str.push(' ');
             continue;
         }
 
@@ -143,16 +161,16 @@ pub fn coloring_words(serial_buf: &str,
                         }
                         line_str.push(c);
                     } else {
-                        *prev_matched = true;
                         let substr = cap.get(0).unwrap().as_str();
                         let len = substr.len();
                         let color = params.syntaxes[index as usize].color();
-                        *comment_now = params.syntaxes[index as usize].comment();
+                        *comment_now = params.syntaxes[index as usize].ignore_whitespace();
                         line_str.push_str(&format!("{:\x08<1$}", "", len-1));
                         line_str.push_str(&color);
                         line_str.push_str(&substr);
                         *increasing_str = substr.to_string();
                         substring_len = len;
+                        *prev_matched = true;
                     }
                     continue 'outer;
                 }

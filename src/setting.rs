@@ -46,8 +46,8 @@ impl Params {
                 re_vec.push(Regex::new(regex).expect("Failed compile regex"));
             }
             let color = color::valid_color_syntax(&coloring).unwrap();
-            let comment = coloring.comment();
-            syntaxes.push(SyntaxDefinition::new(color, re_vec, comment));
+            let ignore_whitespace = coloring.ignore_whitespace();
+            syntaxes.push(SyntaxDefinition::new(color, re_vec, ignore_whitespace));
         }
 
         Some( Self {
@@ -64,17 +64,17 @@ impl Params {
 }
 
 pub struct SyntaxDefinition {
-    color:   String,
-    regex:   Vec<Regex>,
-    comment: bool,
+    color:             String,
+    regex:             Vec<Regex>,
+    ignore_whitespace: bool,
 }
 
 impl SyntaxDefinition {
-    fn new(color: String, regex: Vec<Regex>, comment: bool) -> Self {
+    fn new(color: String, regex: Vec<Regex>, ignore_whitespace: bool) -> Self {
         Self {
             color,
             regex,
-            comment,
+            ignore_whitespace,
         }
     }
 
@@ -86,8 +86,8 @@ impl SyntaxDefinition {
         &self.regex
     }
 
-    pub fn comment(&self) -> bool {
-        self.comment
+    pub fn ignore_whitespace(&self) -> bool {
+        self.ignore_whitespace
     }
 }
 
@@ -149,10 +149,10 @@ fn default_timestamp_format() -> String {
 
 #[derive(Deserialize)]
 pub struct Coloring {
-    color:      String,
-    regex:      Vec<String>,
-    underlined: Option<bool>,
-    comment:    Option<bool>,
+    color:             String,
+    regex:             Vec<String>,
+    underlined:        Option<bool>,
+    ignore_whitespace: Option<bool>,
 }
 
 impl Coloring {
@@ -164,7 +164,7 @@ impl Coloring {
         self.underlined.unwrap_or_else(|| false)
     }
 
-    pub fn comment(&self) -> bool {
-        self.comment.unwrap_or_else(|| false)
+    pub fn ignore_whitespace(&self) -> bool {
+        self.ignore_whitespace.unwrap_or_else(|| false)
     }
 }
