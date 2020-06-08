@@ -10,7 +10,8 @@ pub struct Flags {
 }
 
 impl Flags {
-    pub fn new(nocolor: bool, timestamp: bool, append: bool, instead_cr: bool, debug: bool, wf: Option<&str>) -> Self
+    pub fn new(nocolor: bool, timestamp: bool, append: bool, instead_cr: bool, debug: bool,
+        write_file: Option<String>) -> Self
     {
         Self {
             nocolor,
@@ -18,10 +19,7 @@ impl Flags {
             append,
             instead_cr,
             debug,
-            write_file: match wf {
-                Some(file) => Some(file.to_string()),
-                None => None,
-            },
+            write_file,
         }
     }
 

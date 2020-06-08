@@ -62,6 +62,15 @@ br#"##
 ## https://docs.rs/chrono/0.4.11/chrono/format/strftime/index.html
 #timestamp_format = "[%Y-%m-%d %H:%M:%S %Z] "
 
+## Auto save log
+#auto_save_log = true
+## Specify log file name format
+## See below for detailed documentation
+## https://docs.rs/chrono/0.4.11/chrono/format/strftime/index.html
+#log_format = "%Y%m%d_%H%M%S.log"
+## Destination folder for log file
+#log_destination = "./"
+
 ## Debug mode
 ## Display all byte characters
 #debug = false

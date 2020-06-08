@@ -16,6 +16,9 @@ pub struct Params {
     pub timestamp_format:    String,
     pub debug:               bool,
     pub timestamp:           bool,
+    pub auto_save_log:       bool,
+    pub log_format:          String,
+    pub log_destination:     String,
     pub syntaxes:            Vec<SyntaxDefinition>,
 }
 
@@ -60,6 +63,9 @@ impl Params {
             timestamp_format:    setting.timestamp_format,
             debug:               setting.debug,
             timestamp:           setting.timestamp,
+            auto_save_log:       setting.auto_save_log,
+            log_format:          setting.log_format,
+            log_destination:     setting.log_destination,
             syntaxes,
         })
     }
@@ -116,6 +122,15 @@ struct Setting {
     #[serde(default)]
     timestamp: bool,
 
+    #[serde(default)]
+    auto_save_log: bool,
+
+    #[serde(default = "default_log_format")]
+    log_format: String,
+
+    #[serde(default = "default_log_destination")]
+    log_destination: String,
+
     //nocolor:    Option<bool>,
 
     colorings: Vec<Coloring>,
@@ -149,6 +164,14 @@ impl TcpConnectTimeout {
 
 fn default_timestamp_format() -> String {
     default::TIMESTAMP_FORMAT.to_string()
+}
+
+fn default_log_format() -> String {
+    default::LOG_FORMAT.to_string()
+}
+
+fn default_log_destination() -> String {
+    default::LOG_DESTINATION.to_string()
 }
 
 #[derive(Deserialize)]

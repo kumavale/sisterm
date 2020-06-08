@@ -133,6 +133,8 @@ fn main() {
 }
 
 fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::Params>) {
+    use chrono::Local;
+
     // If "config file (-c)" is specified
     let config_file = if let Some(file) = matches.value_of("config file") {
         file.to_string()
@@ -174,6 +176,21 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
 
     // If "write file (-w)" is specified
     let write_file = matches.value_of("write file");
+    let write_file = if let Some(write_file) = write_file {
+        Some(write_file.to_string())
+    } else if let Some(ref params) = params {
+        if params.auto_save_log {
+            #[cfg(windows)]
+            let fmt = format!("{}\\{}", params.log_destination.trim_end_matches('\\'), params.log_format);
+            #[cfg(not(windows))]
+            let fmt = format!("{}/{}", params.log_destination.trim_end_matches('/'), params.log_format);
+            Some(Local::now().format(&fmt).to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
 
     // Setting flags
     let flags = flag::Flags::new(nocolor, timestamp, append, instead_cr, debug, write_file);
