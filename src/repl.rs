@@ -1,5 +1,6 @@
 use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
+use std::path::Path;
 
 use crate::queue::Queue;
 use crate::flag;
@@ -36,6 +37,7 @@ where
 
     // Save log
     if let Some(write_file) = flags.write_file() {
+        let is_new = !Path::new(write_file).exists();
 
         let mut log_file = {
             if flags.is_append() {
@@ -56,7 +58,9 @@ where
         let mut write_flag = false;
 
         println!("Log record: \"{}\" ({})\n", write_file,
-            if flags.is_append() {
+            if is_new {
+                "New"
+            } else if flags.is_append() {
                 "Append"
             } else {
                 "Overwrite"
@@ -209,6 +213,7 @@ where
 
     // Save log
     if let Some(write_file) = flags.write_file() {
+        let is_new = !Path::new(write_file).exists();
 
         let mut log_file = {
             if flags.is_append() {
@@ -229,7 +234,9 @@ where
         let mut write_flag = false;
 
         println!("Log record: \"{}\" ({})\n", write_file,
-            if flags.is_append() {
+            if is_new {
+                "New"
+            } else if flags.is_append() {
                 "Append"
             } else {
                 "Overwrite"
