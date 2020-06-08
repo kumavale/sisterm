@@ -1,5 +1,26 @@
 # Change Log
 
+## [2.3.0] - 2020-06-08
+### Changed
+- Changed to ignore whitespace except comment lines
+- Changed a comment when connecting
+
+### Added
+- Supported Debug mode
+- Supported TCP connection without telnet
+- Supported a space character(s) between <host> and <TCP port>
+- Supported a negotiate when resizing the window in telnet
+- Supported a specify login user
+- Supported enable timestamp by default
+- Supported auto save log
+- Supported specify log format
+- Supported specify log destination
+
+
+### Fixed
+- Fixed a bug about priority of `instead_cr`
+- Tweak the regex in the config file
+
 ## [2.2.0] - 2020-05-29
 ### Changed
 - Changed to record the time when the enter key is pressed in the timestamp
