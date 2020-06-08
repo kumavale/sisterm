@@ -36,6 +36,7 @@ OPTIONS:
 
 SUBCOMMANDS:
     telnet      Login to remote system host with telnet
+    tcp         TCP connection without telnet
     generate    Generate configuration file
     help        Prints this message or the help of the given subcommand(s)
 ```
@@ -78,9 +79,10 @@ For more specific details on the API for regular expressions, please see the doc
 
 ```
 [[colorings]]
-color = "String"         # required
-regex = ["String", ...]  # required
-underlined = Boolean     # option
+color = "String"             # required
+regex = ["String", ...]      # required
+underlined = Boolean         # option
+ignore_whitespace = Boolean  # option
 ```
 
 ### Color syntax
@@ -110,12 +112,13 @@ underlined = Boolean     # option
 # string
 [[colorings]]
 color = "184"
-regex = ["(\".*\")|('.*')"]
+regex = ["(\".*\")|('.*')|(\".*)|('.*)"]
+ignore_whitespace = true
 
 # positive
 [[colorings]]
 color = "GREEN"
-regex = ["( |^)((?i)yes|up|enable|enabled|active(?-i))( |$)"]
+regex = ["(?i)yes|up|enable|enabled|active(?-i)"]
 
 # negative
 [[colorings]]
