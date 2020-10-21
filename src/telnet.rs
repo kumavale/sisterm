@@ -95,7 +95,7 @@ pub fn run(host:       &str,
     });
 
     // Transmitter
-    repl::transmitter_telnet(transmitter, tx, flags);
+    repl::transmitter(transmitter, tx, flags);
 
     handle.join().unwrap();
 }
