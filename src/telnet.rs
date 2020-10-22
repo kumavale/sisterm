@@ -7,7 +7,7 @@ use std::path::Path;
 use crate::repl;
 use crate::flag;
 use crate::setting;
-use crate::getch::Getch;
+use crate::getch::{Getch, Key};
 use crate::default;
 use crate::negotiation;
 
@@ -58,8 +58,8 @@ pub fn run(host:       &str,
                 println!("\"{}\" is already exists!", write_file);
                 println!("Press ENTER to continue overwrite");
                 match g.getch() {
-                    Ok(b'\n') | Ok(b'\r') => (),  // continue
-                    _ => std::process::exit(0),   // exit
+                    Ok(Key::Char('\n')) => (),   // continue
+                    _ => std::process::exit(0),  // exit
                 }
             }
         } else if flags.is_append() {
@@ -67,8 +67,8 @@ pub fn run(host:       &str,
             println!("\"{}\" is not exists!", write_file);
             println!("Press ENTER to create the file and continue");
             match g.getch() {
-                Ok(b'\n') | Ok(b'\r') => (),  // continue
-                _ => std::process::exit(0),   // exit
+                Ok(Key::Char('\n')) => (),   // continue
+                _ => std::process::exit(0),  // exit
             }
             flags.set_append(false);
         }
