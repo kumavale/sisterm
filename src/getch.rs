@@ -24,30 +24,34 @@ pub struct Getch {
 /// A key.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Key {
+    /// Null byte.
+    Null,
     /// Backspace.
     Backspace,
-    /// Left arrow.
-    Left,
-    /// Right arrow.
-    Right,
+    /// Delete key.
+    Delete,
+    /// Esc key.
+    Esc,
     /// Up arrow.
     Up,
     /// Down arrow.
     Down,
-    /// Home key.
-    Home,
+    /// Right arrow.
+    Right,
+    /// Left arrow.
+    Left,
     /// End key.
     End,
+    /// Home key.
+    Home,
+    /// Backward Tab key.
+    BackTab,
+    /// Insert key.
+    Insert,
     /// Page Up key.
     PageUp,
     /// Page Down key.
     PageDown,
-    /// Backward Tab key.
-    BackTab,
-    /// Delete key.
-    Delete,
-    /// Insert key.
-    Insert,
     /// Function keys.
     ///
     /// Only function keys 1 through 12 are supported.
@@ -60,14 +64,9 @@ pub enum Key {
     ///
     /// Note that certain keys may not be modifiable with `ctrl`, due to limitations of terminals.
     Ctrl(char),
-    /// Null byte.
-    Null,
-    /// Esc key.
-    Esc,
     /// Other key.
     Other(Vec<u8>),
 }
-
 
 impl Getch {
     #[cfg(windows)]
@@ -142,8 +141,9 @@ impl Getch {
             },
             b'\n' | b'\r'         => Ok(Key::Char('\n')),
             b'\t'                 => Ok(Key::Char('\t')),
-            b'\x7F'               => Ok(Key::Backspace),
-            c @ b'\x01'..=b'\x1A' => Ok(Key::Ctrl((c as u8 - 0x1 + b'a') as char)),
+            b'\x08'               => Ok(Key::Backspace),
+            b'\x7F'               => Ok(Key::Delete),
+            c @ b'\x01'..=b'\x1A' => Ok(Key::Ctrl((c as u8 - 0x1  + b'a') as char)),
             c @ b'\x1C'..=b'\x1F' => Ok(Key::Ctrl((c as u8 - 0x1C + b'4') as char)),
             b'\0'                 => Ok(Key::Null),
             c => {

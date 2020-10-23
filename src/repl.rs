@@ -499,18 +499,23 @@ pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: flag:
 where
     T: std::io::Write,
 {
-    let exit_char1 = b'~';
-    let exit_char2 = b'.';
-    let mut queue = Queue::new(exit_char1, exit_char2);
-    let mut last_is_tilde = false;
+    let exit_char = ('~', '.');
+    //let mut queue = Queue::new(exit_char.0, exit_char.1);
+    //let mut last_is_tilde = false;
     let g = Getch::new();
 
     loop {
         match g.getch() {
             Ok(key) => {
-                //if flags.is_debug() {
-                //    io::stdout().write_all(&[b'[', key, b']']).unwrap();
-                //}
+                if flags.is_debug() {
+                    print!("[{:?}]", key);
+                    io::stdout().flush().unwrap();
+                }
+
+                if key == Key::Char(exit_char.0) {
+                    tx.send(()).unwrap();
+                    break;
+                }
 
                 //queue.enqueue(key);
                 //// If input "~." to exit
@@ -550,33 +555,36 @@ where
                 //    continue;
                 //}
 
-                let key = match key {
-                    Key::Backspace => [ 8 ],
-                    _ => [0],
-                    //Left,
-                    //Right,
-                    //Up,
-                    //Down,
-                    //Home,
-                    //End,
-                    //PageUp,
-                    //PageDown,
-                    //BackTab,
-                    //Delete,
-                    //Insert,
-                    //F(u8),
-                    //Char(char),
-                    //Alt(char),
-                    //Ctrl(char),
-                    //Null,
-                    //Esc,
-                    //Other(Vec<u8>),
-                };
-
                 // Send key
-                if let Err(e) = port.write(&key) {
-                    eprintln!("{}", e);
-                }
+                match key {
+                    Key::Null      => port.write(&[ 0x00 ]).ok(),
+                    Key::Backspace => port.write(&[ 0x08 ]).ok(),
+                    Key::Delete    => port.write(&[ 0x7F ]).ok(),
+                    Key::Esc       => port.write(&[ 0x1B ]).ok(),
+                    Key::Up        => port.write(&[ 0x1B, b'[', b'A' ]).ok(),
+                    Key::Down      => port.write(&[ 0x1B, b'[', b'B' ]).ok(),
+                    Key::Right     => port.write(&[ 0x1B, b'[', b'C' ]).ok(),
+                    Key::Left      => port.write(&[ 0x1B, b'[', b'D' ]).ok(),
+                    Key::End       => port.write(&[ 0x1B, b'[', b'F' ]).ok(),
+                    Key::Home      => port.write(&[ 0x1B, b'[', b'H' ]).ok(),
+                    Key::BackTab   => port.write(&[ 0x1B, b'[', b'Z' ]).ok(),
+                    Key::Insert    => port.write(&[ 0x1B, b'[', b'2', b'~' ]).ok(),
+                    Key::PageUp    => port.write(&[ 0x1B, b'[', b'5', b'~' ]).ok(),
+                    Key::PageDown  => port.write(&[ 0x1B, b'[', b'6', b'~' ]).ok(),
+                    Key::F(num) => {
+                        match num {
+                            v @  1..= 5 => port.write(&[ 0x1B, b'[', b'1', v + b'0',     b'~' ]).ok(),
+                            v @  6..= 8 => port.write(&[ 0x1B, b'[', b'1', v + b'0' + 1, b'~' ]).ok(),
+                            v @  9..=10 => port.write(&[ 0x1B, b'[', b'2', v + b'0' - 9, b'~' ]).ok(),
+                            v @ 11..=12 => port.write(&[ 0x1B, b'[', b'2', v + b'0' - 8, b'~' ]).ok(),
+                            _ => unreachable!(),
+                        }
+                    },
+                    Key::Char(ch) => port.write(ch.encode_utf8(&mut [0; 4]).as_bytes()).ok(),
+                    Key::Alt(ch)  => port.write(&[ 0x1B, ch as u8 ]).ok(),
+                    Key::Ctrl(ch) => port.write(&[ (ch as u8) - b'a' + 1 ]).ok(),
+                    Key::Other(b) => port.write(&b).ok(),
+                };
             },
             Err(e) => eprintln!("{}", e),
         }
