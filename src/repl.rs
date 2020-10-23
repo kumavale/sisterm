@@ -405,103 +405,13 @@ where
     }
 }
 
-//pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: flag::Flags)
-//where
-//    T: std::io::Write,
-//{
-//    let exit_char1 = b'~';
-//    let exit_char2 = b'.';
-//    let mut queue = Queue::new(exit_char1, exit_char2);
-//    let mut last_is_tilde = false;
-//    let g = Getch::new();
-//
-//    loop {
-//        match g.getch() {
-//            Ok(key) => {
-//                if flags.is_debug() {
-//                    io::stdout().write_all(&[b'[', key, b']']).unwrap();
-//                }
-//
-//                // Arrow keys
-//                if cfg!(windows) && key == 0 || key == 224 { // ESC
-//                    match g.getch() {
-//                        Ok(72) => if let Err(e) = port.write(&[27, 91, 65]) { eprintln!("{}", e); }, // Up
-//                        Ok(80) => if let Err(e) = port.write(&[27, 91, 66]) { eprintln!("{}", e); }, // Down
-//                        Ok(77) => if let Err(e) = port.write(&[27, 91, 67]) { eprintln!("{}", e); }, // Right
-//                        Ok(75) => if let Err(e) = port.write(&[27, 91, 68]) { eprintln!("{}", e); }, // Left
-//                        Ok(k)  => if let Err(e) = port.write(&[224, k])     { eprintln!("{}", e); }, // Other
-//                        Err(e) => eprintln!("{}", e),
-//                    }
-//                    continue;
-//                }
-//                if cfg!(not(windows)) && key == 27 { // ESC
-//                    let _ = g.getch();
-//                    match g.getch() {
-//                        Ok(b'A') => if let Err(e) = port.write(&[27, 91, 65]) { eprintln!("{}", e); }, // Up
-//                        Ok(b'B') => if let Err(e) = port.write(&[27, 91, 66]) { eprintln!("{}", e); }, // Down
-//                        Ok(b'C') => if let Err(e) = port.write(&[27, 91, 67]) { eprintln!("{}", e); }, // Right
-//                        Ok(b'D') => if let Err(e) = port.write(&[27, 91, 68]) { eprintln!("{}", e); }, // Left
-//                        Ok(k)    => if let Err(e) = port.write(&[27, 91, k])  { eprintln!("{}", e); }, // Other
-//                        Err(e) => eprintln!("{}", e),
-//                    }
-//                    continue;
-//                }
-//
-//                queue.enqueue(key);
-//                // If input "~." to exit
-//                if queue.is_exit_chars() {
-//                    eprint!(".");
-//                    let _ = io::stdout().flush();
-//                    tx.send(()).unwrap();
-//                    break;
-//                }
-//                // If the previous character is not a tilde and the current character is a tilde
-//                if !last_is_tilde && key == exit_char1 {
-//                    last_is_tilde = true;
-//                    eprint!("~");
-//                    let _ = io::stdout().flush();
-//                    continue;
-//                }
-//                // If not input "~~" to dispaly error message
-//                if last_is_tilde {
-//                    if key == exit_char1 {
-//                        eprint!("\x08");
-//                        queue.enqueue(0);
-//                    } else {
-//                        eprint!("\x08");
-//                        eprintln!("[Unrecognized.  Use ~~ to send ~]");
-//                        let _ = io::stdout().flush();
-//                        last_is_tilde = false;
-//                        continue;
-//                    }
-//                }
-//                last_is_tilde = false;
-//
-//                if flags.is_instead_cr() && key == b'\n' {
-//                    // Send carriage return
-//                    if let Err(e) = port.write(&[b'\r']) {
-//                        eprintln!("{}", e);
-//                    }
-//                    continue;
-//                }
-//
-//                // Send key
-//                if let Err(e) = port.write(&[key]) {
-//                    eprintln!("{}", e);
-//                }
-//            },
-//            Err(e) => eprintln!("{}", e),
-//        }
-//    }
-//}
-
 pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: flag::Flags)
 where
     T: std::io::Write,
 {
     let exit_char = ('~', '.');
-    //let mut queue = Queue::new(exit_char.0, exit_char.1);
-    //let mut last_is_tilde = false;
+    let mut queue = Queue::new(Key::Char(exit_char.0), Key::Char(exit_char.1));
+    let mut last_is_tilde = false;
     let g = Getch::new();
 
     loop {
@@ -512,48 +422,43 @@ where
                     io::stdout().flush().unwrap();
                 }
 
-                if key == Key::Char(exit_char.0) {
+                queue.enqueue(&key);
+                // If input "~." to exit
+                if queue.is_exit_chars() {
+                    eprint!(".");
+                    let _ = io::stdout().flush();
                     tx.send(()).unwrap();
                     break;
                 }
+                // If the previous character is not a tilde and the current character is a tilde
+                if !last_is_tilde && key == Key::Char(exit_char.0) {
+                    last_is_tilde = true;
+                    eprint!("~");
+                    let _ = io::stdout().flush();
+                    continue;
+                }
+                // If not input "~~" to dispaly error message
+                if last_is_tilde {
+                    if key == Key::Char(exit_char.0) {
+                        eprint!("\x08");
+                        queue.enqueue(&Key::Null);
+                    } else {
+                        eprint!("\x08");
+                        eprintln!("[Unrecognized.  Use ~~ to send ~]");
+                        let _ = io::stdout().flush();
+                        last_is_tilde = false;
+                        continue;
+                    }
+                }
+                last_is_tilde = false;
 
-                //queue.enqueue(key);
-                //// If input "~." to exit
-                //if queue.is_exit_chars() {
-                //    eprint!(".");
-                //    let _ = io::stdout().flush();
-                //    tx.send(()).unwrap();
-                //    break;
-                //}
-                //// If the previous character is not a tilde and the current character is a tilde
-                //if !last_is_tilde && key == exit_char1 {
-                //    last_is_tilde = true;
-                //    eprint!("~");
-                //    let _ = io::stdout().flush();
-                //    continue;
-                //}
-                //// If not input "~~" to dispaly error message
-                //if last_is_tilde {
-                //    if key == exit_char1 {
-                //        eprint!("\x08");
-                //        queue.enqueue(0);
-                //    } else {
-                //        eprint!("\x08");
-                //        eprintln!("[Unrecognized.  Use ~~ to send ~]");
-                //        let _ = io::stdout().flush();
-                //        last_is_tilde = false;
-                //        continue;
-                //    }
-                //}
-                //last_is_tilde = false;
-
-                //if flags.is_instead_cr() && key == b'\n' {
-                //    // Send carriage return
-                //    if let Err(e) = port.write(&[b'\r']) {
-                //        eprintln!("{}", e);
-                //    }
-                //    continue;
-                //}
+                if flags.is_instead_cr() && key == Key::Char('\n') {
+                    // Send carriage return
+                    if let Err(e) = port.write(&[b'\r']) {
+                        eprintln!("{}", e);
+                    }
+                    continue;
+                }
 
                 // Send key
                 match key {
