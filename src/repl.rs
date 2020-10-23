@@ -412,7 +412,7 @@ where
     let exit_char = ('~', '.');
     let mut queue = Queue::new(Key::Char(exit_char.0), Key::Char(exit_char.1));
     let mut last_is_tilde = false;
-    let g = Getch::new();
+    let mut g = Getch::new();
 
     loop {
         match g.getch() {

@@ -18,6 +18,7 @@ pub struct Getch {}
 #[cfg(not(windows))]
 pub struct Getch {
     orig_term: termios::Termios,
+    leftover:  Option<u8>,
 }
 
 
@@ -91,7 +92,8 @@ impl Getch {
         termios::tcsetattr(0, termios::SetArg::TCSADRAIN, &raw_termios).unwrap();
 
         Self {
-            orig_term
+            orig_term,
+            leftover: None,
         }
     }
 
@@ -114,29 +116,66 @@ impl Getch {
         }
     }
     #[cfg(not(windows))]
-    pub fn getch(&self) -> Result<Key, std::io::Error> {
-        let mut r: [u8; 1] = [0];
+    #[allow(clippy::unused_io_amount)]
+    pub fn getch(&mut self) -> Result<Key, std::io::Error> {
+        let source = &mut std::io::stdin();
+        let mut buf: [u8; 2] = [0; 2];
 
-        std::io::stdin().read_exact(&mut r[..])?;
-        match r[0] {
+        if let Some(c) = self.leftover {
+            // we have a leftover byte, use it
+            self.leftover = None;
+            return parse_key(c, &mut source.bytes());
+        }
+
+        match source.read(&mut buf) {
+            Ok(0) => Ok(Key::Null),
+            Ok(1) => {
+                match buf[0] {
+                    b'\x1B' => Ok(Key::Esc),
+                    c => parse_key(c, &mut source.bytes()),
+                }
+            },
+            Ok(2) => {
+                let option_iter = &mut Some(buf[1]).into_iter();
+                let result = {
+                    let mut iter = option_iter.map(Ok).chain(source.bytes());
+                    parse_key(buf[0], &mut iter)
+                };
+                // If the option_iter wasn't consumed, keep the byte for later.
+                self.leftover = option_iter.next();
+                result
+            },
+            Ok(_) => unreachable!(),
+            Err(e) => Err(e),
+        }
+    }
+}
+
+/// Parse an Event from `item` and possibly subsequent bytes through `iter`.
+fn parse_key<I>(item: u8, iter: &mut I) -> Result<Key, std::io::Error>
+where
+    I: Iterator<Item = Result<u8, std::io::Error>>
+{
+        match item {
             b'\x1B' => {
-                std::io::stdin().read_exact(&mut r[..])?;
-                Ok(match r[0] {
-                    b'[' => parse_csi()?,
-                    b'O' => {
-                        std::io::stdin().read_exact(&mut r[..])?;
-                        match r[0] {
+                Ok(match iter.next() {
+                    Some(Ok(b'[')) => parse_csi(iter)?,
+                    Some(Ok(b'O')) => {
+                        match iter.next() {
                             // F1-F4
-                            val @ b'P'..=b'S' => Key::F(1 + val - b'P'),
-                            _ => Key::Other(vec![ b'\x1B', b'O', r[0] ]),
+                            Some(Ok(val @ b'P'..=b'S')) => Key::F(1 + val - b'P'),
+                            Some(Ok(val)) => Key::Other(vec![ b'\x1B', b'O', val ]),
+                            _ => Key::Other(vec![ b'\x1B', b'O' ]),
                         }
                     },
-                    c => {
-                        match parse_utf8_char(c)? {
+                    Some(Ok(c)) => {
+                        match parse_utf8_char(c, iter)? {
                             Ok(ch) =>   Key::Alt(ch),
                             Err(vec) => Key::Other(vec),
                         }
                     },
+                    Some(Err(e)) => return Err(e),
+                    None => Key::Esc,
                 })
             },
             b'\n' | b'\r'         => Ok(Key::Char('\r')),
@@ -148,50 +187,47 @@ impl Getch {
             b'\0'                 => Ok(Key::Null),
             c => {
                 Ok(
-                    match parse_utf8_char(c)? {
+                    match parse_utf8_char(c, iter)? {
                         Ok(ch) => Key::Char(ch),
                         Err(vec) => Key::Other(vec),
                     }
                 )
             }
         }
-    }
 }
 
 /// Parses a CSI sequence, just after reading ^[
 ///
 /// Returns None if an unrecognized sequence is found.
-fn parse_csi() -> Result<Key, std::io::Error> {
-    let mut r: [u8; 1] = [0];
-
-    std::io::stdin().read_exact(&mut r[..])?;
-    Ok(match r[0] {
-        b'[' => {
-            std::io::stdin().read_exact(&mut r[..])?;
-            match r[0] {
-                val @ b'A'..=b'E' => Key::F(1 + val - b'A'),
-                _ => Key::Other(vec![ b'\x1B', b'[', b'[', r[0] ]),
+fn parse_csi<I>(iter: &mut I) -> Result<Key, std::io::Error>
+where
+     I: Iterator<Item = Result<u8, std::io::Error>>
+{
+    Ok(match iter.next() {
+        Some(Ok(b'[')) => {
+            match iter.next() {
+                Some(Ok(val @ b'A'..=b'E')) => Key::F(1 + val - b'A'),
+                Some(Ok(val)) => Key::Other(vec![ b'\x1B', b'[', b'[', val ]),
+                _ => Key::Other(vec![ b'\x1B', b'[', b'[' ]),
             }
         },
-        b'A' => Key::Up,
-        b'B' => Key::Down,
-        b'C' => Key::Right,
-        b'D' => Key::Left,
-        b'F' => Key::End,
-        b'H' => Key::Home,
-        b'Z' => Key::BackTab,
-        c @ b'0'..=b'9' => {
+        Some(Ok(b'A')) => Key::Up,
+        Some(Ok(b'B')) => Key::Down,
+        Some(Ok(b'C')) => Key::Right,
+        Some(Ok(b'D')) => Key::Left,
+        Some(Ok(b'F')) => Key::End,
+        Some(Ok(b'H')) => Key::Home,
+        Some(Ok(b'Z')) => Key::BackTab,
+        Some(Ok(c @ b'0'..=b'9')) => {
             // Numbered escape code.
             let mut buf = Vec::new();
             buf.push(c);
-            std::io::stdin().read_exact(&mut r[..])?;
-            let mut c = r[0];
+            let mut c = iter.next().unwrap().unwrap();
             // The final byte of a CSI sequence can be in the range 64-126, so
             // let's keep reading anything else.
             while c < 64 || c > 126 {
                 buf.push(c);
-                std::io::stdin().read_exact(&mut r[..])?;
-                c = r[0];
+                c = iter.next().unwrap().unwrap();
             }
             match c {
                 // Special key code.
@@ -232,27 +268,34 @@ fn parse_csi() -> Result<Key, std::io::Error> {
                 },
             }
         },
-        _ => Key::Other(vec![ b'\x1B', b'[', r[0] ]),
+        Some(Ok(c)) => Key::Other(vec![ b'\x1B', b'[', c ]),
+        _ => Key::Other(vec![ b'\x1B', b'[' ]),
     })
 }
 
 /// Parse `c` as either a single byte ASCII char or a variable size UTF-8 char.
-fn parse_utf8_char(c: u8) -> Result<Result<char, Vec<u8>>, std::io::Error> {
+fn parse_utf8_char<I>(c: u8, iter: &mut I) -> Result<Result<char, Vec<u8>>, std::io::Error>
+where
+     I: Iterator<Item = Result<u8, std::io::Error>>
+{
     if c.is_ascii() {
         Ok(Ok(c as char))
     } else {
-        let mut r: [u8; 1] = [0];
         let bytes = &mut Vec::new();
         bytes.push(c);
 
         loop {
-            std::io::stdin().read_exact(&mut r[..])?;
-            bytes.push(r[0]);
-            if let Ok(st) = std::str::from_utf8(bytes) {
-                return Ok(Ok(st.chars().next().unwrap()));
-            }
-            if bytes.len() >= 4 {
-                return Ok(Err(bytes.to_vec()));
+            match iter.next() {
+                Some(Ok(next)) => {
+                    bytes.push(next);
+                    if let Ok(st) = std::str::from_utf8(bytes) {
+                        return Ok(Ok(st.chars().next().unwrap()));
+                    }
+                    if bytes.len() >= 4 {
+                        return Ok(Err(bytes.to_vec()));
+                    }
+                },
+                _ => return Ok(Err(bytes.to_vec())),
             }
         }
     }
