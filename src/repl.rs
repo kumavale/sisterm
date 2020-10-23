@@ -419,14 +419,14 @@ where
             Ok(key) => {
                 if flags.is_debug() {
                     print!("[{:?}]", key);
-                    io::stdout().flush().unwrap();
+                    io::stdout().flush().ok();
                 }
 
                 queue.enqueue(&key);
                 // If input "~." to exit
                 if queue.is_exit_chars() {
                     eprint!(".");
-                    let _ = io::stdout().flush();
+                    io::stderr().flush().ok();
                     tx.send(()).unwrap();
                     break;
                 }
@@ -434,18 +434,19 @@ where
                 if !last_is_tilde && key == Key::Char(exit_char.0) {
                     last_is_tilde = true;
                     eprint!("~");
-                    let _ = io::stdout().flush();
+                    io::stderr().flush().ok();
                     continue;
                 }
                 // If not input "~~" to dispaly error message
                 if last_is_tilde {
                     if key == Key::Char(exit_char.0) {
                         eprint!("\x08");
+                        io::stderr().flush().ok();
                         queue.enqueue(&Key::Null);
                     } else {
                         eprint!("\x08");
                         eprintln!("[Unrecognized.  Use ~~ to send ~]");
-                        let _ = io::stdout().flush();
+                        io::stderr().flush().ok();
                         last_is_tilde = false;
                         continue;
                     }
@@ -461,35 +462,38 @@ where
                 }
 
                 // Send key
-                match key {
-                    Key::Null      => port.write(&[ 0x00 ]).ok(),
-                    Key::Backspace => port.write(&[ 0x08 ]).ok(),
-                    Key::Delete    => port.write(&[ 0x7F ]).ok(),
-                    Key::Esc       => port.write(&[ 0x1B ]).ok(),
-                    Key::Up        => port.write(&[ 0x1B, b'[', b'A' ]).ok(),
-                    Key::Down      => port.write(&[ 0x1B, b'[', b'B' ]).ok(),
-                    Key::Right     => port.write(&[ 0x1B, b'[', b'C' ]).ok(),
-                    Key::Left      => port.write(&[ 0x1B, b'[', b'D' ]).ok(),
-                    Key::End       => port.write(&[ 0x1B, b'[', b'F' ]).ok(),
-                    Key::Home      => port.write(&[ 0x1B, b'[', b'H' ]).ok(),
-                    Key::BackTab   => port.write(&[ 0x1B, b'[', b'Z' ]).ok(),
-                    Key::Insert    => port.write(&[ 0x1B, b'[', b'2', b'~' ]).ok(),
-                    Key::PageUp    => port.write(&[ 0x1B, b'[', b'5', b'~' ]).ok(),
-                    Key::PageDown  => port.write(&[ 0x1B, b'[', b'6', b'~' ]).ok(),
+                if let Err(e) = match key {
+                    Key::Null      => port.write(&[ 0x00 ]),
+                    Key::Backspace => port.write(&[ 0x08 ]),
+                    Key::Delete    => port.write(&[ 0x7F ]),
+                    Key::Esc       => port.write(&[ 0x1B ]),
+                    Key::Up        => port.write(&[ 0x1B, b'[', b'A' ]),
+                    Key::Down      => port.write(&[ 0x1B, b'[', b'B' ]),
+                    Key::Right     => port.write(&[ 0x1B, b'[', b'C' ]),
+                    Key::Left      => port.write(&[ 0x1B, b'[', b'D' ]),
+                    Key::End       => port.write(&[ 0x1B, b'[', b'F' ]),
+                    Key::Home      => port.write(&[ 0x1B, b'[', b'H' ]),
+                    Key::BackTab   => port.write(&[ 0x1B, b'[', b'Z' ]),
+                    Key::Insert    => port.write(&[ 0x1B, b'[', b'2', b'~' ]),
+                    Key::PageUp    => port.write(&[ 0x1B, b'[', b'5', b'~' ]),
+                    Key::PageDown  => port.write(&[ 0x1B, b'[', b'6', b'~' ]),
                     Key::F(num) => {
                         match num {
-                            v @  1..= 5 => port.write(&[ 0x1B, b'[', b'1', v + b'0',     b'~' ]).ok(),
-                            v @  6..= 8 => port.write(&[ 0x1B, b'[', b'1', v + b'0' + 1, b'~' ]).ok(),
-                            v @  9..=10 => port.write(&[ 0x1B, b'[', b'2', v + b'0' - 9, b'~' ]).ok(),
-                            v @ 11..=12 => port.write(&[ 0x1B, b'[', b'2', v + b'0' - 8, b'~' ]).ok(),
+                            v @  1..= 5 => port.write(&[ 0x1B, b'[', b'1', v + b'0',     b'~' ]),
+                            v @  6..= 8 => port.write(&[ 0x1B, b'[', b'1', v + b'0' + 1, b'~' ]),
+                            v @  9..=10 => port.write(&[ 0x1B, b'[', b'2', v + b'0' - 9, b'~' ]),
+                            v @ 11..=12 => port.write(&[ 0x1B, b'[', b'2', v + b'0' - 8, b'~' ]),
                             _ => unreachable!(),
                         }
                     },
-                    Key::Char(ch) => port.write(ch.encode_utf8(&mut [0; 4]).as_bytes()).ok(),
-                    Key::Alt(ch)  => port.write(&[ 0x1B, ch as u8 ]).ok(),
-                    Key::Ctrl(ch) => port.write(&[ (ch as u8) - b'a' + 1 ]).ok(),
-                    Key::Other(b) => port.write(&b).ok(),
+                    Key::Char(ch) => port.write(ch.encode_utf8(&mut [0; 4]).as_bytes()),
+                    Key::Alt(ch)  => port.write(&[ 0x1B, ch as u8 ]),
+                    Key::Ctrl(ch) => port.write(&[ (ch as u8) - b'a' + 1 ]),
+                    Key::Other(b) => port.write(&b),
+                }{
+                    eprintln!("{}", e);
                 };
+
             },
             Err(e) => eprintln!("{}", e),
         }
