@@ -139,7 +139,7 @@ impl Getch {
                     },
                 })
             },
-            b'\n' | b'\r'         => Ok(Key::Char('\n')),
+            b'\n' | b'\r'         => Ok(Key::Char('\r')),
             b'\t'                 => Ok(Key::Char('\t')),
             b'\x08'               => Ok(Key::Backspace),
             b'\x7F'               => Ok(Key::Delete),

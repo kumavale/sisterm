@@ -4,20 +4,20 @@ pub struct Flags {
     nocolor:    bool,
     timestamp:  bool,
     append:     bool,
-    instead_cr: bool,
+    crlf:       bool,
     debug:      bool,
     write_file: Option<String>,
 }
 
 impl Flags {
-    pub fn new(nocolor: bool, timestamp: bool, append: bool, instead_cr: bool, debug: bool,
+    pub fn new(nocolor: bool, timestamp: bool, append: bool, crlf: bool, debug: bool,
         write_file: Option<String>) -> Self
     {
         Self {
             nocolor,
             timestamp,
             append,
-            instead_cr,
+            crlf,
             debug,
             write_file,
         }
@@ -43,8 +43,8 @@ impl Flags {
         self.append = append;
     }
 
-    pub fn is_instead_cr(&self) -> bool {
-        self.instead_cr
+    pub fn is_crlf(&self) -> bool {
+        self.crlf
     }
 
     pub fn is_debug(&self) -> bool {

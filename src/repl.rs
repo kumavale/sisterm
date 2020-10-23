@@ -453,9 +453,9 @@ where
                 }
                 last_is_tilde = false;
 
-                if flags.is_instead_cr() && key == Key::Char('\n') {
+                if flags.is_crlf() && key == Key::Char('\r') {
                     // Send carriage return
-                    if let Err(e) = port.write(&[b'\r']) {
+                    if let Err(e) = port.write(&[ b'\r', b'\n' ]) {
                         eprintln!("{}", e);
                     }
                     continue;

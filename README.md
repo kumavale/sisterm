@@ -19,12 +19,12 @@ USAGE:
     sist [FLAGS] [OPTIONS] [SUBCOMMAND]
 
 FLAGS:
-    -n, --no-color      Without color
-    -t, --time-stamp    Add timestamp to log
-    -a, --append        Append to log  (default overwrite)
-    -i, --instead-cr    Send '\r' instead of '\n'
-    -h, --help          Prints help information
-    -V, --version       Prints version information
+    -n, --no-color        Without color
+    -t, --time-stamp      Add timestamp to log
+    -a, --append          Append to log  (default overwrite)
+    -i, --instead-crlf    Send '\r\n' instead of '\r'
+    -h, --help            Prints help information
+    -V, --version         Prints version information
 
 OPTIONS:
     -l, --line <PORT>      The device path to a serial port  (auto detection)

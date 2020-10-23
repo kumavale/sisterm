@@ -159,12 +159,12 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     // Append flag
     let append = matches.is_present("append");
 
-    // Instead_CR flag
-    let instead_cr = matches.is_present("instead_cr");
-    let instead_cr = if let Some(ref params) = params {
-        if instead_cr { true } else { params.instead_cr }
+    // CRLF flag
+    let crlf = matches.is_present("crlf");
+    let crlf = if let Some(ref params) = params {
+        if crlf { true } else { params.crlf }
     } else {
-        instead_cr
+        crlf
     };
 
     // Debug mode flag
@@ -193,7 +193,7 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     };
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, append, instead_cr, debug, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, append, crlf, debug, write_file);
 
     (flags, params)
 }
@@ -226,7 +226,7 @@ fn build_app() -> App<'static, 'static> {
             .value_name("FILE")
             .takes_value(true)
             .conflicts_with_all(&[
-                "port", "baud", "write file", "timestamp", "append", "instead_cr"
+                "port", "baud", "write file", "timestamp", "append", "crlf"
             ])
         )
         .arg(Arg::with_name("write file")
@@ -263,10 +263,10 @@ fn build_app() -> App<'static, 'static> {
             .long("append")
             .global(true)
         )
-        .arg(Arg::with_name("instead_cr")
-            .help("Send '\\r' instead of '\\n'")
+        .arg(Arg::with_name("crlf")
+            .help("Send '\\r\\n' instead of '\\r'")
             .short("i")
-            .long("instead-cr")
+            .long("instead-crlf")
             .global(true)
         )
         .subcommands(vec![SubCommand::with_name("telnet")

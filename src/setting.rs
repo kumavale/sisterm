@@ -10,7 +10,7 @@ use serde::Deserialize;
 pub struct Params {
     pub port:                Option<String>,
     pub speed:               Option<String>,
-    pub instead_cr:          bool,
+    pub crlf:                bool,
     pub read_buf_size:       usize,
     pub tcp_connect_timeout: u64,
     pub timestamp_format:    String,
@@ -57,7 +57,7 @@ impl Params {
         Some( Self {
             port:                setting.port,
             speed:               setting.speed,
-            instead_cr:          setting.instead_cr,
+            crlf:                setting.crlf,
             read_buf_size:       setting.read_buf_size.unwrap(),
             tcp_connect_timeout: setting.tcp_connect_timeout.unwrap(),
             timestamp_format:    setting.timestamp_format,
@@ -105,7 +105,7 @@ struct Setting {
     speed: Option<String>,
 
     #[serde(default)]
-    instead_cr: bool,
+    crlf: bool,
 
     #[serde(default)]
     read_buf_size: ReadBufSize,
