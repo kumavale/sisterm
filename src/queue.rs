@@ -39,24 +39,24 @@ mod tests {
     fn test_enqueue() {
         let mut q = Queue::new(Key::Char('~'), Key::Char('.'));
 
-        q.enqueue(Key::Char('A'));
-        q.enqueue(Key::Char('B'));
+        q.enqueue(&Key::Char('A'));
+        q.enqueue(&Key::Char('B'));
     }
 
     #[test]
     fn test_is_exit_chars() {
         let mut q = Queue::new(Key::Char('~'), Key::Char('.'));
 
-        q.enqueue(Key::Char('A'));
-        q.enqueue(Key::Char('B'));
+        q.enqueue(&Key::Char('A'));
+        q.enqueue(&Key::Char('B'));
         assert!(!q.is_exit_chars());
 
-        q.enqueue(Key::Char('~'));
-        q.enqueue(Key::Char('.'));
+        q.enqueue(&Key::Char('~'));
+        q.enqueue(&Key::Char('.'));
         assert!(q.is_exit_chars());
 
-        q.enqueue(Key::Char('.'));
-        q.enqueue(Key::Char('~'));
+        q.enqueue(&Key::Char('.'));
+        q.enqueue(&Key::Char('~'));
         assert!(!q.is_exit_chars());
     }
 }
