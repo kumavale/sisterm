@@ -56,7 +56,7 @@ pub fn run(host:      &str,
                 println!("\"{}\" is already exists!", write_file);
                 println!("Press ENTER to continue overwrite");
                 match g.getch() {
-                    Ok(Key::Char('\n')) => (),   // continue
+                    Ok(Key::Char('\r')) => (),   // continue
                     _ => std::process::exit(0),  // exit
                 }
             }
@@ -65,7 +65,7 @@ pub fn run(host:      &str,
             println!("\"{}\" is not exists!", write_file);
             println!("Press ENTER to create the file and continue");
             match g.getch() {
-                Ok(Key::Char('\n')) => (),   // continue
+                Ok(Key::Char('\r')) => (),   // continue
                 _ => std::process::exit(0),  // exit
             }
             flags.set_append(false);
