@@ -1,9 +1,17 @@
 # Change Log
 
+
+## [2.3.2] - 2020-10-24
+### Fixed
+- Fixed a bug that multibyte characters are not displayed properly
+- Fixed a bug related to log file overwrite confirmation
+
+
 ## [2.3.1] - 2020-10-24
 ### Fixed
 - Fixed a bug that some keys were not working properly
 - When the enter key is pressed,'CR' is sent by default, and 'CRLF' is sent as an option
+
 
 ## [2.3.0] - 2020-06-08
 ### Changed
@@ -21,10 +29,10 @@
 - Supported specify log format
 - Supported specify log destination
 
-
 ### Fixed
 - Fixed a bug about priority of `instead_cr`
 - Tweak the regex in the config file
+
 
 ## [2.2.0] - 2020-05-29
 ### Changed
@@ -33,6 +41,7 @@
 
 ### Fixed
 - Fixed Telnet not working
+
 
 ## [2.1.0] - 2020-05-28
 ### Added
@@ -43,6 +52,8 @@
 - Set default TCP connect timeout
 - Variable timestamp format
 
+
 ## [2.0.0] - 2020-05-27
 ### Added
 - Initial release
+
