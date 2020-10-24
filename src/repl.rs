@@ -505,20 +505,32 @@ fn format_timestamp(timestamp_format: &str) -> String {
 }
 
 fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
-    for c in serial_buf {
-        match *c {
+    let mut i = 0;
+    while i < serial_buf.len() {
+        match serial_buf[i] {
             0x8 =>  { log_buf.pop(); }        // BS
-            0x9 =>  (*log_buf).push('\t'),    // HT
-            0xa =>  (*log_buf).push('\n'),    // LF
-            0xd =>  (*log_buf).push('\r'),    // CR
-            0x1b => (*log_buf).push('\x1b'),  // ESC
             c => {
-                if 0x20 <= c && c <= 0x7e {
+                if c.is_ascii() {
                     (*log_buf).push(c as char);
+                } else {
+                    let bytes = &mut Vec::new();
+                    bytes.push(serial_buf[i]);
+
+                    for d in 1..=4 {
+                        if serial_buf.len() <= i+d {
+                            return;
+                        }
+                        bytes.push(serial_buf[i+d]);
+                        if let Ok(st) = std::str::from_utf8(bytes) {
+                            i += d;
+                            (*log_buf).push(st.chars().next().unwrap());
+                            break;
+                        }
+                    }
                 }
-                // Ignore others
             },
         }
+        i += 1;
     }
 }
 

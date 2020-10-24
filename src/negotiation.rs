@@ -132,8 +132,8 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
 
     while i < t {
         if serial_buf[i] != commands::IAC {
-            if is_appear(serial_buf[i]) {
-                output.push(serial_buf[i] as char);
+            if let Some(ch) = is_char(serial_buf, &mut i) {
+                output.push(ch);
             }
             i += 1;
             continue;
@@ -362,6 +362,29 @@ pub fn get_window_size() -> [u8; 4] {
     ((height & 0b1111_1111_0000_0000) >> 8) as u8, (height & 0b0000_0000_1111_1111) as u8]
 }
 
-fn is_appear(code: u8) -> bool {
-    0x08 <= code && code <= 0x0D || code == 0x1B || 0x20 <= code && code <= 0x7E
+fn is_char(buf: &[u8], i: &mut usize) -> Option<char> {
+    let mut d = *i;
+
+    if buf[d].is_ascii() {
+        Some(buf[d] as char)
+    } else {
+        let bytes = &mut Vec::new();
+        bytes.push(buf[d]);
+
+        loop {
+            d += 1;
+            if buf.len() <= d {
+                return None
+            }
+            bytes.push(buf[d]);
+            if let Ok(st) = std::str::from_utf8(bytes) {
+                *i = d;
+                return Some(st.chars().next().unwrap());
+            }
+            if bytes.len() >= 4 {
+                return None
+            }
+        }
+    }
 }
+
