@@ -99,18 +99,51 @@ impl Getch {
 
     #[cfg(windows)]
     pub fn getch(&self) -> Result<Key, std::io::Error> {
-        todo!();
-        loop {
-            unsafe {
-                let key = _getch();
-                if key == 0 {
-                    // Ignore next input
-                    _getch();
-                } else {
-                    match key {
-                        0x8 => Ok(Key::Backspace),
-                        c   => Ok(Key::Char(c as char)),
+        use winapi::um::winuser::{GetKeyState, VK_MENU};
+
+        unsafe {
+            match _getch() {
+                0x00 | 0xE0 => {
+                    match _getch() {
+                        0x48 => Ok(Key::Up),
+                        0x50 => Ok(Key::Down),
+                        0x4D => Ok(Key::Right),
+                        0x4B => Ok(Key::Left),
+                        0x47 => Ok(Key::Home),
+                        0x4F => Ok(Key::End),
+                        0x49 => Ok(Key::PageUp),
+                        0x51 => Ok(Key::PageDown),
+                        0x52 => Ok(Key::Insert),
+                        0x53 => Ok(Key::Delete),
+                        v @ 0x3B..=0x44 => {
+                            Ok(Key::F((v - 0x3B + 1) as u8))
+                        },
+                        0x85 => Ok(Key::F(11)),
+                        0x86 => Ok(Key::F(12)),
+                        c    => Ok(Key::Other(vec![ b'\x1B', c as u8 ])),
                     }
+                },
+                0x08        => Ok(Key::Backspace),
+                0x1B        => Ok(Key::Esc),
+                0x7F        => Ok(Key::Delete),
+                0x0A | 0x0D => Ok(Key::Char('\r')),
+                0x09        => Ok(Key::Char('\t')),
+                c @ 0x01..=0x1A => {
+                    Ok(Key::Ctrl((c as u8 + b'a' - 1) as char))
+                },
+                c => {
+                    Ok(
+                        match parse_utf8_char(c as u8)? {
+                            Ok(ch)   => {
+                                if GetKeyState(VK_MENU) < 0 {
+                                    Key::Alt(ch)
+                                } else {
+                                    Key::Char(ch)
+                                }
+                            },
+                            Err(vec) => Key::Other(vec),
+                        }
+                    )
                 }
             }
         }
@@ -152,6 +185,7 @@ impl Getch {
 }
 
 /// Parse an Event from `item` and possibly subsequent bytes through `iter`.
+#[cfg(not(windows))]
 fn parse_key<I>(item: u8, iter: &mut I) -> Result<Key, std::io::Error>
 where
     I: Iterator<Item = Result<u8, std::io::Error>>
@@ -170,7 +204,7 @@ where
                     },
                     Some(Ok(c)) => {
                         match parse_utf8_char(c, iter)? {
-                            Ok(ch) =>   Key::Alt(ch),
+                            Ok(ch)   => Key::Alt(ch),
                             Err(vec) => Key::Other(vec),
                         }
                     },
@@ -188,7 +222,7 @@ where
             c => {
                 Ok(
                     match parse_utf8_char(c, iter)? {
-                        Ok(ch) => Key::Char(ch),
+                        Ok(ch)   => Key::Char(ch),
                         Err(vec) => Key::Other(vec),
                     }
                 )
@@ -199,6 +233,7 @@ where
 /// Parses a CSI sequence, just after reading ^[
 ///
 /// Returns None if an unrecognized sequence is found.
+#[cfg(not(windows))]
 fn parse_csi<I>(iter: &mut I) -> Result<Key, std::io::Error>
 where
      I: Iterator<Item = Result<u8, std::io::Error>>
@@ -274,6 +309,29 @@ where
 }
 
 /// Parse `c` as either a single byte ASCII char or a variable size UTF-8 char.
+#[cfg(windows)]
+fn parse_utf8_char(c: u8) -> Result<Result<char, Vec<u8>>, std::io::Error> {
+    if c.is_ascii() {
+        Ok(Ok(c as char))
+    } else {
+        let bytes = &mut Vec::new();
+        bytes.push(c);
+
+        loop {
+            let next = unsafe { _getch() } as u8;
+            bytes.push(next);
+            if let Ok(st) = std::str::from_utf8(bytes) {
+                return Ok(Ok(st.chars().next().unwrap()));
+            }
+            if bytes.len() >= 4 {
+                return Ok(Err(bytes.to_vec()));
+            }
+        }
+    }
+}
+
+/// Parse `c` as either a single byte ASCII char or a variable size UTF-8 char.
+#[cfg(not(windows))]
 fn parse_utf8_char<I>(c: u8, iter: &mut I) -> Result<Result<char, Vec<u8>>, std::io::Error>
 where
      I: Iterator<Item = Result<u8, std::io::Error>>
