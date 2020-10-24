@@ -1,5 +1,10 @@
 # Change Log
 
+## [2.3.1] - 2020-10-24
+### Fixed
+- Fixed a bug that some keys were not working properly
+- When the enter key is pressed,'CR' is sent by default, and 'CRLF' is sent as an option
+
 ## [2.3.0] - 2020-06-08
 ### Changed
 - Changed to ignore whitespace except comment lines
