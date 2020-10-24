@@ -27,7 +27,7 @@ pub fn run(port_name: String,
     if let Some(write_file) = flags.write_file() {
         if Path::new(write_file).exists() {
             if !flags.is_append() {
-                let mut g = Getch::new();
+                let g = Getch::new();
                 println!("\"{}\" is already exists!", write_file);
                 println!("Press ENTER to continue overwrite");
                 match g.getch() {
@@ -36,7 +36,7 @@ pub fn run(port_name: String,
                 }
             }
         } else if flags.is_append() {
-            let mut g = Getch::new();
+            let g = Getch::new();
             println!("\"{}\" is not exists!", write_file);
             println!("Press ENTER to create the file and continue");
             match g.getch() {

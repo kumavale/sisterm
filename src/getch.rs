@@ -10,6 +10,8 @@ extern "C" {
 use nix::sys::termios;
 #[cfg(not(windows))]
 use std::io::Read;
+#[cfg(not(windows))]
+use std::cell::RefCell;
 
 
 #[cfg(windows)]
@@ -18,7 +20,7 @@ pub struct Getch {}
 #[cfg(not(windows))]
 pub struct Getch {
     orig_term: termios::Termios,
-    leftover:  Option<u8>,
+    leftover:  RefCell<Option<u8>>,
 }
 
 
@@ -93,7 +95,7 @@ impl Getch {
 
         Self {
             orig_term,
-            leftover: None,
+            leftover: RefCell::new(None),
         }
     }
 
@@ -150,13 +152,14 @@ impl Getch {
     }
     #[cfg(not(windows))]
     #[allow(clippy::unused_io_amount)]
-    pub fn getch(&mut self) -> Result<Key, std::io::Error> {
+    pub fn getch(&self) -> Result<Key, std::io::Error> {
         let source = &mut std::io::stdin();
         let mut buf: [u8; 2] = [0; 2];
 
-        if let Some(c) = self.leftover {
+        if self.leftover.borrow().is_some() {
             // we have a leftover byte, use it
-            self.leftover = None;
+            let c = self.leftover.borrow().unwrap();
+            self.leftover.replace(None);
             return parse_key(c, &mut source.bytes());
         }
 
@@ -175,7 +178,7 @@ impl Getch {
                     parse_key(buf[0], &mut iter)
                 };
                 // If the option_iter wasn't consumed, keep the byte for later.
-                self.leftover = option_iter.next();
+                self.leftover.replace(option_iter.next());
                 result
             },
             Ok(_) => unreachable!(),
