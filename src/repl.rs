@@ -551,24 +551,24 @@ mod tests {
     fn test_string_from_utf8_appearancering() {
         let tests = vec![
             (
-                [0x34, 0x32],
+                vec![0x34, 0x32],
                 "42",
             ),
             (
-                [0x00, 0x07],
+                vec![0x08, 0x20, 0x08],
                 "",
             ),
             (
-                [0x1f, 0x7f],
-                "",
-            ),
-            (
-                [0x08, 0x08],
-                "",
-            ),
-            (
-                [0x20, 0x7e],
+                vec![0x20, 0x7e],
                 " ~",
+            ),
+            (
+                vec![0xE3, 0x81, 0x82],
+                "あ",
+            ),
+            (
+                vec![0x00],
+                "\u{0}",
             ),
         ];
 
