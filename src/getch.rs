@@ -122,6 +122,10 @@ impl Getch {
                         },
                         0x85 => Ok(Key::F(11)),
                         0x86 => Ok(Key::F(12)),
+                        0x73 => Ok(Key::Other(vec![ b'\x1B', b'[', b'1', b';', b'5', b'D' ])),  // Ctrl+Left
+                        0x74 => Ok(Key::Other(vec![ b'\x1B', b'[', b'1', b';', b'5', b'C' ])),  // Ctrl+Right
+                        0x8D => Ok(Key::Other(vec![ b'\x1B', b'[', b'1', b';', b'5', b'A' ])),  // Ctrl+Up
+                        0x91 => Ok(Key::Other(vec![ b'\x1B', b'[', b'1', b';', b'5', b'B' ])),  // Ctrl+Down
                         c    => Ok(Key::Other(vec![ b'\x1B', c as u8 ])),
                     }
                 },
@@ -263,7 +267,7 @@ where
             let mut c = iter.next().unwrap().unwrap();
             // The final byte of a CSI sequence can be in the range 64-126, so
             // let's keep reading anything else.
-            while c < 64 || c > 126 {
+            while c < 64 || 126 < c {
                 buf.push(c);
                 c = iter.next().unwrap().unwrap();
             }
@@ -293,15 +297,17 @@ where
                         v @ 17..=21 => Key::F(v - 11),
                         v @ 23..=24 => Key::F(v - 12),
                         _ => {
-                            let mut keys = vec![ b'\x1B', b'['];
+                            let mut keys = vec![ b'\x1B', b'[' ];
                             keys.append(&mut buf);
+                            keys.push(nums[0]);
                             return Ok(Key::Other(keys));
                         },
                     }
                 },
                 _ => {
-                    let mut keys = vec![ b'\x1B', b'['];
+                    let mut keys = vec![ b'\x1B', b'[' ];
                     keys.append(&mut buf);
+                    keys.push(c);
                     return Ok(Key::Other(keys));
                 },
             }
