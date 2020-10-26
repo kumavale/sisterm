@@ -488,7 +488,16 @@ where
                     },
                     Key::Char(ch) => port.write(ch.encode_utf8(&mut [0; 4]).as_bytes()),
                     Key::Alt(ch)  => port.write(&[ 0x1B, ch as u8 ]),
-                    Key::Ctrl(ch) => port.write(&[ (ch as u8) - b'a' + 1 ]),
+                    Key::Ctrl(ch) => {
+                        match ch {
+                            'a'..='z' => port.write(&[ (ch as u8) - b'a' + 1 ]),
+                            '4' => port.write(&[ 0x1B, b'[', b'1', b';', b'5', b'S' ]),
+                            '5' => port.write(&[ 0x1B, b'[', b'1', b'5', b';', b'5', b'~' ]),
+                            '6' => port.write(&[ 0x1B, b'[', b'1', b'7', b';', b'5', b'~' ]),
+                            '7' => port.write(&[ 0x1B, b'[', b'1', b'8', b';', b'5', b'~' ]),
+                            _ => unreachable!(),
+                        }
+                    },
                     Key::Other(b) => port.write(&b),
                 }{
                     eprintln!("{}", e);
