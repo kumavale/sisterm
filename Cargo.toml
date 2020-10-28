@@ -29,8 +29,12 @@ libc = "0.2"
 [target.'cfg(windows)'.dependencies.winapi]
 version = "0.3"
 features = [
-    "winuser",
+    "consoleapi",
+    "handleapi",
+    "processenv",
+    "winbase",
     "wincon",
+    "winuser",
 ]
 
 [target.'cfg(unix)'.dependencies]

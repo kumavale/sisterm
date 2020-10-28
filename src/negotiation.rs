@@ -163,10 +163,22 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             commands::DO,
                             options::TERMINAL_TYPE,
                         ]),
-                    _ => (),
+                    option =>
+                        send_neg.extend_from_slice(&[
+                            commands::IAC,
+                            commands::DONT,
+                            option,
+                        ]),
                 }
             },
-            commands::WONT => {},
+            commands::WONT => {
+                i += 1;
+                send_neg.extend_from_slice(&[
+                    commands::IAC,
+                    commands::WONT,
+                    serial_buf[i],
+                ]);
+            },
             commands::DO   => {
                 i += 1;
                 match serial_buf[i] {
@@ -219,10 +231,10 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             },
                             options::NEW_ENVIRONMENT,
                         ]),
-                    _ => send_neg.extend_from_slice(&[
+                    option => send_neg.extend_from_slice(&[
                         commands::IAC,
                         commands::WONT,
-                        serial_buf[i],
+                        option,
                     ]),
                 }
             },
@@ -237,19 +249,25 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
             commands::SB => {
                 i += 1;
                 match serial_buf[i] {
-                    options::TERMINAL_TYPE =>
+                    options::TERMINAL_TYPE => {
                         send_neg.extend_from_slice(&[
                             commands::IAC,
                             commands::SB,
                             options::TERMINAL_TYPE,
                             commands::IS,
-                            //0x58, 0x54, 0x45, 0x52, 0x4d, 0x2d, 0x32,  // XTERM-
-                            //0x35, 0x36, 0x43, 0x4f, 0x4c, 0x4f, 0x52,  //   256COLOR
-                            0x58, 0x54, 0x45, 0x52, 0x4d, // XTERM
-                            //0x56, 0x54, 0x32, 0x32, 0x30, // VT200
+                        ]);
+                        send_neg.extend_from_slice(&
+                            //"XTERM".as_bytes(),
+                            //"XTERM-256COLOR".as_bytes(),
+                            //"VT100".as_bytes(),
+                            //"VT200".as_bytes(),
+                            "ANSI".as_bytes(),
+                        );
+                        send_neg.extend_from_slice(&[
                             commands::IAC,
                             commands::SE,
-                        ]),
+                        ]);
+                    },
                     options::TERMINAL_SPEED =>
                         send_neg.extend_from_slice(&[
                             commands::IAC,
@@ -374,15 +392,15 @@ fn is_char(buf: &[u8], i: &mut usize) -> Option<char> {
         loop {
             d += 1;
             if buf.len() <= d {
-                return None
+                return None;
             }
             bytes.push(buf[d]);
             if let Ok(st) = std::str::from_utf8(bytes) {
                 *i = d;
                 return Some(st.chars().next().unwrap());
             }
-            if bytes.len() >= 4 {
-                return None
+            if 4 <= bytes.len() {
+                return None;
             }
         }
     }

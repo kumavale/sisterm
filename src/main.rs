@@ -31,6 +31,9 @@ fn main() {
         }
     }
 
+    #[cfg(windows)]
+    enable_ansi_support();
+
     // Telnet
     if let Some(ref matches) = matches.subcommand_matches("telnet") {
         use sisterm::telnet;
@@ -321,6 +324,30 @@ fn config_file_help_message() -> &'static str {
 
     #[cfg(not(windows))]
     return "Specify configuration file\n[default $HOME/.config/sisterm/config.toml]";
+}
+
+#[cfg(windows)]
+fn enable_ansi_support() {
+    use winapi::um::consoleapi::{GetConsoleMode, SetConsoleMode};
+    use winapi::um::handleapi::INVALID_HANDLE_VALUE;
+    use winapi::um::processenv::GetStdHandle;
+    use winapi::um::winbase::STD_INPUT_HANDLE;
+    use winapi::um::wincon::ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+    unsafe {
+        let input_handle = GetStdHandle(STD_INPUT_HANDLE);
+        let mut console_mode: u32 = 0;
+
+        if input_handle == INVALID_HANDLE_VALUE {
+            return;
+        }
+
+        if GetConsoleMode(input_handle, &mut console_mode) != 0 {
+            if console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING == 0 {
+                SetConsoleMode(input_handle, console_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
