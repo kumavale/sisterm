@@ -97,17 +97,17 @@ mod options {
     //pub const                       :u8 = 0xFF;  // 255
 }
 
-lazy_static! {
-    static ref LOGIN_USER: Mutex<String> = Mutex::new(String::new());
-}
+lazy_static! { static ref LOGIN_USER:    Mutex<String> = Mutex::new(String::new()); }
+lazy_static! { static ref TERMINAL_TYPE: Mutex<String> = Mutex::new(String::new()); }
 
-pub fn init(transmitter: &mut std::net::TcpStream, login_user: Option<&str>) {
+pub fn init(transmitter: &mut std::net::TcpStream, login_user: Option<&str>, terminal_type: &str) {
     use std::io::Write;
 
     // Initiarize default login user
     if let Some(username) = login_user {
         *LOGIN_USER.lock().unwrap() = username.to_string();
     }
+    *TERMINAL_TYPE.lock().unwrap() = terminal_type.to_string();
 
     // Negotiations sent first
     let data = [
@@ -261,7 +261,8 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             //"XTERM-256COLOR".as_bytes(),
                             //"VT100".as_bytes(),
                             //"VT200".as_bytes(),
-                            "ANSI".as_bytes(),
+                            //"ANSI".as_bytes(),
+                            TERMINAL_TYPE.lock().unwrap().as_bytes(),
                         );
                         send_neg.extend_from_slice(&[
                             commands::IAC,

@@ -75,6 +75,10 @@ br#"##
 ## Display all byte characters
 #debug = false
 
+## Terminal type to be reported to the host when the telnet connection is established.
+## e.g. ANSI, VT100, VT200, XTERM, XTERM-256COLOR
+#terminal_type = "ANSI"
+
 
 ##############################
 #_/_/_/_/_/_/_/_/_/_/_/_/_/_/#

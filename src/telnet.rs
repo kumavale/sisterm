@@ -21,6 +21,11 @@ pub fn run(host:       &str,
     } else {
         default::TCP_CONNECT_TIMEOUT
     };
+    let terminal_type = if let Some(ref p) = params {
+        &p.terminal_type
+    } else {
+        default::TERMINAL_TYPE
+    };
 
     let receiver = {
         let hosts = to_SocketAddr_for_telnet(host);
@@ -80,7 +85,7 @@ pub fn run(host:       &str,
     }
 
     // The first negotiation
-    negotiation::init(&mut transmitter, login_user);
+    negotiation::init(&mut transmitter, login_user, &terminal_type);
 
     println!("Type \"~.\" to exit.");
     println!("Connecting... {}", host);

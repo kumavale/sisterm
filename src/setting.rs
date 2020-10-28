@@ -19,6 +19,7 @@ pub struct Params {
     pub auto_save_log:       bool,
     pub log_format:          String,
     pub log_destination:     String,
+    pub terminal_type:       String,
     pub syntaxes:            Vec<SyntaxDefinition>,
 }
 
@@ -66,6 +67,7 @@ impl Params {
             auto_save_log:       setting.auto_save_log,
             log_format:          setting.log_format,
             log_destination:     setting.log_destination,
+            terminal_type:       setting.terminal_type,
             syntaxes,
         })
     }
@@ -131,6 +133,9 @@ struct Setting {
     #[serde(default = "default_log_destination")]
     log_destination: String,
 
+    #[serde(default = "default_terminal_type")]
+    terminal_type: String,
+
     //nocolor:    Option<bool>,
 
     colorings: Vec<Coloring>,
@@ -172,6 +177,10 @@ fn default_log_format() -> String {
 
 fn default_log_destination() -> String {
     default::LOG_DESTINATION.to_string()
+}
+
+fn default_terminal_type() -> String {
+    default::TERMINAL_TYPE.to_string()
 }
 
 #[derive(Deserialize)]
