@@ -150,5 +150,5 @@ MIT
 ## Note
 
 * If sisterm failed to open your COM port, it may be because the user who ran sisterm does not have privileges to access it. To give yourself access privileges, run: `sudo chmod 666 /path/to/serialport`, running your program as the super-user (root), or making your program set-userid so that it runs as the owner of the device file.  
-* If the characters couldn't be sent, try the `--instead-rc` option  
+* If the characters couldn't be sent, try the `--instead-crlf` option  
 
