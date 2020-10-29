@@ -446,6 +446,14 @@ where
                             tx.send(()).unwrap();
                             break;
                         },
+                        #[cfg(not(windows))]
+                        SUSPEND => {
+                            use nix::unistd::Pid;
+                            use nix::sys::signal::{self, Signal};
+
+                            let _ = signal::kill(Pid::this(), Signal::SIGSTOP);
+                            continue;
+                        },
                         NO_COLOR => {
                             let current_nocolor = *flags.lock().unwrap().nocolor();
                             *flags.lock().unwrap().nocolor_mut() = !current_nocolor;
@@ -580,8 +588,9 @@ fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
 fn display_escape_sequences_help() {
     eprintln!("?");
     eprintln!("[Escape sequences]");
-    eprintln!("[~.    Drop the connection and exit.]");
-    eprintln!("[~^D   Drop the connection and exit.]");
+    eprintln!("[~.    Drop the connection and exit]");
+    eprintln!("[~^D   Drop the connection and exit]");
+    eprintln!("[~^Z   Suspend (POSIX)]");
     eprintln!("[~n    Toggles the no-color]");
     eprintln!("[~t    Toggles the time-stamp]");
     eprintln!("[~i    Toggles the instead-crlf]");

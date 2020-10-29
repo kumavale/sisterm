@@ -12,6 +12,7 @@ pub mod escape_sequences {
     pub const ESCAPE_SIGNAL: Key = Key::Char('~');
     pub const EXIT_CHAR_0:   Key = Key::Char('.');
     pub const EXIT_CHAR_1:   Key = Key::Ctrl('d');
+    pub const SUSPEND:       Key = Key::Ctrl('z');
     pub const NO_COLOR:      Key = Key::Char('n');
     pub const TIME_STAMP:    Key = Key::Char('t');
     pub const INSTEAD_CRLF:  Key = Key::Char('i');
