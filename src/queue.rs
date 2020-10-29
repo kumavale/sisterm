@@ -1,21 +1,23 @@
 use crate::getch::Key;
+use crate::default::escape_signals::*;
 use std::collections::LinkedList;
 
 pub struct Queue {
-    exit_char1: Key,
-    exit_char2: Key,
-
     queue: LinkedList<Key>
 }
 
+impl Default for Queue {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Queue {
-    pub fn new(exit_char1: Key, exit_char2: Key) -> Self {
+    pub fn new() -> Self {
         let mut queue = LinkedList::new();
         queue.push_back(Key::Null);
         queue.push_back(Key::Null);
         Self {
-            exit_char1,
-            exit_char2,
             queue,
         }
     }
@@ -26,7 +28,11 @@ impl Queue {
     }
 
     pub fn is_exit_chars(&mut self) -> bool {
-        self.queue.front() == Some(&self.exit_char1) && self.queue.back() == Some(&self.exit_char2)
+        if self.queue.front() == Some(&ESCAPE_SIGNAL) {
+            self.queue.back() == Some(&EXIT_CHAR_0) || self.queue.back() == Some(&EXIT_CHAR_1)
+        } else {
+            false
+        }
     }
 }
 
@@ -37,7 +43,7 @@ mod tests {
 
     #[test]
     fn test_enqueue() {
-        let mut q = Queue::new(Key::Char('~'), Key::Char('.'));
+        let mut q = Queue::new();
 
         q.enqueue(&Key::Char('A'));
         q.enqueue(&Key::Char('B'));
@@ -45,7 +51,7 @@ mod tests {
 
     #[test]
     fn test_is_exit_chars() {
-        let mut q = Queue::new(Key::Char('~'), Key::Char('.'));
+        let mut q = Queue::new();
 
         q.enqueue(&Key::Char('A'));
         q.enqueue(&Key::Char('B'));
@@ -58,5 +64,13 @@ mod tests {
         q.enqueue(&Key::Char('.'));
         q.enqueue(&Key::Char('~'));
         assert!(!q.is_exit_chars());
+
+        q.enqueue(&Key::Char('~'));
+        q.enqueue(&Key::Char('\x04'));
+        assert!(!q.is_exit_chars());
+
+        q.enqueue(&Key::Char('~'));
+        q.enqueue(&Key::Ctrl('d'));
+        assert!(q.is_exit_chars());
     }
 }

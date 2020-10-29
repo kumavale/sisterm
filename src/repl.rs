@@ -409,9 +409,10 @@ pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: flag:
 where
     T: std::io::Write,
 {
-    let exit_char = ('~', '.');
-    let mut queue = Queue::new(Key::Char(exit_char.0), Key::Char(exit_char.1));
-    let mut last_is_tilde = false;
+    use crate::default::escape_signals::*;
+
+    let mut queue = Queue::default();
+    let mut last_is_escape_signal = false;
     let g = Getch::new();
 
     loop {
@@ -431,15 +432,15 @@ where
                     break;
                 }
                 // If the previous character is not a tilde and the current character is a tilde
-                if !last_is_tilde && key == Key::Char(exit_char.0) {
-                    last_is_tilde = true;
+                if !last_is_escape_signal && key == ESCAPE_SIGNAL {
+                    last_is_escape_signal = true;
                     eprint!("~");
                     io::stderr().flush().ok();
                     continue;
                 }
                 // If not input "~~" to dispaly error message
-                if last_is_tilde {
-                    if key == Key::Char(exit_char.0) {
+                if last_is_escape_signal {
+                    if key == ESCAPE_SIGNAL {
                         eprint!("\x08");
                         io::stderr().flush().ok();
                         queue.enqueue(&Key::Null);
@@ -447,11 +448,11 @@ where
                         eprint!("\x08");
                         eprintln!("[Unrecognized.  Use ~~ to send ~]");
                         io::stderr().flush().ok();
-                        last_is_tilde = false;
+                        last_is_escape_signal = false;
                         continue;
                     }
                 }
-                last_is_tilde = false;
+                last_is_escape_signal = false;
 
                 if flags.is_crlf() && key == Key::Char('\r') {
                     // Send carriage return
