@@ -12,7 +12,7 @@ pub fn run(path: &str, flags: flag::Flags, params: Option<setting::Params>) {
     f.read_to_string(&mut contents).expect("Somothing went wrong reading the file");
 
     // Without coloring
-    if flags.is_nocolor() {
+    if *flags.nocolor() {
         println!("{}", contents);
 
     // Coloring

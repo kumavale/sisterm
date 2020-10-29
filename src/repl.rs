@@ -41,7 +41,7 @@ where
         let is_new = !Path::new(&write_file).exists();
 
         let mut log_file = {
-            if flags.lock().unwrap().is_append() {
+            if *flags.lock().unwrap().append() {
                 BufWriter::new(OpenOptions::new()
                     .append(true)
                     .open(&write_file)
@@ -61,7 +61,7 @@ where
         println!("Log record: \"{}\" ({})\n", write_file,
             if is_new {
                 "New"
-            } else if flags.lock().unwrap().is_append() {
+            } else if *flags.lock().unwrap().append() {
                 "Append"
             } else {
                 "Overwrite"
@@ -75,7 +75,7 @@ where
             // if "~." is typed, exit
             if rx.try_recv().is_ok() {
                 // Write to log
-                if flags.lock().unwrap().is_timestamp() {
+                if *flags.lock().unwrap().timestamp() {
                     let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
                     let log_buf_last = log_buf_vec.pop().unwrap().to_string();
                     log_file.write_all(
@@ -98,12 +98,12 @@ where
 
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
-                    if flags.lock().unwrap().is_debug() {
+                    if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
-                    if flags.lock().unwrap().is_nocolor() {
+                    if *flags.lock().unwrap().nocolor() {
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
                         color::coloring_words(
@@ -135,7 +135,7 @@ where
             // If end of '\n' then write to log file
             if write_flag {
                 // Write timestamp to log file
-                if flags.lock().unwrap().is_timestamp() {
+                if *flags.lock().unwrap().timestamp() {
                     let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
                     let log_buf_last = log_buf_vec.pop().unwrap().to_string();
                     log_file.write_all(
@@ -164,12 +164,12 @@ where
 
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
-                    if flags.lock().unwrap().is_debug() {
+                    if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
-                    if flags.lock().unwrap().is_nocolor() {
+                    if *flags.lock().unwrap().nocolor() {
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
                         color::coloring_words(
@@ -218,7 +218,7 @@ where
         let is_new = !Path::new(&write_file).exists();
 
         let mut log_file = {
-            if flags.lock().unwrap().is_append() {
+            if *flags.lock().unwrap().append() {
                 BufWriter::new(OpenOptions::new()
                     .append(true)
                     .open(&write_file)
@@ -238,7 +238,7 @@ where
         println!("Log record: \"{}\" ({})\n", &write_file,
             if is_new {
                 "New"
-            } else if flags.lock().unwrap().is_append() {
+            } else if *flags.lock().unwrap().append() {
                 "Append"
             } else {
                 "Overwrite"
@@ -278,12 +278,12 @@ where
                         send_neg.clear();
                     }
 
-                    if flags.lock().unwrap().is_debug() {
+                    if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
-                    if flags.lock().unwrap().is_nocolor() {
+                    if *flags.lock().unwrap().nocolor() {
                         io::stdout().write_all(&output.as_bytes()).unwrap();
                     } else {
                         color::coloring_words(&output, &mut last_word, &params);
@@ -314,7 +314,7 @@ where
             // If end of '\n' then write to log file
             if write_flag {
                 // Write timestamp to log file
-                if flags.lock().unwrap().is_timestamp() {
+                if *flags.lock().unwrap().timestamp() {
                     let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
                     let log_buf_last = log_buf_vec.pop().unwrap().to_string();
                     log_file.write_all(
@@ -334,7 +334,7 @@ where
         }
 
         // Write to log
-        if flags.lock().unwrap().is_timestamp() {
+        if *flags.lock().unwrap().timestamp() {
             let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
             let log_buf_last = log_buf_vec.pop().unwrap().to_string();
             log_file.write_all(
@@ -385,12 +385,12 @@ where
                         send_neg.clear();
                     }
 
-                    if flags.lock().unwrap().is_debug() {
+                    if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
-                    if flags.lock().unwrap().is_nocolor() {
+                    if *flags.lock().unwrap().nocolor() {
                         io::stdout().write_all(&output.as_bytes()).unwrap();
                     } else {
                         color::coloring_words(&output, &mut last_word, &params);
@@ -411,7 +411,7 @@ pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: Arc<M
 where
     T: std::io::Write,
 {
-    use crate::default::escape_signals::*;
+    use crate::default::escape_sequences::*;
 
     let mut last_is_escape_signal = false;
     let g = Getch::new();
@@ -419,7 +419,7 @@ where
     loop {
         match g.getch() {
             Ok(key) => {
-                if flags.lock().unwrap().is_debug() {
+                if *flags.lock().unwrap().debug() {
                     print!("[{:?}]", key);
                     io::stdout().flush().ok();
                 }
@@ -446,9 +446,40 @@ where
                             tx.send(()).unwrap();
                             break;
                         },
+                        NO_COLOR => {
+                            let current_nocolor = *flags.lock().unwrap().nocolor();
+                            *flags.lock().unwrap().nocolor_mut() = !current_nocolor;
+                            eprintln!("\x08[Changed no-color: {}]", !current_nocolor);
+                            io::stderr().flush().ok();
+                            continue;
+                        },
+                        TIME_STAMP => {
+                            let current_timestamp = *flags.lock().unwrap().timestamp();
+                            *flags.lock().unwrap().timestamp_mut() = !current_timestamp;
+                            eprintln!("\x08[Changed time-stamp: {}]", !current_timestamp);
+                            io::stderr().flush().ok();
+                            continue;
+                        },
+                        INSTEAD_CRLF => {
+                            let current_instead_crlf = *flags.lock().unwrap().instead_crlf();
+                            *flags.lock().unwrap().instead_crlf_mut() = !current_instead_crlf;
+                            eprintln!("\x08[Changed instead-crlf: {}]", !current_instead_crlf);
+                            io::stderr().flush().ok();
+                            continue;
+                        },
+                        DEBUG => {
+                            let current_debug = *flags.lock().unwrap().debug();
+                            *flags.lock().unwrap().debug_mut() = !current_debug;
+                            eprintln!("\x08[Changed debug mode: {}]", !current_debug);
+                            io::stderr().flush().ok();
+                            continue;
+                        },
+                        HELP => {
+                            display_escape_sequences_help();
+                            continue;
+                        },
                         _ => {
-                            eprint!("\x08");
-                            eprintln!("[Unrecognized.  Use ~~ to send ~]");
+                            eprintln!("\x08[Unrecognized.  Use ~~ to send ~]");
                             io::stderr().flush().ok();
                             continue;
                         },
@@ -456,7 +487,7 @@ where
                 }
 
                 // If `--instead-crlf` is true, change to "\r\n"
-                if flags.lock().unwrap().is_crlf() && key == Key::Char('\r') {
+                if *flags.lock().unwrap().instead_crlf() && key == Key::Char('\r') {
                     // Send carriage return
                     if let Err(e) = port.write(&[ b'\r', b'\n' ]) {
                         eprintln!("{}", e);
@@ -544,6 +575,20 @@ fn string_from_utf8_appearance(log_buf: &mut String, serial_buf: &[u8]) {
         }
         i += 1;
     }
+}
+
+fn display_escape_sequences_help() {
+    eprintln!("?");
+    eprintln!("[Escape sequences]");
+    eprintln!("[~.    Drop the connection and exit.]");
+    eprintln!("[~^D   Drop the connection and exit.]");
+    eprintln!("[~n    Toggles the no-color]");
+    eprintln!("[~t    Toggles the time-stamp]");
+    eprintln!("[~i    Toggles the instead-crlf]");
+    eprintln!("[~d    Toggles the debug mode]");
+    eprintln!("[~~    Send ~]");
+    eprintln!("[~?    Print this help]");
+    io::stderr().flush().ok();
 }
 
 #[cfg(test)]

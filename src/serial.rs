@@ -26,7 +26,7 @@ pub fn run(port_name: String,
     // If write_file is already exists
     if let Some(write_file) = flags.write_file() {
         if Path::new(&write_file).exists() {
-            if !flags.is_append() {
+            if !*flags.append() {
                 let g = Getch::new();
                 println!("\"{}\" is already exists!", &write_file);
                 println!("Press ENTER to continue overwrite");
@@ -35,7 +35,7 @@ pub fn run(port_name: String,
                     _ => std::process::exit(0),  // exit
                 }
             }
-        } else if flags.is_append() {
+        } else if *flags.append() {
             let g = Getch::new();
             println!("\"{}\" is not exists!", &write_file);
             println!("Press ENTER to create the file and continue");
@@ -43,13 +43,13 @@ pub fn run(port_name: String,
                 Ok(Key::Char('\r')) => (),   // continue
                 _ => std::process::exit(0),  // exit
             }
-            flags.set_append(false);
+            *flags.append_mut() = false;
         }
     }
 
     // Check if params exists
     if params.is_none() {
-        flags.set_nocolor(true);
+        *flags.nocolor_mut() = true;
     }
 
     println!("Type \"~.\" to exit.");
