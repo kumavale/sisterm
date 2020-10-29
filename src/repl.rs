@@ -1,8 +1,8 @@
 use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
-use crate::queue::Queue;
 use crate::flag;
 use crate::color;
 use crate::setting;
@@ -16,7 +16,7 @@ use chrono::Local;
 pub fn receiver<T>(
     mut port: T,
     rx:       std::sync::mpsc::Receiver<()>,
-    flags:    flag::Flags,
+    flags:    Arc<Mutex<flag::Flags>>,
     params:   Option<setting::Params>)
 where
     T: std::io::Read,
@@ -36,21 +36,22 @@ where
     let mut last_word = (String::new(), false, false);  // (increasing_str, prev_matched, comment_now)
 
     // Save log
-    if let Some(write_file) = flags.write_file() {
-        let is_new = !Path::new(write_file).exists();
+    let write_file = flags.lock().unwrap().write_file();
+    if let Some(write_file) = write_file {
+        let is_new = !Path::new(&write_file).exists();
 
         let mut log_file = {
-            if flags.is_append() {
+            if flags.lock().unwrap().is_append() {
                 BufWriter::new(OpenOptions::new()
                     .append(true)
-                    .open(write_file)
+                    .open(&write_file)
                     .expect("File open failed"))
             } else {
                 BufWriter::new(OpenOptions::new()
                     .write(true)
                     .create(true)
                     .truncate(true)
-                    .open(write_file)
+                    .open(&write_file)
                     .expect("File open failed"))
             }
         };
@@ -60,7 +61,7 @@ where
         println!("Log record: \"{}\" ({})\n", write_file,
             if is_new {
                 "New"
-            } else if flags.is_append() {
+            } else if flags.lock().unwrap().is_append() {
                 "Append"
             } else {
                 "Overwrite"
@@ -74,7 +75,7 @@ where
             // if "~." is typed, exit
             if rx.try_recv().is_ok() {
                 // Write to log
-                if flags.is_timestamp() {
+                if flags.lock().unwrap().is_timestamp() {
                     let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
                     let log_buf_last = log_buf_vec.pop().unwrap().to_string();
                     log_file.write_all(
@@ -97,12 +98,12 @@ where
 
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
-                    if flags.is_debug() {
+                    if flags.lock().unwrap().is_debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
-                    if flags.is_nocolor() {
+                    if flags.lock().unwrap().is_nocolor() {
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
                         color::coloring_words(
@@ -134,7 +135,7 @@ where
             // If end of '\n' then write to log file
             if write_flag {
                 // Write timestamp to log file
-                if flags.is_timestamp() {
+                if flags.lock().unwrap().is_timestamp() {
                     let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
                     let log_buf_last = log_buf_vec.pop().unwrap().to_string();
                     log_file.write_all(
@@ -163,12 +164,12 @@ where
 
             match port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
-                    if flags.is_debug() {
+                    if flags.lock().unwrap().is_debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
-                    if flags.is_nocolor() {
+                    if flags.lock().unwrap().is_nocolor() {
                         io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
                         color::coloring_words(
@@ -189,7 +190,7 @@ where
 pub fn receiver_telnet<T>(
     mut port: T,
     rx:       std::sync::mpsc::Receiver<()>,
-    flags:    flag::Flags,
+    flags:    Arc<Mutex<flag::Flags>>,
     params:   Option<setting::Params>)
 where
     T: std::io::Read,
@@ -212,31 +213,32 @@ where
     let mut window_size = negotiation::get_window_size();
 
     // Save log
-    if let Some(write_file) = flags.write_file() {
-        let is_new = !Path::new(write_file).exists();
+    let write_file = flags.lock().unwrap().write_file();
+    if let Some(write_file) = write_file {
+        let is_new = !Path::new(&write_file).exists();
 
         let mut log_file = {
-            if flags.is_append() {
+            if flags.lock().unwrap().is_append() {
                 BufWriter::new(OpenOptions::new()
                     .append(true)
-                    .open(write_file)
+                    .open(&write_file)
                     .expect("File open failed"))
             } else {
                 BufWriter::new(OpenOptions::new()
                     .write(true)
                     .create(true)
                     .truncate(true)
-                    .open(write_file)
+                    .open(&write_file)
                     .expect("File open failed"))
             }
         };
         let mut log_buf    = String::new();
         let mut write_flag = false;
 
-        println!("Log record: \"{}\" ({})\n", write_file,
+        println!("Log record: \"{}\" ({})\n", &write_file,
             if is_new {
                 "New"
-            } else if flags.is_append() {
+            } else if flags.lock().unwrap().is_append() {
                 "Append"
             } else {
                 "Overwrite"
@@ -276,12 +278,12 @@ where
                         send_neg.clear();
                     }
 
-                    if flags.is_debug() {
+                    if flags.lock().unwrap().is_debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
-                    if flags.is_nocolor() {
+                    if flags.lock().unwrap().is_nocolor() {
                         io::stdout().write_all(&output.as_bytes()).unwrap();
                     } else {
                         color::coloring_words(&output, &mut last_word, &params);
@@ -312,7 +314,7 @@ where
             // If end of '\n' then write to log file
             if write_flag {
                 // Write timestamp to log file
-                if flags.is_timestamp() {
+                if flags.lock().unwrap().is_timestamp() {
                     let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
                     let log_buf_last = log_buf_vec.pop().unwrap().to_string();
                     log_file.write_all(
@@ -332,7 +334,7 @@ where
         }
 
         // Write to log
-        if flags.is_timestamp() {
+        if flags.lock().unwrap().is_timestamp() {
             let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
             let log_buf_last = log_buf_vec.pop().unwrap().to_string();
             log_file.write_all(
@@ -383,12 +385,12 @@ where
                         send_neg.clear();
                     }
 
-                    if flags.is_debug() {
+                    if flags.lock().unwrap().is_debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
-                    if flags.is_nocolor() {
+                    if flags.lock().unwrap().is_nocolor() {
                         io::stdout().write_all(&output.as_bytes()).unwrap();
                     } else {
                         color::coloring_words(&output, &mut last_word, &params);
@@ -405,32 +407,23 @@ where
     }
 }
 
-pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: flag::Flags)
+pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: Arc<Mutex<flag::Flags>>)
 where
     T: std::io::Write,
 {
     use crate::default::escape_signals::*;
 
-    let mut queue = Queue::default();
     let mut last_is_escape_signal = false;
     let g = Getch::new();
 
     loop {
         match g.getch() {
             Ok(key) => {
-                if flags.is_debug() {
+                if flags.lock().unwrap().is_debug() {
                     print!("[{:?}]", key);
                     io::stdout().flush().ok();
                 }
 
-                queue.enqueue(&key);
-                // If input "~." to exit
-                if queue.is_exit_chars() {
-                    eprint!(".");
-                    io::stderr().flush().ok();
-                    tx.send(()).unwrap();
-                    break;
-                }
                 // If the previous character is not a tilde and the current character is a tilde
                 if !last_is_escape_signal && key == ESCAPE_SIGNAL {
                     last_is_escape_signal = true;
@@ -438,23 +431,32 @@ where
                     io::stderr().flush().ok();
                     continue;
                 }
-                // If not input "~~" to dispaly error message
+
+                // Parse escape signal
                 if last_is_escape_signal {
-                    if key == ESCAPE_SIGNAL {
-                        eprint!("\x08");
-                        io::stderr().flush().ok();
-                        queue.enqueue(&Key::Null);
-                    } else {
-                        eprint!("\x08");
-                        eprintln!("[Unrecognized.  Use ~~ to send ~]");
-                        io::stderr().flush().ok();
-                        last_is_escape_signal = false;
-                        continue;
+                    last_is_escape_signal = false;
+                    match key {
+                        ESCAPE_SIGNAL => {
+                            eprint!("\x08");
+                            io::stderr().flush().ok();
+                        },
+                        EXIT_CHAR_0 | EXIT_CHAR_1 => {
+                            eprint!(".");
+                            io::stderr().flush().ok();
+                            tx.send(()).unwrap();
+                            break;
+                        },
+                        _ => {
+                            eprint!("\x08");
+                            eprintln!("[Unrecognized.  Use ~~ to send ~]");
+                            io::stderr().flush().ok();
+                            continue;
+                        },
                     }
                 }
-                last_is_escape_signal = false;
 
-                if flags.is_crlf() && key == Key::Char('\r') {
+                // If `--instead-crlf` is true, change to "\r\n"
+                if flags.lock().unwrap().is_crlf() && key == Key::Char('\r') {
                     // Send carriage return
                     if let Err(e) = port.write(&[ b'\r', b'\n' ]) {
                         eprintln!("{}", e);

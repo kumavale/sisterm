@@ -1,6 +1,6 @@
 use std::thread;
 use std::path::Path;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
 
 use crate::repl;
 use crate::flag;
@@ -25,10 +25,10 @@ pub fn run(port_name: String,
 
     // If write_file is already exists
     if let Some(write_file) = flags.write_file() {
-        if Path::new(write_file).exists() {
+        if Path::new(&write_file).exists() {
             if !flags.is_append() {
                 let g = Getch::new();
-                println!("\"{}\" is already exists!", write_file);
+                println!("\"{}\" is already exists!", &write_file);
                 println!("Press ENTER to continue overwrite");
                 match g.getch() {
                     Ok(Key::Char('\r')) => (),   // continue
@@ -37,7 +37,7 @@ pub fn run(port_name: String,
             }
         } else if flags.is_append() {
             let g = Getch::new();
-            println!("\"{}\" is not exists!", write_file);
+            println!("\"{}\" is not exists!", &write_file);
             println!("Press ENTER to create the file and continue");
             match g.getch() {
                 Ok(Key::Char('\r')) => (),   // continue
@@ -55,8 +55,10 @@ pub fn run(port_name: String,
     println!("Type \"~.\" to exit.");
     println!("Connecting... {}", port_name);
 
-    // Receiver
+    let flags       = Arc::new(Mutex::new(flags));
     let flags_clone = flags.clone();
+
+    // Receiver
     let handle = thread::spawn(move || {
         repl::receiver(receiver, rx, flags_clone, params);
     });

@@ -1,7 +1,7 @@
 use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
 use std::thread;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
 use std::path::Path;
 
 use crate::repl;
@@ -57,10 +57,10 @@ pub fn run(host:       &str,
 
     // If write_file is already exists
     if let Some(write_file) = flags.write_file() {
-        if Path::new(write_file).exists() {
+        if Path::new(&write_file).exists() {
             if !flags.is_append() {
                 let g = Getch::new();
-                println!("\"{}\" is already exists!", write_file);
+                println!("\"{}\" is already exists!", &write_file);
                 println!("Press ENTER to continue overwrite");
                 match g.getch() {
                     Ok(Key::Char('\r')) => (),   // continue
@@ -69,7 +69,7 @@ pub fn run(host:       &str,
             }
         } else if flags.is_append() {
             let g = Getch::new();
-            println!("\"{}\" is not exists!", write_file);
+            println!("\"{}\" is not exists!", &write_file);
             println!("Press ENTER to create the file and continue");
             match g.getch() {
                 Ok(Key::Char('\r')) => (),   // continue
@@ -90,8 +90,10 @@ pub fn run(host:       &str,
     println!("Type \"~.\" to exit.");
     println!("Connecting... {}", host);
 
-    // Receiver
+    let flags       = Arc::new(Mutex::new(flags));
     let flags_clone = flags.clone();
+
+    // Receiver
     let handle = thread::spawn(move || {
         repl::receiver_telnet(receiver, rx, flags_clone, params);
 

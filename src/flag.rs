@@ -51,7 +51,7 @@ impl Flags {
         self.debug
     }
 
-    pub fn write_file(&self) -> Option<&String> {
-        self.write_file.as_ref()
+    pub fn write_file(&self) -> Option<String> {
+        self.write_file.clone()
     }
 }
