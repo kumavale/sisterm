@@ -2,6 +2,7 @@ use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::process::Command;
 
 use crate::flag;
 use crate::color;
@@ -482,6 +483,39 @@ where
                             io::stderr().flush().ok();
                             continue;
                         },
+                        COMMAND_0 => {
+                            eprint!("!");
+                            io::stderr().flush().ok();
+                            if let Ok(command) = echo_stdin_read_line() {
+                                // Run
+                                if cfg!(target_os = "windows") {
+                                    Command::new("cmd").args(&["/C", &command]).spawn()
+                                } else {
+                                    Command::new("sh").args(&["-c", &command]).spawn()
+                                }.ok();
+                            }
+                            continue;
+                        },
+                        COMMAND_1 => {
+                            eprint!("$");
+                            io::stderr().flush().ok();
+                            // Run and send
+                            if let Ok(command) = echo_stdin_read_line() {
+                                // Run (no display)
+                                let output = if cfg!(target_os = "windows") {
+                                    Command::new("cmd").args(&["/C", &command]).output()
+                                } else {
+                                    Command::new("sh").args(&["-c", &command]).output()
+                                };
+                                // Send
+                                if let Ok(output) = output {
+                                    if let Err(e) = port.write(&output.stdout) {
+                                        eprintln!("{}", e);
+                                    }
+                                }
+                            }
+                            continue;
+                        },
                         HELP => {
                             display_escape_sequences_help();
                             continue;
@@ -596,8 +630,22 @@ fn display_escape_sequences_help() {
     eprintln!("[~i    Toggles the instead-crlf]");
     eprintln!("[~d    Toggles the debug mode]");
     eprintln!("[~~    Send ~]");
+    eprintln!("[~!    Run command in a `sh` or `cmd`]");
+    eprintln!("[~$    Run command, sending the standard output]");
     eprintln!("[~?    Print this help]");
     io::stderr().flush().ok();
+}
+
+fn echo_stdin_read_line() -> Result<String, ()> {
+    use crate::getch;
+
+    getch::enable_echo_input();
+    let mut buf = String::new();
+    if io::stdin().read_line(&mut buf).is_err() {
+        return Err(());
+    }
+    getch::disable_echo_input();
+    Ok(buf)
 }
 
 #[cfg(test)]

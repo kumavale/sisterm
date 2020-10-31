@@ -17,5 +17,7 @@ pub mod escape_sequences {
     pub const TIME_STAMP:    Key = Key::Char('t');
     pub const INSTEAD_CRLF:  Key = Key::Char('i');
     pub const DEBUG:         Key = Key::Char('d');
+    pub const COMMAND_0:     Key = Key::Char('!');
+    pub const COMMAND_1:     Key = Key::Char('$');
     pub const HELP:          Key = Key::Char('?');
 }

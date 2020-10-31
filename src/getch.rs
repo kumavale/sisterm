@@ -2,6 +2,15 @@
 #[cfg(windows)]
 use libc::c_int;
 #[cfg(windows)]
+use winapi::{
+    um::consoleapi::{GetConsoleMode, SetConsoleMode},
+    um::handleapi::INVALID_HANDLE_VALUE,
+    um::processenv::GetStdHandle,
+    um::winbase::STD_INPUT_HANDLE,
+    um::wincon::ENABLE_ECHO_INPUT,
+};
+
+#[cfg(windows)]
 extern "C" {
     fn _getch() -> c_int;
 }
@@ -188,6 +197,54 @@ impl Getch {
             Ok(_) => unreachable!(),
             Err(e) => Err(e),
         }
+    }
+}
+
+/// Enable local echo
+pub fn enable_echo_input() {
+    #[cfg(windows)]
+    unsafe {
+        let input_handle = GetStdHandle(STD_INPUT_HANDLE);
+        let mut console_mode: u32 = 0;
+
+        if input_handle == INVALID_HANDLE_VALUE {
+            return;
+        }
+
+        if GetConsoleMode(input_handle, &mut console_mode) != 0 {
+            SetConsoleMode(input_handle, console_mode | ENABLE_ECHO_INPUT);
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        let mut raw_termios = termios::tcgetattr(0).unwrap();
+        raw_termios.local_flags.insert(termios::LocalFlags::ECHO);
+        termios::tcsetattr(0, termios::SetArg::TCSADRAIN, &raw_termios).unwrap();
+    }
+}
+
+/// Disable local echo
+pub fn disable_echo_input() {
+    #[cfg(windows)]
+    unsafe {
+        let input_handle = GetStdHandle(STD_INPUT_HANDLE);
+        let mut console_mode: u32 = 0;
+
+        if input_handle == INVALID_HANDLE_VALUE {
+            return;
+        }
+
+        if GetConsoleMode(input_handle, &mut console_mode) != 0 {
+            SetConsoleMode(input_handle, console_mode & !ENABLE_ECHO_INPUT);
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        let mut raw_termios = termios::tcgetattr(0).unwrap();
+        raw_termios.local_flags.remove(termios::LocalFlags::ECHO);
+        termios::tcsetattr(0, termios::SetArg::TCSADRAIN, &raw_termios).unwrap();
     }
 }
 
