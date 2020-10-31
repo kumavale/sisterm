@@ -42,6 +42,23 @@ SUBCOMMANDS:
 ```
 
 
+## Escape sequences
+
+Keystroke | Action
+--------- | ------
+~.        | Drop the connection and exit
+~^D       | Drop the connection and exit
+~^Z       | Suspend (POSIX)
+~n        | Toggles the no-color
+~t        | Toggles the time-stamp
+~i        | Toggles the instead-crlf
+~d        | Toggles the debug mode
+\~\~      | Send ~
+~!        | Run command in a `sh` or `cmd`
+~$        | Run command, sending the standard output
+~?        | Print this help
+
+
 ## Installation
 
 The binary name for sisterm is `sist`.  
