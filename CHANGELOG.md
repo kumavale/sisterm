@@ -1,6 +1,19 @@
 # Change Log
 
 
+## [2.4.0] - 2020-10-31
+### Added
+- Supported the terminal type ANSI
+- Added a config option: terminal_type
+- Added escape seqences  
+    \~., \~^D, \~^Z, \~n, \~t, \~i, \~d, \~\~, \~!, \~$, \~?
+
+### Fixed
+- Fixed bug about Ctrl+Arrow keys
+- Fixed bug about Ctrl+4..=Ctrl+7 in Linux
+- Fixed typo
+
+
 ## [2.3.2] - 2020-10-24
 ### Fixed
 - Fixed a bug that multibyte characters are not displayed properly
