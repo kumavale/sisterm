@@ -16,16 +16,8 @@ pub fn run(host:       &str,
            params:     Option<setting::Params>,
            login_user: Option<&str>)
 {
-    let tcp_connect_timeout = if let Some(ref p) = params {
-        p.tcp_connect_timeout
-    } else {
-        default::TCP_CONNECT_TIMEOUT
-    };
-    let terminal_type = if let Some(ref p) = params {
-        &p.terminal_type
-    } else {
-        default::TERMINAL_TYPE
-    };
+    let tcp_connect_timeout = params.as_ref().map_or_else(|| default::TCP_CONNECT_TIMEOUT, |p| p.tcp_connect_timeout);
+    let terminal_type       = params.as_ref().map_or_else(|| default::TERMINAL_TYPE,       |p| &p.terminal_type);
 
     let receiver = {
         let hosts = to_SocketAddr_for_telnet(host);

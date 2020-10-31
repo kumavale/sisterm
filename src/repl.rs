@@ -13,6 +13,16 @@ use crate::negotiation;
 
 use chrono::Local;
 
+pub trait Send {
+    fn send(&mut self, s: &[u8]);
+}
+impl<T> Send for T where T: std::io::Write {
+    fn send(&mut self, s: &[u8]) {
+        if let Err(e) = self.write(s) {
+            eprintln!("{}", e);
+        }
+    }
+}
 
 pub fn receiver<T>(
     mut port: T,
@@ -196,6 +206,7 @@ pub fn receiver_telnet<T>(
 where
     T: std::io::Read,
     T: std::io::Write,
+    T: self::Send,
 {
     let (read_buf_size, timestamp_format) = if let Some(ref p) = params {
         (
@@ -260,9 +271,7 @@ where
             if window_size != window_size_current {
                 window_size = window_size_current;
                 send_neg.extend_from_slice(&negotiation::window_size());
-                if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
-                    eprintln!("{}", e);
-                }
+                port.send(&send_neg[..send_neg.len()]);
                 send_neg.clear();
             }
 
@@ -273,9 +282,7 @@ where
                     let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
 
                     if !send_neg.is_empty() {
-                        if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
-                            eprintln!("{}", e);
-                        }
+                        port.send(&send_neg[..send_neg.len()]);
                         send_neg.clear();
                     }
 
@@ -367,9 +374,7 @@ where
             if window_size != window_size_current {
                 window_size = window_size_current;
                 send_neg.extend_from_slice(&negotiation::window_size());
-                if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
-                    eprintln!("{}", e);
-                }
+                port.send(&send_neg[..send_neg.len()]);
                 send_neg.clear();
             }
 
@@ -380,9 +385,7 @@ where
                     let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
 
                     if !send_neg.is_empty() {
-                        if let Err(e) = port.write(&send_neg[..send_neg.len()]) {
-                            eprintln!("{}", e);
-                        }
+                        port.send(&send_neg[..send_neg.len()]);
                         send_neg.clear();
                     }
 
@@ -411,6 +414,7 @@ where
 pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: Arc<Mutex<flag::Flags>>)
 where
     T: std::io::Write,
+    T: self::Send,
 {
     use crate::default::escape_sequences::*;
 
@@ -428,8 +432,7 @@ where
                 // If the previous character is not a tilde and the current character is a tilde
                 if !last_is_escape_signal && key == ESCAPE_SIGNAL {
                     last_is_escape_signal = true;
-                    eprint!("~");
-                    io::stderr().flush().ok();
+                    eprint_flush("~");
                     continue;
                 }
 
@@ -438,12 +441,10 @@ where
                     last_is_escape_signal = false;
                     match key {
                         ESCAPE_SIGNAL => {
-                            eprint!("\x08");
-                            io::stderr().flush().ok();
+                            eprint_flush("\x08");
                         },
                         EXIT_CHAR_0 | EXIT_CHAR_1 => {
-                            eprint!(".");
-                            io::stderr().flush().ok();
+                            eprint_flush(".");
                             tx.send(()).unwrap();
                             break;
                         },
@@ -459,33 +460,28 @@ where
                             let current_nocolor = *flags.lock().unwrap().nocolor();
                             *flags.lock().unwrap().nocolor_mut() = !current_nocolor;
                             eprintln!("\x08[Changed no-color: {}]", !current_nocolor);
-                            io::stderr().flush().ok();
                             continue;
                         },
                         TIME_STAMP => {
                             let current_timestamp = *flags.lock().unwrap().timestamp();
                             *flags.lock().unwrap().timestamp_mut() = !current_timestamp;
                             eprintln!("\x08[Changed time-stamp: {}]", !current_timestamp);
-                            io::stderr().flush().ok();
                             continue;
                         },
                         INSTEAD_CRLF => {
                             let current_instead_crlf = *flags.lock().unwrap().instead_crlf();
                             *flags.lock().unwrap().instead_crlf_mut() = !current_instead_crlf;
                             eprintln!("\x08[Changed instead-crlf: {}]", !current_instead_crlf);
-                            io::stderr().flush().ok();
                             continue;
                         },
                         DEBUG => {
                             let current_debug = *flags.lock().unwrap().debug();
                             *flags.lock().unwrap().debug_mut() = !current_debug;
                             eprintln!("\x08[Changed debug mode: {}]", !current_debug);
-                            io::stderr().flush().ok();
                             continue;
                         },
                         COMMAND_0 => {
-                            eprint!("!");
-                            io::stderr().flush().ok();
+                            eprint_flush("!");
                             if let Ok(command) = echo_stdin_read_line() {
                                 // Run
                                 if cfg!(target_os = "windows") {
@@ -497,8 +493,7 @@ where
                             continue;
                         },
                         COMMAND_1 => {
-                            eprint!("$");
-                            io::stderr().flush().ok();
+                            eprint_flush("$");
                             // Run and send
                             if let Ok(command) = echo_stdin_read_line() {
                                 // Run (no display)
@@ -509,9 +504,7 @@ where
                                 };
                                 // Send
                                 if let Ok(output) = output {
-                                    if let Err(e) = port.write(&output.stdout) {
-                                        eprintln!("{}", e);
-                                    }
+                                    port.send(&output.stdout);
                                 }
                             }
                             continue;
@@ -522,7 +515,6 @@ where
                         },
                         _ => {
                             eprintln!("\x08[Unrecognized.  Use ~~ to send ~]");
-                            io::stderr().flush().ok();
                             continue;
                         },
                     }
@@ -531,53 +523,49 @@ where
                 // If `--instead-crlf` is true, change to "\r\n"
                 if *flags.lock().unwrap().instead_crlf() && key == Key::Char('\r') {
                     // Send carriage return
-                    if let Err(e) = port.write(&[ b'\r', b'\n' ]) {
-                        eprintln!("{}", e);
-                    }
+                    port.send(&[ b'\r', b'\n' ]);
                     continue;
                 }
 
                 // Send key
-                if let Err(e) = match key {
-                    Key::Null      => port.write(&[ 0x00 ]),
-                    Key::Backspace => port.write(&[ 0x08 ]),
-                    Key::Delete    => port.write(&[ 0x7F ]),
-                    Key::Esc       => port.write(&[ 0x1B ]),
-                    Key::Up        => port.write(&[ 0x1B, b'[', b'A' ]),
-                    Key::Down      => port.write(&[ 0x1B, b'[', b'B' ]),
-                    Key::Right     => port.write(&[ 0x1B, b'[', b'C' ]),
-                    Key::Left      => port.write(&[ 0x1B, b'[', b'D' ]),
-                    Key::End       => port.write(&[ 0x1B, b'[', b'F' ]),
-                    Key::Home      => port.write(&[ 0x1B, b'[', b'H' ]),
-                    Key::BackTab   => port.write(&[ 0x1B, b'[', b'Z' ]),
-                    Key::Insert    => port.write(&[ 0x1B, b'[', b'2', b'~' ]),
-                    Key::PageUp    => port.write(&[ 0x1B, b'[', b'5', b'~' ]),
-                    Key::PageDown  => port.write(&[ 0x1B, b'[', b'6', b'~' ]),
+                match key {
+                    Key::Null      => port.send(&[ 0x00 ]),
+                    Key::Backspace => port.send(&[ 0x08 ]),
+                    Key::Delete    => port.send(&[ 0x7F ]),
+                    Key::Esc       => port.send(&[ 0x1B ]),
+                    Key::Up        => port.send(&[ 0x1B, b'[', b'A' ]),
+                    Key::Down      => port.send(&[ 0x1B, b'[', b'B' ]),
+                    Key::Right     => port.send(&[ 0x1B, b'[', b'C' ]),
+                    Key::Left      => port.send(&[ 0x1B, b'[', b'D' ]),
+                    Key::End       => port.send(&[ 0x1B, b'[', b'F' ]),
+                    Key::Home      => port.send(&[ 0x1B, b'[', b'H' ]),
+                    Key::BackTab   => port.send(&[ 0x1B, b'[', b'Z' ]),
+                    Key::Insert    => port.send(&[ 0x1B, b'[', b'2', b'~' ]),
+                    Key::PageUp    => port.send(&[ 0x1B, b'[', b'5', b'~' ]),
+                    Key::PageDown  => port.send(&[ 0x1B, b'[', b'6', b'~' ]),
                     Key::F(num) => {
                         match num {
-                            v @  1..= 5 => port.write(&[ 0x1B, b'[', b'1', v + b'0',     b'~' ]),
-                            v @  6..= 8 => port.write(&[ 0x1B, b'[', b'1', v + b'0' + 1, b'~' ]),
-                            v @  9..=10 => port.write(&[ 0x1B, b'[', b'2', v + b'0' - 9, b'~' ]),
-                            v @ 11..=12 => port.write(&[ 0x1B, b'[', b'2', v + b'0' - 8, b'~' ]),
+                            v @  1..= 5 => port.send(&[ 0x1B, b'[', b'1', v + b'0',     b'~' ]),
+                            v @  6..= 8 => port.send(&[ 0x1B, b'[', b'1', v + b'0' + 1, b'~' ]),
+                            v @  9..=10 => port.send(&[ 0x1B, b'[', b'2', v + b'0' - 9, b'~' ]),
+                            v @ 11..=12 => port.send(&[ 0x1B, b'[', b'2', v + b'0' - 8, b'~' ]),
                             _ => unreachable!(),
                         }
                     },
-                    Key::Char(ch) => port.write(ch.encode_utf8(&mut [0; 4]).as_bytes()),
-                    Key::Alt(ch)  => port.write(&[ 0x1B, ch as u8 ]),
+                    Key::Char(ch) => port.send(ch.encode_utf8(&mut [0; 4]).as_bytes()),
+                    Key::Alt(ch)  => port.send(&[ 0x1B, ch as u8 ]),
                     Key::Ctrl(ch) => {
                         match ch {
-                            'a'..='z' => port.write(&[ (ch as u8) - b'a' + 1 ]),
-                            '4' => port.write(&[ 0x1B, b'[', b'1', b';', b'5', b'S' ]),
-                            '5' => port.write(&[ 0x1B, b'[', b'1', b'5', b';', b'5', b'~' ]),
-                            '6' => port.write(&[ 0x1B, b'[', b'1', b'7', b';', b'5', b'~' ]),
-                            '7' => port.write(&[ 0x1B, b'[', b'1', b'8', b';', b'5', b'~' ]),
+                            'a'..='z' => port.send(&[ (ch as u8) - b'a' + 1 ]),
+                            '4' => port.send(&[ 0x1B, b'[', b'1', b';', b'5', b'S' ]),
+                            '5' => port.send(&[ 0x1B, b'[', b'1', b'5', b';', b'5', b'~' ]),
+                            '6' => port.send(&[ 0x1B, b'[', b'1', b'7', b';', b'5', b'~' ]),
+                            '7' => port.send(&[ 0x1B, b'[', b'1', b'8', b';', b'5', b'~' ]),
                             _ => unreachable!(),
                         }
                     },
-                    Key::Other(b) => port.write(&b),
-                }{
-                    eprintln!("{}", e);
-                };
+                    Key::Other(b) => port.send(&b),
+                }
 
             },
             Err(e) => eprintln!("{}", e),
@@ -633,7 +621,6 @@ fn display_escape_sequences_help() {
     eprintln!("[~!    Run command in a `sh` or `cmd`]");
     eprintln!("[~$    Run command, sending the standard output]");
     eprintln!("[~?    Print this help]");
-    io::stderr().flush().ok();
 }
 
 fn echo_stdin_read_line() -> Result<String, ()> {
@@ -646,6 +633,11 @@ fn echo_stdin_read_line() -> Result<String, ()> {
     }
     getch::disable_echo_input();
     Ok(buf)
+}
+
+fn eprint_flush(s: &str) {
+    eprint!("{}", s);
+    let _ = io::stderr().flush();
 }
 
 #[cfg(test)]

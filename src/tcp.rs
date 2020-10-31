@@ -14,11 +14,7 @@ pub fn run(host:      &str,
            mut flags: flag::Flags,
            params:    Option<setting::Params>)
 {
-    let tcp_connect_timeout = if let Some(ref p) = params {
-        p.tcp_connect_timeout
-    } else {
-        default::TCP_CONNECT_TIMEOUT
-    };
+    let tcp_connect_timeout = params.as_ref().map_or_else(|| default::TCP_CONNECT_TIMEOUT, |p| p.tcp_connect_timeout);
 
     let receiver = {
         let hosts = to_SocketAddr(host);
