@@ -25,6 +25,7 @@ serde = { version = "1.0.110", features = ["derive"] }
 toml = "0.5.6"
 lazy_static = "1.4.0"
 libc = "0.2"
+rustyline = "6.3.0"
 
 [target.'cfg(windows)'.dependencies.winapi]
 version = "0.3"

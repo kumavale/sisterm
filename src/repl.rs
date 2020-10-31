@@ -482,7 +482,7 @@ where
                         },
                         COMMAND_0 => {
                             eprint_flush("!");
-                            if let Ok(command) = echo_stdin_read_line() {
+                            if let Some(command) = echo_stdin_read_line() {
                                 // Run
                                 if cfg!(target_os = "windows") {
                                     Command::new("cmd").args(&["/C", &command]).spawn()
@@ -495,7 +495,7 @@ where
                         COMMAND_1 => {
                             eprint_flush("$");
                             // Run and send
-                            if let Ok(command) = echo_stdin_read_line() {
+                            if let Some(command) = echo_stdin_read_line() {
                                 // Run (no display)
                                 let output = if cfg!(target_os = "windows") {
                                     Command::new("cmd").args(&["/C", &command]).output()
@@ -623,16 +623,15 @@ fn display_escape_sequences_help() {
     eprintln!("[~?    Print this help]");
 }
 
-fn echo_stdin_read_line() -> Result<String, ()> {
+fn echo_stdin_read_line() -> Option<String> {
     use crate::getch;
+    use rustyline::Editor;
 
     getch::enable_echo_input();
-    let mut buf = String::new();
-    if io::stdin().read_line(&mut buf).is_err() {
-        return Err(());
-    }
+    let mut rl = Editor::<()>::new();
+    let readline = rl.readline(">> ");
     getch::disable_echo_input();
-    Ok(buf)
+    readline.ok()
 }
 
 fn eprint_flush(s: &str) {
