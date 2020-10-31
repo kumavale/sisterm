@@ -626,12 +626,20 @@ fn display_escape_sequences_help() {
 fn echo_stdin_read_line() -> Option<String> {
     use crate::getch;
     use rustyline::Editor;
+    use lazy_static::lazy_static;
+
+    lazy_static! { static ref RL: Mutex<Editor<()>> = Mutex::new(Editor::new()); }
 
     getch::enable_echo_input();
-    let mut rl = Editor::<()>::new();
-    let readline = rl.readline(">> ");
+    let readline = RL.lock().unwrap().readline(">> ");
     getch::disable_echo_input();
-    readline.ok()
+    match readline {
+        Ok(line) => {
+            RL.lock().unwrap().add_history_entry(line.as_str());
+            Some(line)
+        },
+        _ => None,
+    }
 }
 
 fn eprint_flush(s: &str) {
