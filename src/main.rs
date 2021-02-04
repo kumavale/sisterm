@@ -9,7 +9,7 @@ use std::env;
 use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, SubCommand};
-use serialport::{available_ports, SerialPortSettings};
+use serialport::available_ports;
 
 fn main() {
 
@@ -119,14 +119,18 @@ fn main() {
                 (port_name, baud_rate.to_string())
             };
 
-            let mut settings: SerialPortSettings = Default::default();
-            settings.timeout = Duration::from_millis(10);
-            if let Ok(rate) = baud_rate.parse::<u32>() {
-                settings.baud_rate = rate;
-            } else {
-                eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
-                std::process::exit(1);
-            }
+            let baud_rate = match baud_rate.parse::<u32>() {
+                Ok(br) => br,
+                Err(_) => {
+                    eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
+                    std::process::exit(1);
+                }
+            };
+            let settings = serialport::SerialPortSettings {
+                baud_rate,
+                timeout: Duration::from_millis(10),
+                ..Default::default()
+            };
 
             serial::run(port_name, settings, flags, params);
 

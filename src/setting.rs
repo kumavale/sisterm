@@ -197,10 +197,10 @@ impl Coloring {
     }
 
     pub fn underlined(&self) -> bool {
-        self.underlined.unwrap_or_else(|| false)
+        self.underlined.unwrap_or(false)
     }
 
     pub fn ignore_whitespace(&self) -> bool {
-        self.ignore_whitespace.unwrap_or_else(|| false)
+        self.ignore_whitespace.unwrap_or(false)
     }
 }
