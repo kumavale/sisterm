@@ -10,3 +10,4 @@ pub mod serial;
 pub mod setting;
 pub mod tcp;
 pub mod telnet;
+mod hexdump;

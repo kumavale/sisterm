@@ -16,6 +16,7 @@ pub mod escape_sequences {
     pub const NO_COLOR:      Key = Key::Char('n');
     pub const TIME_STAMP:    Key = Key::Char('t');
     pub const INSTEAD_CRLF:  Key = Key::Char('i');
+    pub const HEXDUMP:       Key = Key::Char('h');
     pub const DEBUG:         Key = Key::Char('d');
     pub const COMMAND_0:     Key = Key::Char('!');
     pub const COMMAND_1:     Key = Key::Char('$');

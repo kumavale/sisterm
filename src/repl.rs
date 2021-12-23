@@ -10,6 +10,7 @@ use crate::setting;
 use crate::getch::{Getch, Key};
 use crate::default;
 use crate::negotiation;
+use crate::hexdump::hexdump;
 
 use chrono::Local;
 
@@ -112,6 +113,9 @@ where
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
+                    }
 
                     // Display after Coloring received string
                     if *flags.lock().unwrap().nocolor() {
@@ -177,6 +181,9 @@ where
                 Ok(t) => {
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
+                    }
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
                     }
 
                     // Display after Coloring received string
@@ -289,6 +296,9 @@ where
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
+                    }
 
                     // Display after Coloring received string
                     if *flags.lock().unwrap().nocolor() {
@@ -392,6 +402,9 @@ where
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
+                    }
 
                     // Display after Coloring received string
                     if *flags.lock().unwrap().nocolor() {
@@ -472,6 +485,12 @@ where
                             let current_instead_crlf = *flags.lock().unwrap().instead_crlf();
                             *flags.lock().unwrap().instead_crlf_mut() = !current_instead_crlf;
                             eprintln!("\x08[Changed instead-crlf: {}]", !current_instead_crlf);
+                            continue;
+                        },
+                        HEXDUMP => {
+                            let current_hexdump = *flags.lock().unwrap().hexdump();
+                            *flags.lock().unwrap().hexdump_mut() = !current_hexdump;
+                            eprintln!("\x08[Changed hexdump mode: {}]", !current_hexdump);
                             continue;
                         },
                         DEBUG => {

@@ -52,6 +52,7 @@ Keystroke | Action
 ~n        | Toggles the no-color
 ~t        | Toggles the time-stamp
 ~i        | Toggles the instead-crlf
+~h        | Toggles the hexdump mode
 ~d        | Toggles the debug mode
 \~\~      | Send ~
 ~!        | Run command in a `sh` or `cmd`
