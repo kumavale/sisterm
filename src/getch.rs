@@ -319,8 +319,7 @@ where
         Some(Ok(b'Z')) => Key::BackTab,
         Some(Ok(c @ b'0'..=b'9')) => {
             // Numbered escape code.
-            let mut buf = Vec::new();
-            buf.push(c);
+            let mut buf = vec![c];
             let mut c = iter.next().unwrap().unwrap();
             // The final byte of a CSI sequence can be in the range 64-126, so
             // let's keep reading anything else.

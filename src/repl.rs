@@ -93,12 +93,12 @@ where
                     log_file.write_all(
                         log_buf_vec
                         .iter()
-                        .map(|line| format_timestamp(&timestamp_format) + &line + "\n")
+                        .map(|line| format_timestamp(timestamp_format) + line + "\n")
                         .collect::<String>()
                         .as_bytes()
                     ).unwrap();
                     log_file.write_all(
-                        (format_timestamp(&timestamp_format) + &log_buf_last)
+                        (format_timestamp(timestamp_format) + &log_buf_last)
                         .as_bytes()).unwrap();
                 } else {
                     log_file.write_all(log_buf.as_bytes()).unwrap();
@@ -157,7 +157,7 @@ where
                     log_file.write_all(
                         log_buf_vec
                             .iter()
-                            .map(|line| format_timestamp(&timestamp_format) + &line + "\n")
+                            .map(|line| format_timestamp(timestamp_format) + line + "\n")
                             .collect::<String>()
                             .as_bytes()
                     ).unwrap();
@@ -304,7 +304,7 @@ where
                     } else {
                         // Display after Coloring received string
                         if *flags.lock().unwrap().nocolor() {
-                            io::stdout().write_all(&output.as_bytes()).unwrap();
+                            io::stdout().write_all(output.as_bytes()).unwrap();
                         } else {
                             color::coloring_words(&output, &mut last_word, &params);
                         }
@@ -320,7 +320,7 @@ where
                     }
 
                     // Write to log_buf from serial_buf
-                    string_from_utf8_appearance(&mut log_buf, &output.as_bytes());
+                    string_from_utf8_appearance(&mut log_buf, output.as_bytes());
 
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -341,7 +341,7 @@ where
                     log_file.write_all(
                         log_buf_vec
                             .iter()
-                            .map(|line| format_timestamp(&timestamp_format) + &line + "\n")
+                            .map(|line| format_timestamp(timestamp_format) + line + "\n")
                             .collect::<String>()
                             .as_bytes()
                     ).unwrap();
@@ -361,12 +361,12 @@ where
             log_file.write_all(
                 log_buf_vec
                 .iter()
-                .map(|line| format_timestamp(&timestamp_format) + &line + "\n")
+                .map(|line| format_timestamp(timestamp_format) + line + "\n")
                 .collect::<String>()
                 .as_bytes()
             ).unwrap();
             log_file.write_all(
-                (format_timestamp(&timestamp_format) + &log_buf_last)
+                (format_timestamp(timestamp_format) + &log_buf_last)
                 .as_bytes()).unwrap();
                 } else {
                     log_file.write_all(log_buf.as_bytes()).unwrap();
@@ -411,7 +411,7 @@ where
                     } else {
                         // Display after Coloring received string
                         if *flags.lock().unwrap().nocolor() {
-                            io::stdout().write_all(&output.as_bytes()).unwrap();
+                            io::stdout().write_all(output.as_bytes()).unwrap();
                         } else {
                             color::coloring_words(&output, &mut last_word, &params);
                         }

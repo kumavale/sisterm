@@ -77,7 +77,7 @@ pub fn run(host:       &str,
     }
 
     // The first negotiation
-    negotiation::init(&mut transmitter, login_user, &terminal_type);
+    negotiation::init(&mut transmitter, login_user, terminal_type);
 
     println!("Type \"~.\" to exit.");
     println!("Connecting... {}", host);
