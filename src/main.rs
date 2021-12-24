@@ -174,6 +174,9 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
         crlf
     };
 
+    // Hexdumo flag
+    let hexdump = matches.is_present("hexdump");
+
     // Debug mode flag
     let debug = if let Some(ref params) = params {
         params.debug
@@ -200,7 +203,7 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     };
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, append, crlf, debug, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, append, crlf, hexdump, debug, write_file);
 
     (flags, params)
 }
@@ -274,6 +277,12 @@ fn build_app() -> App<'static, 'static> {
             .help("Send '\\r\\n' instead of '\\r'")
             .short("i")
             .long("instead-crlf")
+            .global(true)
+        )
+        .arg(Arg::with_name("hexdump")
+            .help("Prints in hex")
+            .short("x")
+            .long("hexdump")
             .global(true)
         )
         .subcommands(vec![SubCommand::with_name("telnet")

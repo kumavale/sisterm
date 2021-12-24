@@ -5,7 +5,7 @@ pub fn hexdump(byte_array: &[u8]) {
         if byte_array.len() - offset < 16 {
             length = byte_array.len() - offset;
         }
-        println!("0x{:08x}: {:49} {:16}",
+        println!("{:08x}: {:49} {:16}",
                  offset,
                  get_hex_representation(&byte_array[offset..offset+length]),
                  get_ascii_representation(&byte_array[offset..offset+length]));
@@ -14,24 +14,27 @@ pub fn hexdump(byte_array: &[u8]) {
 }
 
 fn get_hex_representation(byte_array: &[u8]) -> String {
-    let build_string_vec: Vec<String> = byte_array.iter().enumerate()
+    byte_array
+        .iter()
+        .enumerate()
         .map(|(i, val)| {
             if i == 7 {
                 format!("{:02x} ", val)
             } else {
                 format!("{:02x}", val)
             }
-        }).collect();
-    build_string_vec.join(" ")
+        }).collect::<Vec<String>>()
+        .join(" ")
 }
 
 fn get_ascii_representation(byte_array: &[u8]) -> String {
-    let build_string_vec: Vec<String> = byte_array.iter().map(|num| {
-        if 32 <= *num && *num <= 126 {
-            (*num as char).to_string()
-        } else {
-            '.'.to_string()
-        }
-    }).collect();
-    build_string_vec.join("")
+    byte_array
+        .iter()
+        .map(|num| {
+            match *num {
+                32..=126 => (*num as char).to_string(),
+                _ => '.'.to_string()
+            }
+        }).collect::<Vec<String>>()
+        .join("")
 }

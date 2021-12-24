@@ -23,6 +23,7 @@ FLAGS:
     -t, --time-stamp      Add timestamp to log
     -a, --append          Append to log  (default overwrite)
     -i, --instead-crlf    Send '\r\n' instead of '\r'
+    -x, --hexdump         Prints in hex
     -h, --help            Prints help information
     -V, --version         Prints version information
 

@@ -11,15 +11,20 @@ pub struct Flags {
 }
 
 impl Flags {
-    pub fn new(nocolor: bool, timestamp: bool, append: bool, instead_crlf: bool, debug: bool,
-        write_file: Option<String>) -> Self
-    {
+    pub fn new(nocolor:      bool,
+               timestamp:    bool,
+               append:       bool,
+               instead_crlf: bool,
+               hexdump:      bool,
+               debug:        bool,
+               write_file:   Option<String>,
+    ) -> Self {
         Self {
             nocolor,
             timestamp,
             append,
             instead_crlf,
-            hexdump: false,
+            hexdump,
             debug,
             write_file,
         }

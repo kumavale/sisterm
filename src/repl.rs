@@ -113,16 +113,17 @@ where
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
+
                     if *flags.lock().unwrap().hexdump() {
                         hexdump(&serial_buf[..t]);
-                    }
-
-                    // Display after Coloring received string
-                    if *flags.lock().unwrap().nocolor() {
-                        io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
-                        color::coloring_words(
-                            &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(&serial_buf[..t]).unwrap();
+                        } else {
+                            color::coloring_words(
+                                &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
+                        }
                     }
 
                     // Check exist '\n'
@@ -182,16 +183,17 @@ where
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
+
                     if *flags.lock().unwrap().hexdump() {
                         hexdump(&serial_buf[..t]);
-                    }
-
-                    // Display after Coloring received string
-                    if *flags.lock().unwrap().nocolor() {
-                        io::stdout().write_all(&serial_buf[..t]).unwrap();
                     } else {
-                        color::coloring_words(
-                            &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(&serial_buf[..t]).unwrap();
+                        } else {
+                            color::coloring_words(
+                                &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
+                        }
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -296,15 +298,16 @@ where
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
+
                     if *flags.lock().unwrap().hexdump() {
                         hexdump(&serial_buf[..t]);
-                    }
-
-                    // Display after Coloring received string
-                    if *flags.lock().unwrap().nocolor() {
-                        io::stdout().write_all(&output.as_bytes()).unwrap();
                     } else {
-                        color::coloring_words(&output, &mut last_word, &params);
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(&output.as_bytes()).unwrap();
+                        } else {
+                            color::coloring_words(&output, &mut last_word, &params);
+                        }
                     }
 
                     // Check exist '\n'
@@ -402,15 +405,16 @@ where
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
+
                     if *flags.lock().unwrap().hexdump() {
                         hexdump(&serial_buf[..t]);
-                    }
-
-                    // Display after Coloring received string
-                    if *flags.lock().unwrap().nocolor() {
-                        io::stdout().write_all(&output.as_bytes()).unwrap();
                     } else {
-                        color::coloring_words(&output, &mut last_word, &params);
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(&output.as_bytes()).unwrap();
+                        } else {
+                            color::coloring_words(&output, &mut last_word, &params);
+                        }
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
