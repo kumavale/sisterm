@@ -639,6 +639,7 @@ fn display_escape_sequences_help() {
     eprintln!("[~n    Toggles the no-color]");
     eprintln!("[~t    Toggles the time-stamp]");
     eprintln!("[~i    Toggles the instead-crlf]");
+    eprintln!("[~h    Toggles the hexdump mode]");
     eprintln!("[~d    Toggles the debug mode]");
     eprintln!("[~~    Send ~]");
     eprintln!("[~!    Run command in a `sh` or `cmd`]");
