@@ -2,7 +2,7 @@ use std::fmt;
 use std::env;
 use std::fs;
 use std::path::Path;
-use std::io::{self, BufWriter, Write};
+use std::io::{BufWriter, Write};
 
 use lazy_static::lazy_static;
 
@@ -86,53 +86,53 @@ br#"##
 #_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
 ##############################
 
-# comments
-[[colorings]]
-color = "(128, 150, 200)"
-regex = ["(//.*)|(/\\*.*\\*/)|(/\\*.*)"]  # C style
-ignore_whitespace = true
+## comments
+#[[colorings]]
+#color = "(128, 150, 200)"
+#regex = ["(//.*)|(/\\*.*\\*/)|(/\\*.*)"]  # C style
+#ignore_whitespace = true
 
-# positive
-[[colorings]]
-color = "GREEN"
-regex = ["(?i)yes|up|enable|enabled|active(?-i)"]
+## positive
+#[[colorings]]
+#color = "GREEN"
+#regex = ["(?i)yes|up|enable|enabled|active(?-i)"]
 
-# string
-[[colorings]]
-color = "184"
-regex = ["(\".*\")|('.*')|(\".*)|('.*)"]
-ignore_whitespace = true
+## string
+#[[colorings]]
+#color = "184"
+#regex = ["(\".*\")|('.*')|(\".*)|('.*)"]
+#ignore_whitespace = true
 
-# emphansis
-[[colorings]]
-color = "MAGENTA"
-regex = ["not?|confirm|warning|warnings|failed|failures|errors?|crash"]
+## emphansis
+#[[colorings]]
+#color = "MAGENTA"
+#regex = ["not?|confirm|warning|warnings|failed|failures|errors?|crash"]
 
-# interface
-[[colorings]]
-color = "CYAN"
-regex = ["(([Tt]engigabit|[Gg]igabit|[Ff]ast)?[Ee]thernet|[Ff]a|[Gg]i)\\d+/\\d+"]
+## interface
+#[[colorings]]
+#color = "CYAN"
+#regex = ["(([Tt]engigabit|[Gg]igabit|[Ff]ast)?[Ee]thernet|[Ff]a|[Gg]i)\\d+/\\d+"]
 
-# negative
-[[colorings]]
-underlined = true
-color = "RED"
-regex = ["unassigned|disable|disabled|deny|shutdown|down|administratively|none"]
+## negative
+#[[colorings]]
+#underlined = true
+#color = "RED"
+#regex = ["unassigned|disable|disabled|deny|shutdown|down|administratively|none"]
 
-# ipv4_net
-[[colorings]]
-color = "YELLOW"
-regex = ["([^0-9]|^)(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])\\.((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
+## ipv4_net
+#[[colorings]]
+#color = "YELLOW"
+#regex = ["([^0-9]|^)(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])\\.((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
 
-# ipv4_sub
-[[colorings]]
-color = "BLUE"
-regex = ["((25[0-5]|24[89])\\.)((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
+## ipv4_sub
+#[[colorings]]
+#color = "BLUE"
+#regex = ["((25[0-5]|24[89])\\.)((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
 
-# ipv4_wild
-[[colorings]]
-color = "MAGENTA"
-regex = ["(0\\.)((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
+## ipv4_wild
+#[[colorings]]
+#color = "MAGENTA"
+#regex = ["(0\\.)((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
 
 "#;
 
@@ -156,21 +156,13 @@ impl fmt::Display for PARENT_PATH {
 // If windows => %USERPROFILE%/AppData/Local/sisterm/config.toml
 //    other   => $HOME/.config/sisterm/config.toml
 // Returns the path to that configuration file
-pub fn generate() -> Result<String, String> {
+pub fn generate() -> Result<Option<String>, String> {
     // Path to the config.toml
     let config_file_path = format!("{}config.toml", *PARENT_PATH);
 
     // Check for file existence
     if Path::new(&config_file_path).exists() {
-        let mut input = String::new();
-        println!("configration file is already exists!");
-        print!("Overwrite? [y/N]");
-        io::stdout().flush().map_err(|e| e.to_string())?;
-        io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
-        match input.to_lowercase().trim_end() {
-            "y" | "yes" => (),  // continue
-            _ => std::process::exit(0),
-        }
+        return Ok(None);
     }
 
     // Create directory
@@ -181,5 +173,5 @@ pub fn generate() -> Result<String, String> {
     f.write_all(CONTENTS).map_err(|e| e.to_string())?;
     f.flush().map_err(|e| e.to_string())?;
 
-    Ok(config_file_path)
+    Ok(Some(config_file_path))
 }

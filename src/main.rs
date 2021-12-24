@@ -2,6 +2,7 @@
 extern crate clap;
 extern crate sisterm;
 
+use sisterm::config;
 use sisterm::flag;
 use sisterm::setting;
 
@@ -16,19 +17,13 @@ fn main() {
     let matches = build_app().get_matches();
 
     // Generate configuration file
-    if matches.subcommand_matches("generate").is_some() {
-        use sisterm::config;
-
-        match config::generate() {
-            Ok(path) => {
-                println!("Complete! --> {}", path);
-                std::process::exit(0);
-            },
-            Err(e) => {
-                eprintln!("{}", e);
-                std::process::exit(1);
-            },
-        }
+    match config::generate() {
+        Ok(None) => (), // Already exists configuration file
+        Ok(Some(path)) => println!("Generated config file --> {}", path),
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        },
     }
 
     #[cfg(windows)]
@@ -314,10 +309,6 @@ fn build_app() -> App<'static, 'static> {
                 .required(true)
                 .min_values(1)
             ),
-        SubCommand::with_name("generate")
-            .about("Generate configuration file")
-            .usage("sist generate")
-            .setting(AppSettings::DeriveDisplayOrder)
         ])
 }
 

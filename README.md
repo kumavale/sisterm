@@ -38,7 +38,6 @@ OPTIONS:
 SUBCOMMANDS:
     telnet      Login to remote system host with telnet
     tcp         TCP connection without telnet
-    generate    Generate configuration file
     help        Prints this message or the help of the given subcommand(s)
 ```
 
@@ -69,13 +68,6 @@ sisterm is written in Rust, so you'll need to grab a [Rust installation](https:/
 ```.sh
 $ cargo install sisterm
 ```
-
-After that, execute the following to generate a configuration file.  
-
-```.sh
-$ sist generate
-```
-
 
 ## Building
 
