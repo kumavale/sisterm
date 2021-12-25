@@ -2,7 +2,6 @@
 extern crate clap;
 extern crate sisterm;
 
-use sisterm::config;
 use sisterm::flag;
 use sisterm::setting;
 
@@ -15,16 +14,6 @@ use serialport::available_ports;
 fn main() {
 
     let matches = build_app().get_matches();
-
-    // Generate configuration file
-    match config::generate() {
-        Ok(None) => (), // Already exists configuration file
-        Ok(Some(path)) => println!("Generated config file --> {}", path),
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(1);
-        },
-    }
 
     #[cfg(windows)]
     enable_ansi_support();

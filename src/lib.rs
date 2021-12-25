@@ -1,5 +1,4 @@
 pub mod color;
-pub mod config;
 pub mod default;
 pub mod file_read;
 pub mod flag;
