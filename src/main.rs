@@ -6,7 +6,6 @@ use sisterm::flag;
 use sisterm::setting;
 
 use std::env;
-use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 use serialport::available_ports;
@@ -110,13 +109,8 @@ fn main() {
                     std::process::exit(1);
                 }
             };
-            let settings = serialport::SerialPortSettings {
-                baud_rate,
-                timeout: Duration::from_millis(10),
-                ..Default::default()
-            };
 
-            serial::run(port_name, settings, flags, params);
+            serial::run(port_name, baud_rate, flags, params);
 
             println!("\n\x1b[0mDisconnected.");
         }

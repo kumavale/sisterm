@@ -364,7 +364,7 @@ pub fn get_window_size() -> [u8; 4] {
 }
 #[cfg(not(windows))]
 pub fn get_window_size() -> [u8; 4] {
-    use libc::{ioctl, winsize, TIOCGWINSZ, STDOUT_FILENO};
+    use nix::libc::{ioctl, winsize, TIOCGWINSZ, STDOUT_FILENO};
     use std::mem;
 
     let fd = STDOUT_FILENO;
