@@ -25,6 +25,24 @@ impl<T> Send for T where T: std::io::Write {
     }
 }
 
+//pub trait AsyncSend {
+//    async fn send(&mut self, s: &[u8]) -> impl Future<Output = ();
+//}
+//impl AsyncSend for tokio::net::TcpStream {
+//    async fn send(&mut self, s: &[u8]) {
+//        if let Err(e) = self.try_write(s) {
+//            eprintln!("{}", e);
+//        }
+//    }
+//}
+//impl<T> AsyncSend for T where T: tokio::io::AsyncWrite {
+//    async fn send(&mut self, s: &[u8]) {
+//        if let Err(e) = self.try_write(s) {
+//            eprintln!("{}", e);
+//        }
+//    }
+//}
+
 pub fn receiver<T>(
     mut port: T,
     rx:       std::sync::mpsc::Receiver<()>,
@@ -428,6 +446,217 @@ where
     }
 }
 
+pub async fn receiver_telnet_async(
+    mut port: tokio::net::TcpStream,
+    flags:    Arc<Mutex<flag::Flags>>,
+    params:   Option<setting::Params>)
+//where
+    //T: tokio::io::AsyncReadExt,
+    //T: tokio::io::AsyncWrite,
+    //T: self::AsyncSend,
+{
+    let (read_buf_size, timestamp_format) = if let Some(ref p) = params {
+        (
+            p.read_buf_size,
+            &*p.timestamp_format
+        )
+    } else {
+        (
+            default::READ_BUFFER_SIZE,
+            default::TIMESTAMP_FORMAT
+        )
+    };
+    let mut serial_buf: Vec<u8> = vec![0; read_buf_size];
+    let mut send_neg:   Vec<u8> = Vec::new();
+    let mut last_word = (String::new(), false, false);  // (increasing_str, prev_matched, comment_now)
+    let mut window_size = negotiation::get_window_size();
+
+    // Save log
+    let write_file = flags.lock().unwrap().write_file();
+    if let Some(write_file) = write_file {
+        let is_new = !Path::new(&write_file).exists();
+
+        let mut log_file = {
+            if *flags.lock().unwrap().append() {
+                BufWriter::new(OpenOptions::new()
+                    .append(true)
+                    .open(&write_file)
+                    .expect("File open failed"))
+            } else {
+                BufWriter::new(OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .open(&write_file)
+                    .expect("File open failed"))
+            }
+        };
+        let mut log_buf    = String::new();
+        let mut write_flag = false;
+
+        println!("Log record: \"{}\" ({})\n", &write_file,
+            if is_new {
+                "New"
+            } else if *flags.lock().unwrap().append() {
+                "Append"
+            } else {
+                "Overwrite"
+            }
+        );
+
+        // First, insert return to log
+        log_file.write_all(b"\n").unwrap();
+
+        loop {
+            // If the window size are different, negotiate
+            let window_size_current = negotiation::get_window_size();
+            if window_size != window_size_current {
+                window_size = window_size_current;
+                send_neg.extend_from_slice(&negotiation::window_size());
+                port.try_write(&send_neg[..send_neg.len()]).unwrap();
+                send_neg.clear();
+            }
+
+            match port.try_read(serial_buf.as_mut_slice()) {
+                Ok(0) => break,
+                Ok(t) => {
+                    // Check telnet command
+                    let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
+
+                    if !send_neg.is_empty() {
+                        port.try_write(&send_neg[..send_neg.len()]).unwrap();
+                        send_neg.clear();
+                    }
+
+                    if *flags.lock().unwrap().debug() {
+                        print!("{:?}", &serial_buf[..t]);
+                    }
+
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
+                    } else {
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(output.as_bytes()).unwrap();
+                        } else {
+                            color::coloring_words(&output, &mut last_word, &params);
+                        }
+                    }
+
+                    // Check exist '\n'
+                    for ch in output.bytes() {
+                        // If '\n' exists, set write_flag to true
+                        if ch == b'\n' {
+                            write_flag = true;
+                            break;
+                        }
+                    }
+
+                    // Write to log_buf from serial_buf
+                    string_from_utf8_appearance(&mut log_buf, output.as_bytes());
+
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => continue,
+                Err(e) => eprintln!("{}", e),
+            }
+
+
+            // Flush stdout
+            let _ = io::stdout().flush();
+
+            // If end of '\n' then write to log file
+            if write_flag {
+                // Write timestamp to log file
+                if *flags.lock().unwrap().timestamp() {
+                    let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
+                    let log_buf_last = log_buf_vec.pop().unwrap().to_string();
+                    log_file.write_all(
+                        log_buf_vec
+                            .iter()
+                            .map(|line| format_timestamp(timestamp_format) + line + "\n")
+                            .collect::<String>()
+                            .as_bytes()
+                    ).unwrap();
+                    log_buf = log_buf_last;
+                } else {
+                    log_file.write_all(log_buf.as_bytes()).unwrap();
+                    log_buf.clear();
+                }
+                write_flag = false;
+            }
+        }
+
+        // Write to log
+        if *flags.lock().unwrap().timestamp() {
+            let mut log_buf_vec: Vec<&str> = log_buf.split('\n').collect();
+            let log_buf_last = log_buf_vec.pop().unwrap().to_string();
+            log_file.write_all(
+                log_buf_vec
+                .iter()
+                .map(|line| format_timestamp(timestamp_format) + line + "\n")
+                .collect::<String>()
+                .as_bytes()
+            ).unwrap();
+            log_file.write_all(
+                (format_timestamp(timestamp_format) + &log_buf_last)
+                .as_bytes()).unwrap();
+                } else {
+                    log_file.write_all(log_buf.as_bytes()).unwrap();
+        }
+
+        log_file.flush().unwrap();
+
+    // Non save log
+    } else {
+        println!("receiver");
+        loop {
+            // If the window size are different, negotiate
+            let window_size_current = negotiation::get_window_size();
+            if window_size != window_size_current {
+                window_size = window_size_current;
+                send_neg.extend_from_slice(&negotiation::window_size());
+                port.try_write(&send_neg[..send_neg.len()]).unwrap();
+                send_neg.clear();
+            }
+
+            match port.try_read(serial_buf.as_mut_slice()) {
+                Ok(0) => break,
+                Ok(t) => {
+                    // Check telnet command
+                    let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
+
+                    if !send_neg.is_empty() {
+                        port.try_write(&send_neg[..send_neg.len()]).unwrap();
+                        send_neg.clear();
+                    }
+
+                    if *flags.lock().unwrap().debug() {
+                        print!("{:?}", &serial_buf[..t]);
+                    }
+
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
+                    } else {
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(output.as_bytes()).unwrap();
+                        } else {
+                            color::coloring_words(&output, &mut last_word, &params);
+                        }
+                    }
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => continue,
+                Err(e) => eprintln!("{}", e),
+            }
+
+            // Flush
+            let _ = io::stdout().flush();
+        }
+    }
+}
+
 pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: Arc<Mutex<flag::Flags>>)
 where
     T: std::io::Write,
@@ -588,6 +817,177 @@ where
                         }
                     },
                     Key::Other(b) => port.send(&b),
+                }
+
+            },
+            Err(e) => eprintln!("{}", e),
+        }
+    }
+}
+
+pub async fn transmitter_async(
+    mut port: tokio::net::TcpStream,
+    flags: Arc<Mutex<flag::Flags>>,
+)
+//where
+//    T: tokio::io::AsyncWrite,
+//    T: self::AsyncSend,
+{
+    use crate::default::escape_sequences::*;
+
+    let mut last_is_escape_signal = false;
+    let g = Getch::new();
+
+    println!("transmitter");
+    loop {
+        match g.getch() {
+            Ok(key) => {
+                if *flags.lock().unwrap().debug() {
+                    print!("[{:?}]", key);
+                    io::stdout().flush().ok();
+                }
+
+                // If the previous character is not a tilde and the current character is a tilde
+                if !last_is_escape_signal && key == ESCAPE_SIGNAL {
+                    last_is_escape_signal = true;
+                    eprint_flush("~");
+                    continue;
+                }
+
+                // Parse escape signal
+                if last_is_escape_signal {
+                    last_is_escape_signal = false;
+                    match key {
+                        ESCAPE_SIGNAL => {
+                            eprint_flush("\x08");
+                        },
+                        EXIT_CHAR_0 | EXIT_CHAR_1 => {
+                            eprint_flush(".");
+                            break;
+                        },
+                        #[cfg(not(windows))]
+                        SUSPEND => {
+                            use nix::unistd::Pid;
+                            use nix::sys::signal::{self, Signal};
+
+                            let _ = signal::kill(Pid::this(), Signal::SIGSTOP);
+                            continue;
+                        },
+                        NO_COLOR => {
+                            let current_nocolor = *flags.lock().unwrap().nocolor();
+                            *flags.lock().unwrap().nocolor_mut() = !current_nocolor;
+                            eprintln!("\x08[Changed no-color: {}]", !current_nocolor);
+                            continue;
+                        },
+                        TIME_STAMP => {
+                            let current_timestamp = *flags.lock().unwrap().timestamp();
+                            *flags.lock().unwrap().timestamp_mut() = !current_timestamp;
+                            eprintln!("\x08[Changed time-stamp: {}]", !current_timestamp);
+                            continue;
+                        },
+                        INSTEAD_CRLF => {
+                            let current_instead_crlf = *flags.lock().unwrap().instead_crlf();
+                            *flags.lock().unwrap().instead_crlf_mut() = !current_instead_crlf;
+                            eprintln!("\x08[Changed instead-crlf: {}]", !current_instead_crlf);
+                            continue;
+                        },
+                        HEXDUMP => {
+                            let current_hexdump = *flags.lock().unwrap().hexdump();
+                            *flags.lock().unwrap().hexdump_mut() = !current_hexdump;
+                            eprintln!("\x08[Changed hexdump mode: {}]", !current_hexdump);
+                            continue;
+                        },
+                        DEBUG => {
+                            let current_debug = *flags.lock().unwrap().debug();
+                            *flags.lock().unwrap().debug_mut() = !current_debug;
+                            eprintln!("\x08[Changed debug mode: {}]", !current_debug);
+                            continue;
+                        },
+                        COMMAND_0 => {
+                            eprint_flush("!");
+                            if let Some(command) = echo_stdin_read_line() {
+                                // Run
+                                if cfg!(target_os = "windows") {
+                                    Command::new("cmd").args(&["/C", &command]).spawn()
+                                } else {
+                                    Command::new("sh").args(&["-c", &command]).spawn()
+                                }.ok();
+                            }
+                            continue;
+                        },
+                        COMMAND_1 => {
+                            eprint_flush("$");
+                            // Run and send
+                            if let Some(command) = echo_stdin_read_line() {
+                                // Run (no display)
+                                let output = if cfg!(target_os = "windows") {
+                                    Command::new("cmd").args(&["/C", &command]).output()
+                                } else {
+                                    Command::new("sh").args(&["-c", &command]).output()
+                                };
+                                // Send
+                                if let Ok(output) = output {
+                                    port.try_write(&output.stdout).unwrap();
+                                }
+                            }
+                            continue;
+                        },
+                        HELP => {
+                            display_escape_sequences_help();
+                            continue;
+                        },
+                        _ => {
+                            eprintln!("\x08[Unrecognized.  Use ~~ to send ~]");
+                            continue;
+                        },
+                    }
+                }
+
+                // If `--instead-crlf` is true, change to "\r\n"
+                if *flags.lock().unwrap().instead_crlf() && key == Key::Char('\r') {
+                    // Send carriage return
+                    port.try_write(&[ b'\r', b'\n' ]).unwrap();
+                    continue;
+                }
+
+                // Send key
+                match key {
+                    Key::Null      => { port.try_write(&[ 0x00 ]).unwrap(); },
+                    Key::Backspace => { port.try_write(&[ 0x08 ]).unwrap(); },
+                    Key::Delete    => { port.try_write(&[ 0x7F ]).unwrap(); },
+                    Key::Esc       => { port.try_write(&[ 0x1B ]).unwrap(); },
+                    Key::Up        => { port.try_write(&[ 0x1B, b'[', b'A' ]).unwrap(); },
+                    Key::Down      => { port.try_write(&[ 0x1B, b'[', b'B' ]).unwrap(); },
+                    Key::Right     => { port.try_write(&[ 0x1B, b'[', b'C' ]).unwrap(); },
+                    Key::Left      => { port.try_write(&[ 0x1B, b'[', b'D' ]).unwrap(); },
+                    Key::End       => { port.try_write(&[ 0x1B, b'[', b'F' ]).unwrap(); },
+                    Key::Home      => { port.try_write(&[ 0x1B, b'[', b'H' ]).unwrap(); },
+                    Key::BackTab   => { port.try_write(&[ 0x1B, b'[', b'Z' ]).unwrap(); },
+                    Key::Insert    => { port.try_write(&[ 0x1B, b'[', b'2', b'~' ]).unwrap(); },
+                    Key::PageUp    => { port.try_write(&[ 0x1B, b'[', b'5', b'~' ]).unwrap(); },
+                    Key::PageDown  => { port.try_write(&[ 0x1B, b'[', b'6', b'~' ]).unwrap(); },
+                    Key::F(num) => {
+                        match num {
+                            v @  1..= 5 => { port.try_write(&[ 0x1B, b'[', b'1', v + b'0',     b'~' ]).unwrap(); },
+                            v @  6..= 8 => { port.try_write(&[ 0x1B, b'[', b'1', v + b'0' + 1, b'~' ]).unwrap(); },
+                            v @  9..=10 => { port.try_write(&[ 0x1B, b'[', b'2', v + b'0' - 9, b'~' ]).unwrap(); },
+                            v @ 11..=12 => { port.try_write(&[ 0x1B, b'[', b'2', v + b'0' - 8, b'~' ]).unwrap(); },
+                            _ => unreachable!(),
+                        }
+                    },
+                    Key::Char(ch) => { port.try_write(ch.encode_utf8(&mut [0; 4]).as_bytes()).unwrap(); },
+                    Key::Alt(ch)  => { port.try_write(&[ 0x1B, ch as u8 ]).unwrap(); },
+                    Key::Ctrl(ch) => {
+                        match ch {
+                            'a'..='z' => { port.try_write(&[ (ch as u8) - b'a' + 1 ]).unwrap(); },
+                            '4' => { port.try_write(&[ 0x1B, b'[', b'1', b';', b'5', b'S' ]).unwrap(); },
+                            '5' => { port.try_write(&[ 0x1B, b'[', b'1', b'5', b';', b'5', b'~' ]).unwrap(); },
+                            '6' => { port.try_write(&[ 0x1B, b'[', b'1', b'7', b';', b'5', b'~' ]).unwrap(); },
+                            '7' => { port.try_write(&[ 0x1B, b'[', b'1', b'8', b';', b'5', b'~' ]).unwrap(); },
+                            _ => unreachable!(),
+                        }
+                    },
+                    Key::Other(b) => { port.try_write(&b).unwrap(); },
                 }
 
             },
