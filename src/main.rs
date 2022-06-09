@@ -35,7 +35,7 @@ fn main() {
     enable_ansi_support();
 
     // Telnet
-    if let Some(ref matches) = matches.subcommand_matches("telnet") {
+    if let Some(matches) = matches.subcommand_matches("telnet") {
         use sisterm::telnet;
 
         // Hostname
@@ -52,7 +52,7 @@ fn main() {
         println!("\n\x1b[0mDisconnected.");
 
     // TCP connection witout telnet
-    } else if let Some(ref matches) = matches.subcommand_matches("tcp") {
+    } else if let Some(matches) = matches.subcommand_matches("tcp") {
         use sisterm::tcp;
 
         // Hostname
@@ -74,7 +74,7 @@ fn main() {
         if let Some(path) = matches.value_of("read file") {
             use sisterm::file_read;
 
-            file_read::run(&path, flags, params);
+            file_read::run(path, flags, params);
 
 
         // Serialport
@@ -119,8 +119,10 @@ fn main() {
                 (port_name, baud_rate.to_string())
             };
 
-            let mut settings: SerialPortSettings = Default::default();
-            settings.timeout = Duration::from_millis(10);
+            let mut settings: SerialPortSettings = serialport::SerialPortSettings {
+                timeout: Duration::from_millis(10),
+                ..Default::default()
+            };
             if let Ok(rate) = baud_rate.parse::<u32>() {
                 settings.baud_rate = rate;
             } else {

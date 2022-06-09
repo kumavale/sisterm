@@ -256,7 +256,7 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             options::TERMINAL_TYPE,
                             commands::IS,
                         ]);
-                        send_neg.extend_from_slice(&
+                        send_neg.extend_from_slice(
                             //"XTERM".as_bytes(),
                             //"XTERM-256COLOR".as_bytes(),
                             //"VT100".as_bytes(),
