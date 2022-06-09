@@ -39,4 +39,4 @@ features = [
 ]
 
 [target.'cfg(unix)'.dependencies]
-nix = "0.17"
+nix = "0.24"
