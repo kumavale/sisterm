@@ -44,7 +44,7 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
             if c == ' ' && !comment_now {
                 if !increasing_str.is_empty() {
                     if prev_matched {
-                        line_str.push_str(&PREDEFINED_COLORS["RESET"]);
+                        line_str.push_str(PREDEFINED_COLORS["RESET"]);
                         prev_matched = false;
                     } else {
                         line_str.push_str(&increasing_str[..increasing_str.len()]);
@@ -77,8 +77,8 @@ pub fn coloring_from_file(text: String, params: Option<setting::Params>) {
                             let color = params.syntaxes[index as usize].color();
                             comment_now = params.syntaxes[index as usize].ignore_whitespace();
                             line_str.push_str(&increasing_str[..increasing_str.len()-len]);
-                            line_str.push_str(&color);
-                            line_str.push_str(&substr);
+                            line_str.push_str(color);
+                            line_str.push_str(substr);
                             increasing_str = substr.to_string();
                             substring_len = len;
                             prev_matched = true;
@@ -120,7 +120,7 @@ pub fn coloring_words(serial_buf: &str,
         if c == ' ' && !*comment_now {
             increasing_str.clear();
             if *prev_matched {
-                line_str.push_str(&PREDEFINED_COLORS["RESET"]);
+                line_str.push_str(PREDEFINED_COLORS["RESET"]);
             }
             *prev_matched = false;
             line_str.push(' ');
@@ -130,7 +130,7 @@ pub fn coloring_words(serial_buf: &str,
         if c == '\r' || c == '\n' {
             increasing_str.clear();
             if *prev_matched {
-                line_str.push_str(&PREDEFINED_COLORS["RESET"]);
+                line_str.push_str(PREDEFINED_COLORS["RESET"]);
             }
             *prev_matched = false;
             line_str.push(c);
@@ -147,12 +147,12 @@ pub fn coloring_words(serial_buf: &str,
 
         for (index, syntax) in params.syntaxes.iter().enumerate() {
             for regex in syntax.regex() {
-                if let Some(cap) = regex.captures(&increasing_str) {
+                if let Some(cap) = regex.captures(increasing_str) {
                     if *prev_matched {
                         let len = cap.get(0).unwrap().as_str().len();
                         if substring_len == len {
                             *prev_matched = false;
-                            line_str.push_str(&PREDEFINED_COLORS["RESET"]);
+                            line_str.push_str(PREDEFINED_COLORS["RESET"]);
                             substring_len = 0;
                             increasing_str.clear();
                             increasing_str.push(c);
@@ -166,8 +166,8 @@ pub fn coloring_words(serial_buf: &str,
                         let color = params.syntaxes[index as usize].color();
                         *comment_now = params.syntaxes[index as usize].ignore_whitespace();
                         line_str.push_str(&format!("{:\x08<1$}", "", len-1));
-                        line_str.push_str(&color);
-                        line_str.push_str(&substr);
+                        line_str.push_str(color);
+                        line_str.push_str(substr);
                         *increasing_str = substr.to_string();
                         substring_len = len;
                         *prev_matched = true;
@@ -179,7 +179,7 @@ pub fn coloring_words(serial_buf: &str,
 
         if *prev_matched {
             *prev_matched = false;
-            line_str.push_str(&PREDEFINED_COLORS["RESET"]);
+            line_str.push_str(PREDEFINED_COLORS["RESET"]);
             increasing_str.clear();
             increasing_str.push(c);
         }
@@ -187,7 +187,7 @@ pub fn coloring_words(serial_buf: &str,
         line_str.push(c);
     }
 
-    std::io::stdout().write_all(&line_str.as_bytes()).unwrap();
+    std::io::stdout().write_all(line_str.as_bytes()).unwrap();
 }
 
 /* Color example
@@ -208,24 +208,24 @@ pub fn valid_color_syntax(coloring: &setting::Coloring) -> Result<String, String
             return Ok("\x1b[0m".to_string());
         }
     }
-    if is_predefined_color(&color) {
+    if is_predefined_color(color) {
         if underlined {
             return Ok(format!("\x1b[4m{}", PREDEFINED_COLORS[color]));
         } else {
             return Ok(PREDEFINED_COLORS[color].to_string());
         }
     }
-    if is_8bit_color(&color) {
-        return Ok(to_8bit_color(&color, underlined));
+    if is_8bit_color(color) {
+        return Ok(to_8bit_color(color, underlined));
     }
-    if is_24bit_color(&color) {
-        return Ok(to_24bit_color(&color, underlined));
+    if is_24bit_color(color) {
+        return Ok(to_24bit_color(color, underlined));
     }
-    if is_24bit_color_hash(&color) {
+    if is_24bit_color_hash(color) {
         return Ok(to_24bit_color(&color[1..], underlined));
     }
-    if is_rgb_color(&color) {
-        return Ok(to_rgb_color(&color, underlined));
+    if is_rgb_color(color) {
+        return Ok(to_rgb_color(color, underlined));
     }
 
     Err(format!("invalid color syntax: \"{}\"", color))

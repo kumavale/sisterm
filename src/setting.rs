@@ -50,7 +50,7 @@ impl Params {
             for regex in &coloring.regex {
                 re_vec.push(Regex::new(regex).expect("Failed compile regex"));
             }
-            let color = color::valid_color_syntax(&coloring).unwrap();
+            let color = color::valid_color_syntax(coloring).unwrap();
             let ignore_whitespace = coloring.ignore_whitespace();
             syntaxes.push(SyntaxDefinition::new(color, re_vec, ignore_whitespace));
         }
@@ -197,10 +197,10 @@ impl Coloring {
     }
 
     pub fn underlined(&self) -> bool {
-        self.underlined.unwrap_or_else(|| false)
+        self.underlined.unwrap_or(false)
     }
 
     pub fn ignore_whitespace(&self) -> bool {
-        self.ignore_whitespace.unwrap_or_else(|| false)
+        self.ignore_whitespace.unwrap_or(false)
     }
 }

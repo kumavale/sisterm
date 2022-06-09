@@ -1,4 +1,3 @@
-use std::fmt;
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -144,12 +143,6 @@ lazy_static! {
             format!("{}/.config/sisterm/", env::var("HOME").unwrap())
         }
     };
-}
-
-impl fmt::Display for PARENT_PATH {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
-    }
 }
 
 // Generate configration file
