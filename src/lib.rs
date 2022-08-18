@@ -1,5 +1,4 @@
 pub mod color;
-pub mod config;
 pub mod default;
 pub mod file_read;
 pub mod flag;
@@ -10,3 +9,4 @@ pub mod serial;
 pub mod setting;
 pub mod tcp;
 pub mod telnet;
+mod hexdump;

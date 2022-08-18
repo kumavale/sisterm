@@ -323,7 +323,7 @@ where
             let mut c = iter.next().unwrap().unwrap();
             // The final byte of a CSI sequence can be in the range 64-126, so
             // let's keep reading anything else.
-            while !(64..=126).contains(&c) {
+            while !(64..=126).contains(&c) {  // c < 64 || 126 < c
                 buf.push(c);
                 c = iter.next().unwrap().unwrap();
             }

@@ -23,6 +23,7 @@ FLAGS:
     -t, --time-stamp      Add timestamp to log
     -a, --append          Append to log  (default overwrite)
     -i, --instead-crlf    Send '\r\n' instead of '\r'
+    -x, --hexdump         Prints in hex
     -h, --help            Prints help information
     -V, --version         Prints version information
 
@@ -37,7 +38,6 @@ OPTIONS:
 SUBCOMMANDS:
     telnet      Login to remote system host with telnet
     tcp         TCP connection without telnet
-    generate    Generate configuration file
     help        Prints this message or the help of the given subcommand(s)
 ```
 
@@ -52,6 +52,7 @@ Keystroke | Action
 ~n        | Toggles the no-color
 ~t        | Toggles the time-stamp
 ~i        | Toggles the instead-crlf
+~h        | Toggles the hexdump mode
 ~d        | Toggles the debug mode
 \~\~      | Send ~
 ~!        | Run command in a `sh` or `cmd`
@@ -67,13 +68,6 @@ sisterm is written in Rust, so you'll need to grab a [Rust installation](https:/
 ```.sh
 $ cargo install sisterm
 ```
-
-After that, execute the following to generate a configuration file.  
-
-```.sh
-$ sist generate
-```
-
 
 ## Building
 

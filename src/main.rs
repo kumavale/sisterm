@@ -6,30 +6,13 @@ use sisterm::flag;
 use sisterm::setting;
 
 use std::env;
-use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, SubCommand};
-use serialport::{available_ports, SerialPortSettings};
+use serialport::available_ports;
 
 fn main() {
 
     let matches = build_app().get_matches();
-
-    // Generate configuration file
-    if matches.subcommand_matches("generate").is_some() {
-        use sisterm::config;
-
-        match config::generate() {
-            Ok(path) => {
-                println!("Complete! --> {}", path);
-                std::process::exit(0);
-            },
-            Err(e) => {
-                eprintln!("{}", e);
-                std::process::exit(1);
-            },
-        }
-    }
 
     #[cfg(windows)]
     enable_ansi_support();
@@ -130,7 +113,7 @@ fn main() {
                 std::process::exit(1);
             }
 
-            serial::run(port_name, settings, flags, params);
+            serial::run(port_name, baud_rate, flags, params);
 
             println!("\n\x1b[0mDisconnected.");
         }
@@ -172,6 +155,9 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
         crlf
     };
 
+    // Hexdumo flag
+    let hexdump = matches.is_present("hexdump");
+
     // Debug mode flag
     let debug = if let Some(ref params) = params {
         params.debug
@@ -198,7 +184,7 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     };
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, append, crlf, debug, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, append, crlf, hexdump, debug, write_file);
 
     (flags, params)
 }
@@ -274,6 +260,12 @@ fn build_app() -> App<'static, 'static> {
             .long("instead-crlf")
             .global(true)
         )
+        .arg(Arg::with_name("hexdump")
+            .help("Prints in hex")
+            .short("x")
+            .long("hexdump")
+            .global(true)
+        )
         .subcommands(vec![SubCommand::with_name("telnet")
             .about("Login to remote system host with telnet")
             .usage("sist telnet [FLAGS] [OPTIONS] <HOST[:PORT]>")
@@ -303,10 +295,6 @@ fn build_app() -> App<'static, 'static> {
                 .required(true)
                 .min_values(1)
             ),
-        SubCommand::with_name("generate")
-            .about("Generate configuration file")
-            .usage("sist generate")
-            .setting(AppSettings::DeriveDisplayOrder)
         ])
 }
 
