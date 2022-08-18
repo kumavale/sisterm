@@ -143,12 +143,12 @@ mod tests {
         ];
 
         for (input, expect) in tests_ipaddr {
-            assert_eq!(to_SocketAddr(&input), expect);
+            assert_eq!(to_SocketAddr(input), expect);
         }
         for (input, expect, or_expect) in tests_hostname {
             assert!(
-                to_SocketAddr(&input) == expect
-             || to_SocketAddr(&input) == or_expect
+                to_SocketAddr(input) == expect
+             || to_SocketAddr(input) == or_expect
             );
         }
     }
@@ -165,7 +165,7 @@ mod tests {
         ];
 
         for (input, expect) in tests_ipaddr {
-            assert_eq!(to_SocketAddr(&input), expect);
+            assert_eq!(to_SocketAddr(input), expect);
         }
     }
 }
