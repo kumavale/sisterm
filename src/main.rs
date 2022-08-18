@@ -102,16 +102,13 @@ fn main() {
                 (port_name, baud_rate.to_string())
             };
 
-            let mut settings: SerialPortSettings = serialport::SerialPortSettings {
-                timeout: Duration::from_millis(10),
-                ..Default::default()
+            let baud_rate = match baud_rate.parse::<u32>() {
+                Ok(br) => br,
+                Err(_) => {
+                    eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
+                    std::process::exit(1);
+                }
             };
-            if let Ok(rate) = baud_rate.parse::<u32>() {
-                settings.baud_rate = rate;
-            } else {
-                eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
-                std::process::exit(1);
-            }
 
             serial::run(port_name, baud_rate, flags, params);
 
