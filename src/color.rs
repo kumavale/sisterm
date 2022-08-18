@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::Write;
+use std::fmt::Write as _;
 
 use crate::setting;
 
@@ -165,7 +166,7 @@ pub fn coloring_words(serial_buf: &str,
                         let len = substr.len();
                         let color = params.syntaxes[index as usize].color();
                         *comment_now = params.syntaxes[index as usize].ignore_whitespace();
-                        line_str.push_str(&format!("{:\x08<1$}", "", len-1));
+                        let _ = write!(line_str, "{:\x08<1$}", "", len-1);
                         line_str.push_str(color);
                         line_str.push_str(substr);
                         *increasing_str = substr.to_string();

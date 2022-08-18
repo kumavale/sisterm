@@ -122,7 +122,7 @@ where
                             io::stdout().write_all(&serial_buf[..t]).unwrap();
                         } else {
                             color::coloring_words(
-                                &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
+                                &String::from_utf8_lossy(&serial_buf[..t]), &mut last_word, &params);
                         }
                     }
 
@@ -192,7 +192,7 @@ where
                             io::stdout().write_all(&serial_buf[..t]).unwrap();
                         } else {
                             color::coloring_words(
-                                &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
+                                &String::from_utf8_lossy(&serial_buf[..t]), &mut last_word, &params);
                         }
                     }
                 },
