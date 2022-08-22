@@ -110,16 +110,18 @@ pub fn init(transmitter: &mut std::net::TcpStream, login_user: Option<&str>, ter
     *TERMINAL_TYPE.lock().unwrap() = terminal_type.to_string();
 
     // Negotiations sent first
-    let data = [
+    let mut data = vec![
         commands::IAC, commands::DO,   options::SUPPRESS_GO_AHEAD,
         commands::IAC, commands::WILL, options::TERMINAL_TYPE,
         commands::IAC, commands::WILL, options::WINDOW_SIZE,
         commands::IAC, commands::WILL, options::TERMINAL_SPEED,
         commands::IAC, commands::WILL, options::REMOTE_FLOW_CONTROL,
         //commands::IAC, commands::WILL, options::LINE_MODE,
-        commands::IAC, commands::WILL, options::NEW_ENVIRONMENT,
         commands::IAC, commands::DO,   options::STATUS,
     ];
+    if !(*LOGIN_USER.lock().unwrap()).is_empty() {
+        data.extend_from_slice(&[commands::IAC, commands::WILL, options::NEW_ENVIRONMENT]);
+    }
 
     if let Err(e) = transmitter.write(&data) {
         eprintln!("{}", e);
