@@ -117,7 +117,7 @@ pub fn init(transmitter: &mut std::net::TcpStream, login_user: Option<&str>, ter
         commands::IAC, commands::WILL, options::TERMINAL_SPEED,
         commands::IAC, commands::WILL, options::REMOTE_FLOW_CONTROL,
         //commands::IAC, commands::WILL, options::LINE_MODE,
-        commands::IAC, commands::WILL, options::NEW_ENVIRONMENT,
+        //commands::IAC, commands::WILL, options::NEW_ENVIRONMENT,
         commands::IAC, commands::DO,   options::STATUS,
     ];
 

@@ -1,3 +1,4 @@
+use std::hint::unreachable_unchecked;
 //use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
 use std::thread;
@@ -48,7 +49,7 @@ pub async fn run(host:       &str,
     receiver.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
     let mut transmitter = receiver.try_clone().expect("Failed to clone from receiver");
 
-    //let (tx, rx) = mpsc::channel();
+    let (tx, rx) = mpsc::channel();
 
     // If write_file is already exists
     if let Some(write_file) = flags.write_file() {
@@ -101,14 +102,31 @@ pub async fn run(host:       &str,
 
     //handle.join().unwrap();
 
+    //tokio::select! {
+    //    _ = repl::receiver_telnet_async(TcpStream::from_std(receiver).unwrap(), flags_clone, params) => {
+    //        println!("aaa");
+    //    },
+    //    _ = repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), flags) => {
+    //        println!("bbb");
+    //    },
+    //}
+
+    //let mut handle_rc = tokio::spawn(repl::receiver_telnet_async(TcpStream::from_std(receiver).unwrap(), flags_clone, params));
+    //let mut handle_tr = tokio::spawn(repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), flags));
+    let mut handle_rc = tokio::spawn(repl::receiver_telnet_async(TcpStream::from_std(receiver).unwrap(), rx, flags_clone, params));
+    let mut handle_tr = tokio::spawn(repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), tx, flags));
+
+    dbg!(1);
+
     tokio::select! {
-        _ = repl::receiver_telnet_async(TcpStream::from_std(receiver).unwrap(), flags_clone, params) => {
-            println!("aaa");
-        },
-        _ = repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), flags) => {
-            println!("bbb");
-        },
+        _ = &mut handle_rc => { dbg!("rc"); handle_tr.abort() },
+        _ = &mut handle_tr => { dbg!("tr"); handle_rc.abort() },
     }
+
+    dbg!(handle_tr.is_finished());
+    dbg!(handle_rc.is_finished());
+
+    dbg!(2);
 }
 
 // Check if the port number is attached

@@ -448,6 +448,7 @@ where
 
 pub async fn receiver_telnet_async(
     mut port: tokio::net::TcpStream,
+    rx:       std::sync::mpsc::Receiver<()>,
     flags:    Arc<Mutex<flag::Flags>>,
     params:   Option<setting::Params>)
 //where
@@ -508,6 +509,11 @@ pub async fn receiver_telnet_async(
         log_file.write_all(b"\n").unwrap();
 
         loop {
+            // if "~." is typed, exit
+            if rx.try_recv().is_ok() {
+                break;
+            }
+
             // If the window size are different, negotiate
             let window_size_current = negotiation::get_window_size();
             if window_size != window_size_current {
@@ -609,8 +615,13 @@ pub async fn receiver_telnet_async(
 
     // Non save log
     } else {
-        println!("receiver");
+        dbg!("receiver");
         loop {
+            // if "~." is typed, exit
+            if rx.try_recv().is_ok() {
+                break;
+            }
+
             // If the window size are different, negotiate
             let window_size_current = negotiation::get_window_size();
             if window_size != window_size_current {
@@ -825,8 +836,10 @@ where
     }
 }
 
-pub async fn transmitter_async(
+pub async fn transmitter_async/*<T>*/(
     mut port: tokio::net::TcpStream,
+    //mut port: T,
+    tx: std::sync::mpsc::Sender<()>,
     flags: Arc<Mutex<flag::Flags>>,
 )
 //where
@@ -838,7 +851,7 @@ pub async fn transmitter_async(
     let mut last_is_escape_signal = false;
     let g = Getch::new();
 
-    println!("transmitter");
+    dbg!("transmitter");
     loop {
         match g.getch() {
             Ok(key) => {
@@ -863,6 +876,7 @@ pub async fn transmitter_async(
                         },
                         EXIT_CHAR_0 | EXIT_CHAR_1 => {
                             eprint_flush(".");
+                            tx.send(()).unwrap();
                             break;
                         },
                         #[cfg(not(windows))]
