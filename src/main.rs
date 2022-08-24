@@ -315,6 +315,7 @@ fn config_file_help_message() -> &'static str {
 }
 
 #[cfg(windows)]
+#[allow(clippy::collapsible_if)]
 fn enable_ansi_support() {
     use winapi::um::consoleapi::{GetConsoleMode, SetConsoleMode};
     use winapi::um::handleapi::INVALID_HANDLE_VALUE;

@@ -203,12 +203,12 @@ mod tests {
         ];
 
         for (input, expect) in tests_ipaddr {
-            assert_eq!(to_SocketAddr_for_telnet(&input), expect);
+            assert_eq!(to_SocketAddr_for_telnet(input), expect);
         }
         for (input, expect, or_expect) in tests_hostname {
             assert!(
-                to_SocketAddr_for_telnet(&input) == expect
-             || to_SocketAddr_for_telnet(&input) == or_expect
+                to_SocketAddr_for_telnet(input) == expect
+             || to_SocketAddr_for_telnet(input) == or_expect
             );
         }
     }

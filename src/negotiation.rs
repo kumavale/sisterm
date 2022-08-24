@@ -293,7 +293,7 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             b'U',b'S',b'E',b'R', // USER
                             commands::VALUE,
                         ]);
-                        send_neg.extend_from_slice(&*LOGIN_USER.lock().unwrap().as_bytes());
+                        send_neg.extend_from_slice(LOGIN_USER.lock().unwrap().as_bytes());
                         send_neg.extend_from_slice(&[
                             commands::IAC,
                             commands::SE,
