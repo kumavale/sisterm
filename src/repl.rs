@@ -447,7 +447,7 @@ where
 }
 
 pub async fn receiver_telnet_async(
-    mut port: tokio::net::TcpStream,
+    port: tokio::net::TcpStream,
     rx:       std::sync::mpsc::Receiver<()>,
     flags:    Arc<Mutex<flag::Flags>>,
     params:   Option<setting::Params>)
@@ -615,7 +615,6 @@ pub async fn receiver_telnet_async(
 
     // Non save log
     } else {
-        dbg!("receiver");
         loop {
             // if "~." is typed, exit
             if rx.try_recv().is_ok() {
@@ -837,7 +836,7 @@ where
 }
 
 pub async fn transmitter_async/*<T>*/(
-    mut port: tokio::net::TcpStream,
+    port: tokio::net::TcpStream,
     //mut port: T,
     tx: std::sync::mpsc::Sender<()>,
     flags: Arc<Mutex<flag::Flags>>,
@@ -851,7 +850,6 @@ pub async fn transmitter_async/*<T>*/(
     let mut last_is_escape_signal = false;
     let g = Getch::new();
 
-    dbg!("transmitter");
     loop {
         match g.getch() {
             Ok(key) => {

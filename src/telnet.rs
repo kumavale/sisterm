@@ -1,7 +1,5 @@
-use std::hint::unreachable_unchecked;
 //use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
-use std::thread;
 use std::sync::{mpsc, Arc, Mutex};
 use std::path::Path;
 
@@ -89,44 +87,13 @@ pub async fn run(host:       &str,
     let flags       = Arc::new(Mutex::new(flags));
     let flags_clone = flags.clone();
 
-    //// Receiver
-    //let handle = thread::spawn(move || {
-    //    repl::receiver_telnet(receiver, rx, flags_clone, params);
-
-    //    println!("\n\x1b[0mDisconnected.");
-    //    std::process::exit(0);
-    //});
-
-    //// Transmitter
-    //repl::transmitter(transmitter, tx, flags);
-
-    //handle.join().unwrap();
-
-    //tokio::select! {
-    //    _ = repl::receiver_telnet_async(TcpStream::from_std(receiver).unwrap(), flags_clone, params) => {
-    //        println!("aaa");
-    //    },
-    //    _ = repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), flags) => {
-    //        println!("bbb");
-    //    },
-    //}
-
-    //let mut handle_rc = tokio::spawn(repl::receiver_telnet_async(TcpStream::from_std(receiver).unwrap(), flags_clone, params));
-    //let mut handle_tr = tokio::spawn(repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), flags));
-    let mut handle_rc = tokio::spawn(repl::receiver_telnet_async(TcpStream::from_std(receiver).unwrap(), rx, flags_clone, params));
-    let mut handle_tr = tokio::spawn(repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), tx, flags));
-
-    dbg!(1);
-
     tokio::select! {
-        _ = &mut handle_rc => { dbg!("rc"); handle_tr.abort() },
-        _ = &mut handle_tr => { dbg!("tr"); handle_rc.abort() },
+        _ = tokio::spawn(repl::receiver_telnet_async(TcpStream::from_std(receiver).unwrap(), rx, flags_clone, params)) => {
+            println!("\n\x1b[0mDisconnected.");
+            std::process::exit(0);
+        }
+        _ = tokio::spawn(repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), tx, flags)) => {}
     }
-
-    dbg!(handle_tr.is_finished());
-    dbg!(handle_rc.is_finished());
-
-    dbg!(2);
 }
 
 // Check if the port number is attached
