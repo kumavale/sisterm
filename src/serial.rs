@@ -8,9 +8,9 @@ use crate::setting;
 use crate::getch::{Getch, Key};
 
 pub async fn run(port_name: String,
-           baud_rate: u32,
-           mut flags: flag::Flags,
-           params:    Option<setting::Params>)
+                 baud_rate: u32,
+                 mut flags: flag::Flags,
+                 params:    Option<setting::Params>)
 {
     let receiver = serialport::new(&port_name, baud_rate)
         .timeout(Duration::from_millis(10))
@@ -59,10 +59,10 @@ pub async fn run(port_name: String,
     let flags_clone = flags.clone();
 
     tokio::select! {
-        _ = tokio::spawn(repl::receiver_async(receiver, rx, flags_clone, params)) => {
+        _ = tokio::spawn(repl::receiver(receiver, rx, flags_clone, params)) => {
             println!("\n\x1b[0mDisconnected.");
             std::process::exit(0);
         }
-        _ = tokio::spawn(repl::transmitter_serial_async(transmitter, tx, flags)) => {}
+        _ = tokio::spawn(repl::transmitter(transmitter, tx, flags)) => {}
     }
 }

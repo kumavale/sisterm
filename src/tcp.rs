@@ -1,8 +1,6 @@
 use std::time::Duration;
 use std::sync::{mpsc, Arc, Mutex};
 use std::path::Path;
-
-use tokio::net::TcpStream;
 use std::net::ToSocketAddrs;
 
 use crate::repl;
@@ -12,8 +10,8 @@ use crate::getch::{Getch, Key};
 use crate::default;
 
 pub async fn run(host:      &str,
-           mut flags: flag::Flags,
-           params:    Option<setting::Params>)
+                 mut flags: flag::Flags,
+                 params:    Option<setting::Params>)
 {
     let tcp_connect_timeout = params.as_ref().map_or_else(|| default::TCP_CONNECT_TIMEOUT, |p| p.tcp_connect_timeout);
 
@@ -81,11 +79,11 @@ pub async fn run(host:      &str,
     let flags_clone = flags.clone();
 
     tokio::select! {
-        _ = tokio::spawn(repl::receiver_async(receiver, rx, flags_clone, params)) => {
+        _ = tokio::spawn(repl::receiver(receiver, rx, flags_clone, params)) => {
             println!("\n\x1b[0mDisconnected.");
             std::process::exit(0);
         }
-        _ = tokio::spawn(repl::transmitter_async(TcpStream::from_std(transmitter).unwrap(), tx, flags)) => {}
+        _ = tokio::spawn(repl::transmitter(transmitter, tx, flags)) => {}
     }
 }
 
