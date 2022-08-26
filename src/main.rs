@@ -111,7 +111,7 @@ async fn main() {
                 }
             };
 
-            serial::run(port_name, baud_rate, flags, params);
+            serial::run(port_name, baud_rate, flags, params).await;
 
             println!("\n\x1b[0mDisconnected.");
         }
