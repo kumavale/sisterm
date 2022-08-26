@@ -45,7 +45,7 @@ async fn main() {
         // Parse arguments
         let (flags, params) = parse_arguments(matches);
 
-        tcp::run(&host, flags, params);
+        tcp::run(&host, flags, params).await;
 
         println!("\n\x1b[0mDisconnected.");
 
