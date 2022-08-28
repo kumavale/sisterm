@@ -10,7 +10,8 @@ use std::env;
 use clap::{App, AppSettings, Arg, SubCommand};
 use serialport::available_ports;
 
-fn main() {
+#[tokio::main]
+async fn main() {
 
     let matches = build_app().get_matches();
 
@@ -30,7 +31,7 @@ fn main() {
         // Login user
         let login_user = matches.value_of("login_user");
 
-        telnet::run(&host, flags, params, login_user);
+        telnet::run(&host, flags, params, login_user).await;
 
         println!("\n\x1b[0mDisconnected.");
 
@@ -44,7 +45,7 @@ fn main() {
         // Parse arguments
         let (flags, params) = parse_arguments(matches);
 
-        tcp::run(&host, flags, params);
+        tcp::run(&host, flags, params).await;
 
         println!("\n\x1b[0mDisconnected.");
 
@@ -110,7 +111,7 @@ fn main() {
                 }
             };
 
-            serial::run(port_name, baud_rate, flags, params);
+            serial::run(port_name, baud_rate, flags, params).await;
 
             println!("\n\x1b[0mDisconnected.");
         }

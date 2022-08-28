@@ -1,8 +1,8 @@
-use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
+use std::io::{self, BufWriter, Write};
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 use std::process::Command;
+use std::sync::{Arc, Mutex};
 
 use crate::flag;
 use crate::color;
@@ -25,7 +25,7 @@ impl<T> Send for T where T: std::io::Write {
     }
 }
 
-pub fn receiver<T>(
+pub async fn receiver<T>(
     mut port: T,
     rx:       std::sync::mpsc::Receiver<()>,
     flags:    Arc<Mutex<flag::Flags>>,
@@ -207,7 +207,7 @@ where
     }
 }
 
-pub fn receiver_telnet<T>(
+pub async fn receiver_telnet<T>(
     mut port: T,
     rx:       std::sync::mpsc::Receiver<()>,
     flags:    Arc<Mutex<flag::Flags>>,
@@ -428,7 +428,7 @@ where
     }
 }
 
-pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: Arc<Mutex<flag::Flags>>)
+pub async fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: Arc<Mutex<flag::Flags>>)
 where
     T: std::io::Write,
     T: self::Send,

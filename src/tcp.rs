@@ -1,8 +1,7 @@
-use std::net::{TcpStream, ToSocketAddrs};
-use std::time::Duration;
-use std::thread;
-use std::sync::{mpsc, Arc, Mutex};
+use std::net::ToSocketAddrs;
 use std::path::Path;
+use std::sync::{mpsc, Arc, Mutex};
+use std::time::Duration;
 
 use crate::repl;
 use crate::flag;
@@ -10,10 +9,11 @@ use crate::setting;
 use crate::getch::{Getch, Key};
 use crate::default;
 
-pub fn run(host:      &str,
-           mut flags: flag::Flags,
-           params:    Option<setting::Params>)
-{
+pub async fn run(
+    host:      &str,
+    mut flags: flag::Flags,
+    params:    Option<setting::Params>,
+){
     let tcp_connect_timeout = params.as_ref().map_or_else(|| default::TCP_CONNECT_TIMEOUT, |p| p.tcp_connect_timeout);
 
     let receiver = {
@@ -24,7 +24,7 @@ pub fn run(host:      &str,
         } else {
             let mut result = None;
             for host in hosts {
-                let r = TcpStream::connect_timeout(&host, Duration::from_secs(tcp_connect_timeout));
+                let r = std::net::TcpStream::connect_timeout(&host, Duration::from_secs(tcp_connect_timeout));
                 if r.is_ok() {
                     result = Some(r);
                     break;
@@ -79,18 +79,13 @@ pub fn run(host:      &str,
     let flags       = Arc::new(Mutex::new(flags));
     let flags_clone = flags.clone();
 
-    // Receiver
-    let handle = thread::spawn(move || {
-        repl::receiver(receiver, rx, flags_clone, params);
-
-        println!("\n\x1b[0mDisconnected.");
-        std::process::exit(0);
-    });
-
-    // Transmitter
-    repl::transmitter(transmitter, tx, flags);
-
-    handle.join().unwrap();
+    tokio::select! {
+        _ = tokio::spawn(repl::receiver(receiver, rx, flags_clone, params)) => {
+            println!("\n\x1b[0mDisconnected.");
+            std::process::exit(0);
+        }
+        _ = tokio::spawn(repl::transmitter(transmitter, tx, flags)) => {}
+    }
 }
 
 // Check if the port number is attached
