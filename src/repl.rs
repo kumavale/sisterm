@@ -1,8 +1,8 @@
-use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
+use std::io::{self, BufWriter, Write};
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 use std::process::Command;
+use std::sync::{Arc, Mutex};
 
 use crate::flag;
 use crate::color;
@@ -207,11 +207,15 @@ where
     }
 }
 
-pub async fn receiver_telnet(
-    port:   tokio::net::TcpStream,
-    rx:     std::sync::mpsc::Receiver<()>,
-    flags:  Arc<Mutex<flag::Flags>>,
-    params: Option<setting::Params>)
+pub async fn receiver_telnet<T>(
+    mut port: T,
+    rx:       std::sync::mpsc::Receiver<()>,
+    flags:    Arc<Mutex<flag::Flags>>,
+    params:   Option<setting::Params>)
+where
+    T: std::io::Read,
+    T: std::io::Write,
+    T: self::Send,
 {
     let (read_buf_size, timestamp_format) = if let Some(ref p) = params {
         (
@@ -276,18 +280,18 @@ pub async fn receiver_telnet(
             if window_size != window_size_current {
                 window_size = window_size_current;
                 send_neg.extend_from_slice(&negotiation::window_size());
-                port.try_write(&send_neg[..send_neg.len()]).unwrap();
+                port.send(&send_neg[..send_neg.len()]);
                 send_neg.clear();
             }
 
-            match port.try_read(serial_buf.as_mut_slice()) {
+            match port.read(serial_buf.as_mut_slice()) {
                 Ok(0) => break,
                 Ok(t) => {
                     // Check telnet command
                     let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
 
                     if !send_neg.is_empty() {
-                        port.try_write(&send_neg[..send_neg.len()]).unwrap();
+                        port.send(&send_neg[..send_neg.len()]);
                         send_neg.clear();
                     }
 
@@ -383,18 +387,18 @@ pub async fn receiver_telnet(
             if window_size != window_size_current {
                 window_size = window_size_current;
                 send_neg.extend_from_slice(&negotiation::window_size());
-                port.try_write(&send_neg[..send_neg.len()]).unwrap();
+                port.send(&send_neg[..send_neg.len()]);
                 send_neg.clear();
             }
 
-            match port.try_read(serial_buf.as_mut_slice()) {
+            match port.read(serial_buf.as_mut_slice()) {
                 Ok(0) => break,
                 Ok(t) => {
                     // Check telnet command
                     let output = negotiation::parse_commands(t, &serial_buf, &mut send_neg);
 
                     if !send_neg.is_empty() {
-                        port.try_write(&send_neg[..send_neg.len()]).unwrap();
+                        port.send(&send_neg[..send_neg.len()]);
                         send_neg.clear();
                     }
 

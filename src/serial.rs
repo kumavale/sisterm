@@ -7,11 +7,12 @@ use crate::flag;
 use crate::setting;
 use crate::getch::{Getch, Key};
 
-pub async fn run(port_name: String,
-                 baud_rate: u32,
-                 mut flags: flag::Flags,
-                 params:    Option<setting::Params>)
-{
+pub async fn run(
+    port_name: String,
+    baud_rate: u32,
+    mut flags: flag::Flags,
+    params:    Option<setting::Params>,
+){
     let receiver = serialport::new(&port_name, baud_rate)
         .timeout(Duration::from_millis(10))
         .open()

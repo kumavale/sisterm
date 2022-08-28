@@ -1,7 +1,7 @@
-use std::time::Duration;
-use std::sync::{mpsc, Arc, Mutex};
-use std::path::Path;
 use std::net::ToSocketAddrs;
+use std::path::Path;
+use std::sync::{mpsc, Arc, Mutex};
+use std::time::Duration;
 
 use crate::repl;
 use crate::flag;
@@ -9,10 +9,11 @@ use crate::setting;
 use crate::getch::{Getch, Key};
 use crate::default;
 
-pub async fn run(host:      &str,
-                 mut flags: flag::Flags,
-                 params:    Option<setting::Params>)
-{
+pub async fn run(
+    host:      &str,
+    mut flags: flag::Flags,
+    params:    Option<setting::Params>,
+){
     let tcp_connect_timeout = params.as_ref().map_or_else(|| default::TCP_CONNECT_TIMEOUT, |p| p.tcp_connect_timeout);
 
     let receiver = {
