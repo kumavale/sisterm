@@ -18,8 +18,25 @@ async fn main() {
     #[cfg(windows)]
     enable_ansi_support();
 
+    // SSH
+    if let Some(matches) = matches.subcommand_matches("ssh") {
+        use sisterm::ssh;
+
+        // Hostname
+        let host = matches.values_of("host[:port]").unwrap().collect::<Vec<_>>().join(":");
+
+        // Parse arguments
+        let (flags, params) = parse_arguments(matches);
+
+        // Login user
+        let login_user = matches.value_of("login_user");
+
+        ssh::run(&host, flags, params, login_user).await;
+
+        println!("\n\x1b[0mDisconnected.");
+
     // Telnet
-    if let Some(matches) = matches.subcommand_matches("telnet") {
+    } else if let Some(matches) = matches.subcommand_matches("telnet") {
         use sisterm::telnet;
 
         // Hostname
@@ -264,7 +281,27 @@ fn build_app() -> App<'static, 'static> {
             .long("hexdump")
             .global(true)
         )
-        .subcommands(vec![SubCommand::with_name("telnet")
+        .subcommands(vec![SubCommand::with_name("ssh")
+            .about("Login to remote system host with ssh")
+            .usage("sist ssh [FLAGS] [OPTIONS] <HOST[:PORT]>")
+            .setting(AppSettings::DeriveDisplayOrder)
+            .arg(Arg::with_name("host[:port]")
+                .help("Port number can be omitted. Then 22")
+                .value_name("HOST[:PORT]")
+                .takes_value(true)
+                .required(true)
+                .min_values(1)
+                .max_values(2)
+                //.hidden(true)
+            )
+            .arg(Arg::with_name("login_user")
+                .help("Specify login user")
+                .short("l")
+                .long("login-user")
+                .value_name("USERNAME")
+                .takes_value(true)
+            ),
+            SubCommand::with_name("telnet")
             .about("Login to remote system host with telnet")
             .usage("sist telnet [FLAGS] [OPTIONS] <HOST[:PORT]>")
             .setting(AppSettings::DeriveDisplayOrder)
