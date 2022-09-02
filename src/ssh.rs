@@ -51,17 +51,24 @@ pub async fn run(
     let mut sess = Session::new().expect("Failed to create session");
     sess.set_tcp_stream(tcp_conn);
     sess.handshake().expect("Failed to handshake");
+
     {
-        // Authentication tmp
-        // TODO
+        // Authentication
         use std::io::prelude::*;
-        print!("password: ");
-        let _ = std::io::stdout().flush();
-        let mut buf = String::new();
-        std::io::stdin().read_line(&mut buf).unwrap();
-        sess.userauth_password("kumavale", buf.trim()).unwrap();
+        let user = if let Some(user) = login_user {
+            user.to_string()
+        } else {
+            print!("username: ");
+            let _ = std::io::stdout().flush();
+            let mut user = String::new();
+            std::io::stdin().read_line(&mut user).unwrap();
+            user.trim().to_string()
+        };
+        let pass = rpassword::prompt_password("password: ").unwrap();
+        sess.userauth_password(&user, &pass).unwrap();
+        debug_assert!(sess.authenticated());
     }
-    debug_assert!(sess.authenticated());
+
     let mut channel = sess.channel_session().unwrap();
     let (width, height) = terminal_size();
     channel.request_pty(terminal_type, None, Some((width, height, 0, 0))).unwrap();

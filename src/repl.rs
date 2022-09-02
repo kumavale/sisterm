@@ -109,6 +109,7 @@ where
             }
 
             match port.read(serial_buf.as_mut_slice()) {
+                Ok(0) => break,
                 Ok(t) => {
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
@@ -179,6 +180,7 @@ where
             }
 
             match port.read(serial_buf.as_mut_slice()) {
+                Ok(0) => break,
                 Ok(t) => {
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
