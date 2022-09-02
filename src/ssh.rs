@@ -54,19 +54,25 @@ pub async fn run(
 
     {
         // Authentication
-        use std::io::prelude::*;
-        let user = if let Some(user) = login_user {
-            user.to_string()
-        } else {
-            print!("username: ");
-            let _ = std::io::stdout().flush();
-            let mut user = String::new();
-            std::io::stdin().read_line(&mut user).unwrap();
-            user.trim().to_string()
-        };
-        let pass = rpassword::prompt_password("password: ").unwrap();
-        sess.userauth_password(&user, &pass).unwrap();
-        debug_assert!(sess.authenticated());
+        for _ in 0..default::RETRY_AUTH_COUNT {
+            use std::io::prelude::*;
+            let user = if let Some(user) = login_user {
+                user.to_string()
+            } else {
+                print!("username: ");
+                let _ = std::io::stdout().flush();
+                let mut user = String::new();
+                std::io::stdin().read_line(&mut user).unwrap();
+                user.trim().to_string()
+            };
+            let pass = rpassword::prompt_password("password: ").unwrap();
+
+            if let Err(e) = sess.userauth_password(&user, &pass) {
+                eprintln!("{}", e);
+            } else {
+                break;
+            }
+        }
     }
 
     let mut channel = sess.channel_session().unwrap();
