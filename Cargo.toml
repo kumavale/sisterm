@@ -27,6 +27,8 @@ toml = "0.5.8"
 lazy_static = "1.4.0"
 rustyline = "9.1.1"
 tokio = { version = "1.20", features = ["full"] }
+ssh2 = "0.9"
+rpassword = "7.0"
 
 [build-dependencies]
 lazy_static = "1.4.0"
