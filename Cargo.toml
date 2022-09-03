@@ -1,6 +1,6 @@
 [package]
 name = "sisterm"
-version = "3.0.0-alpha"
+version = "3.0.0"
 authors = ["kumavale"]
 edition = "2018"
 description = "A simple terminal with syntax highlighting"

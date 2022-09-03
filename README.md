@@ -6,7 +6,7 @@
   
 sisterm(`sist`) is a simple terminal with syntax highlighting which supports:  
 * Serial port connections
-* TCP/IP (telnet) connections
+* TCP/IP (telnet,ssh) connections
 * Log replaying
 
 ![Screenshot](https://user-images.githubusercontent.com/29778890/82722563-e246af00-9d02-11ea-97d1-fc5581b4bf21.png)  
@@ -36,9 +36,10 @@ OPTIONS:
                            [default $HOME/.config/sisterm/config.toml]
 
 SUBCOMMANDS:
-    telnet      Login to remote system host with telnet
-    tcp         TCP connection without telnet
-    help        Prints this message or the help of the given subcommand(s)
+    ssh       Login to remote system host with ssh
+    telnet    Login to remote system host with telnet
+    tcp       TCP connection without telnet
+    help      Prints this message or the help of the given subcommand(s)
 ```
 
 
@@ -147,9 +148,9 @@ regex = ["unassigned|disable|disabled|deny|shutdown|down|administratively|none"]
 
 ## Dependencies
 
-For GNU Linux `pkg-config` and `libudev` headers are required  
-* Ubuntu: `sudo apt install pkg-config libudev-dev`
-* Fedora: `sudo dnf install pkgconf-pkg-config systemd-devel`
+For GNU Linux `openssl`, `pkg-config` and `libudev` headers are required  
+* Ubuntu: `sudo apt install pkg-config libudev-dev libssl-dev`
+* Fedora: `sudo dnf install pkgconf-pkg-config systemd-devel openssl-devel`
 * Other: Some Linux distros are providing pkgconf.org's `pkgconf` package instead of freedesktop.org's `pkg-config`.
 
 
