@@ -4,7 +4,7 @@ pub const RETRY_AUTH_COUNT:    usize = 3;
 pub const TIMESTAMP_FORMAT:     &str = "[%Y-%m-%d %H:%M:%S %Z] ";
 pub const LOG_FORMAT:           &str = "%Y%m%d_%H%M%S.log";
 pub const LOG_DESTINATION:      &str = "./";
-pub const TERMINAL_TYPE:        &str = "ANSI";
+pub const TERMINAL_TYPE:        &str = "xterm";
 
 /// Escape sequences
 pub mod escape_sequences {
@@ -22,4 +22,12 @@ pub mod escape_sequences {
     pub const COMMAND_0:     Key = Key::Char('!');
     pub const COMMAND_1:     Key = Key::Char('$');
     pub const HELP:          Key = Key::Char('?');
+}
+
+pub fn terminal_type() -> String {
+    if let Ok(t) = std::env::var("TERM") {
+        t
+    } else {
+        TERMINAL_TYPE.to_string()
+    }
 }

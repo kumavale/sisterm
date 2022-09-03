@@ -20,7 +20,7 @@ pub async fn run(
     login_user: Option<&str>,
 ){
     let tcp_connect_timeout = params.as_ref().map_or_else(|| default::TCP_CONNECT_TIMEOUT, |p| p.tcp_connect_timeout);
-    let terminal_type       = params.as_ref().map_or_else(|| default::TERMINAL_TYPE,       |p| &p.terminal_type);
+    let terminal_type       = params.as_ref().map_or_else(default::terminal_type,          |p| p.terminal_type.to_string());
 
     let tcp_conn = {
         let hosts = to_SocketAddr_for_ssh(host);
@@ -77,7 +77,7 @@ pub async fn run(
 
     let mut channel = sess.channel_session().unwrap();
     let (width, height) = terminal_size();
-    channel.request_pty(terminal_type, None, Some((width, height, 0, 0))).unwrap();
+    channel.request_pty(&terminal_type, None, Some((width, height, 0, 0))).unwrap();
     channel.shell().unwrap();
 
     let receiver    = channel.stream(0);
