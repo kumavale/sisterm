@@ -75,8 +75,8 @@ br#"##
 #debug = false
 
 ## Terminal type to be reported to the host when the telnet connection is established.
-## e.g. ANSI, VT100, VT200, XTERM, XTERM-256COLOR
-#terminal_type = "ANSI"
+## e.g. ansi, vt100, vt200, xterm, xterm-256color
+#terminal_type = "xterm"
 
 
 ##############################

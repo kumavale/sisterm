@@ -259,11 +259,11 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             commands::IS,
                         ]);
                         send_neg.extend_from_slice(
-                            //"XTERM".as_bytes(),
-                            //"XTERM-256COLOR".as_bytes(),
-                            //"VT100".as_bytes(),
-                            //"VT200".as_bytes(),
-                            //"ANSI".as_bytes(),
+                            //"xterm".as_bytes(),
+                            //"xterm-256color".as_bytes(),
+                            //"vt100".as_bytes(),
+                            //"vt200".as_bytes(),
+                            //"ansi".as_bytes(),
                             TERMINAL_TYPE.lock().unwrap().as_bytes(),
                         );
                         send_neg.extend_from_slice(&[

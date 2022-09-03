@@ -17,7 +17,7 @@ pub async fn run(
     login_user: Option<&str>,
 ){
     let tcp_connect_timeout = params.as_ref().map_or_else(|| default::TCP_CONNECT_TIMEOUT, |p| p.tcp_connect_timeout);
-    let terminal_type       = params.as_ref().map_or_else(|| default::TERMINAL_TYPE,       |p| &p.terminal_type);
+    let terminal_type       = params.as_ref().map_or_else(default::terminal_type,          |p| p.terminal_type.to_string());
 
     let receiver = {
         let hosts = to_SocketAddr_for_telnet(host);
@@ -77,7 +77,7 @@ pub async fn run(
     }
 
     // The first negotiation
-    negotiation::init(&mut transmitter, login_user, terminal_type);
+    negotiation::init(&mut transmitter, login_user, &terminal_type);
 
     println!("Type \"~.\" to exit.");
     println!("Connecting... {}", host);
