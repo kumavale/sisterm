@@ -1,12 +1,3 @@
-use std::env;
-use std::fs;
-use std::path::Path;
-use std::io::{self, BufWriter, Write};
-
-use lazy_static::lazy_static;
-
-static CONTENTS: &[u8] =
-br#"##
 ## This is the configuration file for the sisterm
 ##
 ## Its syntax is similar to Perl-style regular expressions, but lacks a few
@@ -75,8 +66,8 @@ br#"##
 #debug = false
 
 ## Terminal type to be reported to the host when the telnet connection is established.
-## e.g. ANSI, VT100, VT200, XTERM, XTERM-256COLOR
-#terminal_type = "ANSI"
+## e.g. ansi, vt100, vt200, xterm, xterm-256color
+#terminal_type = "xterm"
 
 
 ##############################
@@ -85,94 +76,51 @@ br#"##
 #_/_/_/_/_/_/_/_/_/_/_/_/_/_/#
 ##############################
 
-# comments
+## comments
 [[colorings]]
 color = "(128, 150, 200)"
 regex = ["(//.*)|(/\\*.*\\*/)|(/\\*.*)"]  # C style
 ignore_whitespace = true
 
-# positive
+## positive
 [[colorings]]
 color = "GREEN"
 regex = ["(?i)yes|up|enable|enabled|active(?-i)"]
 
-# string
+## string
 [[colorings]]
 color = "184"
 regex = ["(\".*\")|('.*')|(\".*)|('.*)"]
 ignore_whitespace = true
 
-# emphansis
+## emphansis
 [[colorings]]
 color = "MAGENTA"
 regex = ["not?|confirm|warning|warnings|failed|failures|errors?|crash"]
 
-# interface
+## interface
 [[colorings]]
 color = "CYAN"
 regex = ["(([Tt]engigabit|[Gg]igabit|[Ff]ast)?[Ee]thernet|[Ff]a|[Gg]i)\\d+/\\d+"]
 
-# negative
+## negative
 [[colorings]]
 underlined = true
 color = "RED"
 regex = ["unassigned|disable|disabled|deny|shutdown|down|administratively|none"]
 
-# ipv4_net
+## ipv4_net
 [[colorings]]
 color = "YELLOW"
 regex = ["([^0-9]|^)(2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-8])\\.((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
 
-# ipv4_sub
+## ipv4_sub
 [[colorings]]
 color = "BLUE"
 regex = ["((25[0-5]|24[89])\\.)((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
 
-# ipv4_wild
+## ipv4_wild
 [[colorings]]
 color = "MAGENTA"
 regex = ["(0\\.)((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"]
 
-"#;
-
-lazy_static! {
-    static ref PARENT_PATH: String = {
-        if cfg!(windows) {
-            format!("{}/sisterm/", env::var("LOCALAPPDATA").unwrap())
-        } else {
-            format!("{}/.config/sisterm/", env::var("HOME").unwrap())
-        }
-    };
-}
-
-// Generate configration file
-// If windows => %USERPROFILE%/AppData/Local/sisterm/config.toml
-//    other   => $HOME/.config/sisterm/config.toml
-// Returns the path to that configuration file
-pub fn generate() -> Result<String, String> {
-    // Path to the config.toml
-    let config_file_path = format!("{}config.toml", *PARENT_PATH);
-
-    // Check for file existence
-    if Path::new(&config_file_path).exists() {
-        let mut input = String::new();
-        println!("configration file is already exists!");
-        print!("Overwrite? [y/N]");
-        io::stdout().flush().map_err(|e| e.to_string())?;
-        io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
-        match input.to_lowercase().trim_end() {
-            "y" | "yes" => (),  // continue
-            _ => std::process::exit(0),
-        }
-    }
-
-    // Create directory
-    fs::create_dir_all(&*PARENT_PATH).map_err(|e| e.to_string())?;
-
-    // Write contents to file
-    let mut f = BufWriter::new(fs::File::create(&config_file_path).map_err(|e| e.to_string())?);
-    f.write_all(CONTENTS).map_err(|e| e.to_string())?;
-    f.flush().map_err(|e| e.to_string())?;
-
-    Ok(config_file_path)
-}

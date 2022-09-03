@@ -138,6 +138,7 @@ struct Setting {
 
     //nocolor:    Option<bool>,
 
+    #[serde(default)]
     colorings: Vec<Coloring>,
 }
 

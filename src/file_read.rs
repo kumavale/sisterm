@@ -4,6 +4,7 @@ use std::io::Read;
 use crate::color;
 use crate::flag;
 use crate::setting;
+use crate::hexdump::hexdump;
 
 pub fn run(path: &str, flags: flag::Flags, params: Option<setting::Params>) {
     let mut f = File::open(path).expect("File open failed");
@@ -11,12 +12,16 @@ pub fn run(path: &str, flags: flag::Flags, params: Option<setting::Params>) {
     let mut contents = String::new();
     f.read_to_string(&mut contents).expect("Somothing went wrong reading the file");
 
-    // Without coloring
-    if *flags.nocolor() {
-        println!("{}", contents);
-
-    // Coloring
+    if *flags.hexdump() {
+        hexdump(contents.as_bytes());
     } else {
-        color::coloring_from_file(contents, params);
+        // Without coloring
+        if *flags.nocolor() {
+            println!("{}", contents);
+
+        // Coloring
+        } else {
+            color::coloring_from_file(contents, params);
+        }
     }
 }

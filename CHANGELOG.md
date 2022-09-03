@@ -1,6 +1,18 @@
 # Change Log
 
 
+## [3.0.0] - 2022-09-03
+### Added
+- Supported SSH
+- Get default TerminalType from environment variable
+- Generate config (`config.toml`) on build
+- Make it Asynchronous
+
+### Fixed
+- Fixed bug about cannot connect with telnet
+
+--------------------------------------------------------------------------------
+
 ## [2.4.0] - 2020-10-31
 ### Added
 - Supported the terminal type ANSI

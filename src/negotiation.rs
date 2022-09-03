@@ -110,16 +110,18 @@ pub fn init(transmitter: &mut std::net::TcpStream, login_user: Option<&str>, ter
     *TERMINAL_TYPE.lock().unwrap() = terminal_type.to_string();
 
     // Negotiations sent first
-    let data = [
+    let mut data = vec![
         commands::IAC, commands::DO,   options::SUPPRESS_GO_AHEAD,
         commands::IAC, commands::WILL, options::TERMINAL_TYPE,
         commands::IAC, commands::WILL, options::WINDOW_SIZE,
         commands::IAC, commands::WILL, options::TERMINAL_SPEED,
         commands::IAC, commands::WILL, options::REMOTE_FLOW_CONTROL,
         //commands::IAC, commands::WILL, options::LINE_MODE,
-        commands::IAC, commands::WILL, options::NEW_ENVIRONMENT,
         commands::IAC, commands::DO,   options::STATUS,
     ];
+    if !(*LOGIN_USER.lock().unwrap()).is_empty() {
+        data.extend_from_slice(&[commands::IAC, commands::WILL, options::NEW_ENVIRONMENT]);
+    }
 
     if let Err(e) = transmitter.write(&data) {
         eprintln!("{}", e);
@@ -257,11 +259,11 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             commands::IS,
                         ]);
                         send_neg.extend_from_slice(
-                            //"XTERM".as_bytes(),
-                            //"XTERM-256COLOR".as_bytes(),
-                            //"VT100".as_bytes(),
-                            //"VT200".as_bytes(),
-                            //"ANSI".as_bytes(),
+                            //"xterm".as_bytes(),
+                            //"xterm-256color".as_bytes(),
+                            //"vt100".as_bytes(),
+                            //"vt200".as_bytes(),
+                            //"ansi".as_bytes(),
                             TERMINAL_TYPE.lock().unwrap().as_bytes(),
                         );
                         send_neg.extend_from_slice(&[
@@ -293,7 +295,7 @@ pub fn parse_commands(t: usize, serial_buf: &[u8], send_neg: &mut Vec<u8>) -> St
                             b'U',b'S',b'E',b'R', // USER
                             commands::VALUE,
                         ]);
-                        send_neg.extend_from_slice(&*LOGIN_USER.lock().unwrap().as_bytes());
+                        send_neg.extend_from_slice(LOGIN_USER.lock().unwrap().as_bytes());
                         send_neg.extend_from_slice(&[
                             commands::IAC,
                             commands::SE,
@@ -364,7 +366,7 @@ pub fn get_window_size() -> [u8; 4] {
 }
 #[cfg(not(windows))]
 pub fn get_window_size() -> [u8; 4] {
-    use libc::{ioctl, winsize, TIOCGWINSZ, STDOUT_FILENO};
+    use nix::libc::{ioctl, winsize, TIOCGWINSZ, STDOUT_FILENO};
     use std::mem;
 
     let fd = STDOUT_FILENO;

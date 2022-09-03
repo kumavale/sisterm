@@ -6,36 +6,37 @@ use sisterm::flag;
 use sisterm::setting;
 
 use std::env;
-use std::time::Duration;
 
 use clap::{App, AppSettings, Arg, SubCommand};
-use serialport::{available_ports, SerialPortSettings};
+use serialport::available_ports;
 
-fn main() {
+#[tokio::main]
+async fn main() {
 
     let matches = build_app().get_matches();
-
-    // Generate configuration file
-    if matches.subcommand_matches("generate").is_some() {
-        use sisterm::config;
-
-        match config::generate() {
-            Ok(path) => {
-                println!("Complete! --> {}", path);
-                std::process::exit(0);
-            },
-            Err(e) => {
-                eprintln!("{}", e);
-                std::process::exit(1);
-            },
-        }
-    }
 
     #[cfg(windows)]
     enable_ansi_support();
 
+    // SSH
+    if let Some(matches) = matches.subcommand_matches("ssh") {
+        use sisterm::ssh;
+
+        // Hostname
+        let host = matches.values_of("host[:port]").unwrap().collect::<Vec<_>>().join(":");
+
+        // Parse arguments
+        let (flags, params) = parse_arguments(matches);
+
+        // Login user
+        let login_user = matches.value_of("login_user");
+
+        ssh::run(&host, flags, params, login_user).await;
+
+        println!("\n\x1b[0mDisconnected.");
+
     // Telnet
-    if let Some(matches) = matches.subcommand_matches("telnet") {
+    } else if let Some(matches) = matches.subcommand_matches("telnet") {
         use sisterm::telnet;
 
         // Hostname
@@ -47,7 +48,7 @@ fn main() {
         // Login user
         let login_user = matches.value_of("login_user");
 
-        telnet::run(&host, flags, params, login_user);
+        telnet::run(&host, flags, params, login_user).await;
 
         println!("\n\x1b[0mDisconnected.");
 
@@ -61,7 +62,7 @@ fn main() {
         // Parse arguments
         let (flags, params) = parse_arguments(matches);
 
-        tcp::run(&host, flags, params);
+        tcp::run(&host, flags, params).await;
 
         println!("\n\x1b[0mDisconnected.");
 
@@ -119,18 +120,15 @@ fn main() {
                 (port_name, baud_rate.to_string())
             };
 
-            let mut settings: SerialPortSettings = serialport::SerialPortSettings {
-                timeout: Duration::from_millis(10),
-                ..Default::default()
+            let baud_rate = match baud_rate.parse::<u32>() {
+                Ok(br) => br,
+                Err(_) => {
+                    eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
+                    std::process::exit(1);
+                }
             };
-            if let Ok(rate) = baud_rate.parse::<u32>() {
-                settings.baud_rate = rate;
-            } else {
-                eprintln!("Error: Invalid baud rate '{}' specified", baud_rate);
-                std::process::exit(1);
-            }
 
-            serial::run(port_name, settings, flags, params);
+            serial::run(port_name, baud_rate, flags, params).await;
 
             println!("\n\x1b[0mDisconnected.");
         }
@@ -172,6 +170,9 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
         crlf
     };
 
+    // Hexdumo flag
+    let hexdump = matches.is_present("hexdump");
+
     // Debug mode flag
     let debug = if let Some(ref params) = params {
         params.debug
@@ -198,7 +199,7 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     };
 
     // Setting flags
-    let flags = flag::Flags::new(nocolor, timestamp, append, crlf, debug, write_file);
+    let flags = flag::Flags::new(nocolor, timestamp, append, crlf, hexdump, debug, write_file);
 
     (flags, params)
 }
@@ -274,7 +275,33 @@ fn build_app() -> App<'static, 'static> {
             .long("instead-crlf")
             .global(true)
         )
-        .subcommands(vec![SubCommand::with_name("telnet")
+        .arg(Arg::with_name("hexdump")
+            .help("Prints in hex")
+            .short("x")
+            .long("hexdump")
+            .global(true)
+        )
+        .subcommands(vec![SubCommand::with_name("ssh")
+            .about("Login to remote system host with ssh")
+            .usage("sist ssh [FLAGS] [OPTIONS] <HOST[:PORT]>")
+            .setting(AppSettings::DeriveDisplayOrder)
+            .arg(Arg::with_name("host[:port]")
+                .help("Port number can be omitted. Then 22")
+                .value_name("HOST[:PORT]")
+                .takes_value(true)
+                .required(true)
+                .min_values(1)
+                .max_values(2)
+                //.hidden(true)
+            )
+            .arg(Arg::with_name("login_user")
+                .help("Specify login user")
+                .short("l")
+                .long("login-user")
+                .value_name("USERNAME")
+                .takes_value(true)
+            ),
+            SubCommand::with_name("telnet")
             .about("Login to remote system host with telnet")
             .usage("sist telnet [FLAGS] [OPTIONS] <HOST[:PORT]>")
             .setting(AppSettings::DeriveDisplayOrder)
@@ -303,10 +330,6 @@ fn build_app() -> App<'static, 'static> {
                 .required(true)
                 .min_values(1)
             ),
-        SubCommand::with_name("generate")
-            .about("Generate configuration file")
-            .usage("sist generate")
-            .setting(AppSettings::DeriveDisplayOrder)
         ])
 }
 
@@ -329,6 +352,7 @@ fn config_file_help_message() -> &'static str {
 }
 
 #[cfg(windows)]
+#[allow(clippy::collapsible_if)]
 fn enable_ansi_support() {
     use winapi::um::consoleapi::{GetConsoleMode, SetConsoleMode};
     use winapi::um::handleapi::INVALID_HANDLE_VALUE;

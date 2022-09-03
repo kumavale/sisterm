@@ -1,14 +1,17 @@
+use std::convert::TryInto;
 use std::net::ToSocketAddrs;
-use std::path::Path;
-use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
+use std::sync::{mpsc, Arc, Mutex};
+use std::path::Path;
+
+use ssh2::Session;
 
 use crate::repl;
 use crate::flag;
 use crate::setting;
 use crate::getch::{Getch, Key};
 use crate::default;
-use crate::negotiation;
+use crate::negotiation::get_window_size;
 
 pub async fn run(
     host:       &str,
@@ -19,10 +22,10 @@ pub async fn run(
     let tcp_connect_timeout = params.as_ref().map_or_else(|| default::TCP_CONNECT_TIMEOUT, |p| p.tcp_connect_timeout);
     let terminal_type       = params.as_ref().map_or_else(default::terminal_type,          |p| p.terminal_type.to_string());
 
-    let receiver = {
-        let hosts = to_SocketAddr_for_telnet(host);
+    let tcp_conn = {
+        let hosts = to_SocketAddr_for_ssh(host);
         if hosts.is_empty() {
-            eprintln!("Could not connect: {}", host);
+            eprintln!("1: Could not connect: {}", host);
             std::process::exit(1);
         } else {
             let mut result = None;
@@ -34,16 +37,52 @@ pub async fn run(
                 }
             }
             result.unwrap_or_else(|| {
-                eprintln!("Could not connect: {}", host);
+                eprintln!("2: Could not connect: {}", host);
                 std::process::exit(1);
             }).unwrap_or_else(|e| {
-                eprintln!("Could not connect: {}", e);
+                eprintln!("3: Could not connect: {}", e);
                 std::process::exit(1);
             })
         }
     };
-    receiver.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
-    let mut transmitter = receiver.try_clone().expect("Failed to clone from receiver");
+
+    tcp_conn.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+
+    let mut sess = Session::new().expect("Failed to create session");
+    sess.set_tcp_stream(tcp_conn);
+    sess.handshake().expect("Failed to handshake");
+
+    {
+        // Authentication
+        for _ in 0..default::RETRY_AUTH_COUNT {
+            use std::io::prelude::*;
+            let user = if let Some(user) = login_user {
+                user.to_string()
+            } else {
+                print!("username: ");
+                let _ = std::io::stdout().flush();
+                let mut user = String::new();
+                std::io::stdin().read_line(&mut user).unwrap();
+                user.trim().to_string()
+            };
+            let pass = rpassword::prompt_password("password: ").unwrap();
+
+            if let Err(e) = sess.userauth_password(&user, &pass) {
+                eprintln!("{}", e);
+            } else {
+                break;
+            }
+        }
+    }
+
+    let mut channel = sess.channel_session().unwrap();
+    let (width, height) = terminal_size();
+    channel.request_pty(&terminal_type, None, Some((width, height, 0, 0))).unwrap();
+    channel.shell().unwrap();
+
+    let receiver    = channel.stream(0);
+    let transmitter = channel.stream(0);
+    sess.set_blocking(false);
 
     let (tx, rx) = mpsc::channel();
 
@@ -76,9 +115,6 @@ pub async fn run(
         *flags.nocolor_mut() = true;
     }
 
-    // The first negotiation
-    negotiation::init(&mut transmitter, login_user, &terminal_type);
-
     println!("Type \"~.\" to exit.");
     println!("Connecting... {}", host);
 
@@ -86,7 +122,7 @@ pub async fn run(
     let flags_clone = flags.clone();
 
     tokio::select! {
-        _ = tokio::spawn(repl::receiver_telnet(receiver, rx, flags_clone, params)) => {
+        _ = tokio::spawn(repl::receiver(receiver, rx, flags_clone, params)) => {
             println!("\n\x1b[0mDisconnected.");
             std::process::exit(0);
         }
@@ -95,19 +131,26 @@ pub async fn run(
 }
 
 // Check if the port number is attached
-// If not attached, append ":23"
+// If not attached, append ":22"
 #[allow(non_snake_case)]
-fn to_SocketAddr_for_telnet(host: &str) -> Vec<std::net::SocketAddr> {
+fn to_SocketAddr_for_ssh(host: &str) -> Vec<std::net::SocketAddr> {
     match host.to_socket_addrs() {
         Ok(result) => result.collect(),
         Err(_) => {
             let mut host = host.to_string();
-            host.push_str(":23");
+            host.push_str(":22");
             host.to_socket_addrs().unwrap().collect()
         }
     }
 }
 
+// return terminal size
+fn terminal_size() -> (u32, u32) {
+    let window_size = get_window_size();
+    let width  = u16::from_be_bytes(window_size[..2].try_into().unwrap()) as u32;
+    let height = u16::from_be_bytes(window_size[2..].try_into().unwrap()) as u32;
+    (width, height)
+}
 
 #[cfg(test)]
 mod tests {
@@ -116,15 +159,15 @@ mod tests {
 
     #[test]
     #[allow(non_snake_case)]
-    fn test_to_SocketAddr_for_telnet() {
+    fn test_to_SocketAddr_for_ssh() {
         let tests_ipaddr = vec![
             (
                 "127.0.0.1",
-                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 22))],
             ),
             (
-                "127.0.0.1:23",
-                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
+                "127.0.0.1:22",
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 22))],
             ),
             (
                 "127.0.0.1:12321",
@@ -132,15 +175,15 @@ mod tests {
             ),
             (
                 "::1",
-                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0))],
+                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 22, 0, 0))],
             ),
             (
-                "::1:23",
-                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0))],
+                "::1:22",
+                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 22, 0, 0))],
             ),
             (
-                "[::1]:23",
-                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0))],
+                "[::1]:22",
+                vec![SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 22, 0, 0))],
             ),
             (
                 "[::1]:12321",
@@ -151,29 +194,29 @@ mod tests {
         let tests_hostname = vec![
             (
                 "localhost",
-                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 22))],
                 vec![
-                    SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0)),
-                    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23)),
+                    SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 22, 0, 0)),
+                    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 22)),
                 ],
             ),
             (
-                "localhost:23",
-                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23))],
+                "localhost:22",
+                vec![SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 22))],
                 vec![
-                    SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 23, 0, 0)),
-                    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 23)),
+                    SocketAddr::V6(SocketAddrV6::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 22, 0, 0)),
+                    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 22)),
                 ],
             ),
         ];
 
         for (input, expect) in tests_ipaddr {
-            assert_eq!(to_SocketAddr_for_telnet(input), expect);
+            assert_eq!(to_SocketAddr_for_ssh(input), expect);
         }
         for (input, expect, or_expect) in tests_hostname {
             assert!(
-                to_SocketAddr_for_telnet(input) == expect
-             || to_SocketAddr_for_telnet(input) == or_expect
+                to_SocketAddr_for_ssh(input) == expect
+             || to_SocketAddr_for_ssh(input) == or_expect
             );
         }
     }

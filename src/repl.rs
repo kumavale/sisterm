@@ -1,8 +1,8 @@
-use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
+use std::io::{self, BufWriter, Write};
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 use std::process::Command;
+use std::sync::{Arc, Mutex};
 
 use crate::flag;
 use crate::color;
@@ -10,6 +10,7 @@ use crate::setting;
 use crate::getch::{Getch, Key};
 use crate::default;
 use crate::negotiation;
+use crate::hexdump::hexdump;
 
 use chrono::Local;
 
@@ -24,7 +25,7 @@ impl<T> Send for T where T: std::io::Write {
     }
 }
 
-pub fn receiver<T>(
+pub async fn receiver<T>(
     mut port: T,
     rx:       std::sync::mpsc::Receiver<()>,
     flags:    Arc<Mutex<flag::Flags>>,
@@ -108,17 +109,22 @@ where
             }
 
             match port.read(serial_buf.as_mut_slice()) {
+                Ok(0) => break,
                 Ok(t) => {
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
-                    // Display after Coloring received string
-                    if *flags.lock().unwrap().nocolor() {
-                        io::stdout().write_all(&serial_buf[..t]).unwrap();
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
                     } else {
-                        color::coloring_words(
-                            &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(&serial_buf[..t]).unwrap();
+                        } else {
+                            color::coloring_words(
+                                &String::from_utf8_lossy(&serial_buf[..t]), &mut last_word, &params);
+                        }
                     }
 
                     // Check exist '\n'
@@ -174,17 +180,22 @@ where
             }
 
             match port.read(serial_buf.as_mut_slice()) {
+                Ok(0) => break,
                 Ok(t) => {
                     if *flags.lock().unwrap().debug() {
                         print!("{:?}", &serial_buf[..t]);
                     }
 
-                    // Display after Coloring received string
-                    if *flags.lock().unwrap().nocolor() {
-                        io::stdout().write_all(&serial_buf[..t]).unwrap();
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
                     } else {
-                        color::coloring_words(
-                            &String::from_utf8_lossy(&serial_buf[..t].to_vec()), &mut last_word, &params);
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(&serial_buf[..t]).unwrap();
+                        } else {
+                            color::coloring_words(
+                                &String::from_utf8_lossy(&serial_buf[..t]), &mut last_word, &params);
+                        }
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -198,7 +209,7 @@ where
     }
 }
 
-pub fn receiver_telnet<T>(
+pub async fn receiver_telnet<T>(
     mut port: T,
     rx:       std::sync::mpsc::Receiver<()>,
     flags:    Arc<Mutex<flag::Flags>>,
@@ -290,11 +301,15 @@ where
                         print!("{:?}", &serial_buf[..t]);
                     }
 
-                    // Display after Coloring received string
-                    if *flags.lock().unwrap().nocolor() {
-                        io::stdout().write_all(output.as_bytes()).unwrap();
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
                     } else {
-                        color::coloring_words(&output, &mut last_word, &params);
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(output.as_bytes()).unwrap();
+                        } else {
+                            color::coloring_words(&output, &mut last_word, &params);
+                        }
                     }
 
                     // Check exist '\n'
@@ -393,11 +408,15 @@ where
                         print!("{:?}", &serial_buf[..t]);
                     }
 
-                    // Display after Coloring received string
-                    if *flags.lock().unwrap().nocolor() {
-                        io::stdout().write_all(output.as_bytes()).unwrap();
+                    if *flags.lock().unwrap().hexdump() {
+                        hexdump(&serial_buf[..t]);
                     } else {
-                        color::coloring_words(&output, &mut last_word, &params);
+                        // Display after Coloring received string
+                        if *flags.lock().unwrap().nocolor() {
+                            io::stdout().write_all(output.as_bytes()).unwrap();
+                        } else {
+                            color::coloring_words(&output, &mut last_word, &params);
+                        }
                     }
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -411,7 +430,7 @@ where
     }
 }
 
-pub fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: Arc<Mutex<flag::Flags>>)
+pub async fn transmitter<T>(mut port: T, tx: std::sync::mpsc::Sender<()>, flags: Arc<Mutex<flag::Flags>>)
 where
     T: std::io::Write,
     T: self::Send,
@@ -472,6 +491,12 @@ where
                             let current_instead_crlf = *flags.lock().unwrap().instead_crlf();
                             *flags.lock().unwrap().instead_crlf_mut() = !current_instead_crlf;
                             eprintln!("\x08[Changed instead-crlf: {}]", !current_instead_crlf);
+                            continue;
+                        },
+                        HEXDUMP => {
+                            let current_hexdump = *flags.lock().unwrap().hexdump();
+                            *flags.lock().unwrap().hexdump_mut() = !current_hexdump;
+                            eprintln!("\x08[Changed hexdump mode: {}]", !current_hexdump);
                             continue;
                         },
                         DEBUG => {
@@ -616,6 +641,7 @@ fn display_escape_sequences_help() {
     eprintln!("[~n    Toggles the no-color]");
     eprintln!("[~t    Toggles the time-stamp]");
     eprintln!("[~i    Toggles the instead-crlf]");
+    eprintln!("[~h    Toggles the hexdump mode]");
     eprintln!("[~d    Toggles the debug mode]");
     eprintln!("[~~    Send ~]");
     eprintln!("[~!    Run command in a `sh` or `cmd`]");
