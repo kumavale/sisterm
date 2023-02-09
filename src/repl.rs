@@ -4,15 +4,15 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 
+use chrono::Local;
+use getch_rs::{Getch, Key};
+
 use crate::flag;
 use crate::color;
 use crate::setting;
-use crate::getch::{Getch, Key};
 use crate::default;
 use crate::negotiation;
 use crate::hexdump::hexdump;
-
-use chrono::Local;
 
 pub trait Send {
     fn send(&mut self, s: &[u8]);
@@ -449,7 +449,7 @@ where
                 }
 
                 // If the previous character is not a tilde and the current character is a tilde
-                if !last_is_escape_signal && key == ESCAPE_SIGNAL {
+                if !last_is_escape_signal && matches!(key, ESCAPE_SIGNAL_0 | ESCAPE_SIGNAL_1) {
                     last_is_escape_signal = true;
                     eprint_flush("~");
                     continue;
@@ -459,7 +459,7 @@ where
                 if last_is_escape_signal {
                     last_is_escape_signal = false;
                     match key {
-                        ESCAPE_SIGNAL => {
+                        ESCAPE_SIGNAL_0 | ESCAPE_SIGNAL_1 => {
                             eprint_flush("\x08");
                         },
                         EXIT_CHAR_0 | EXIT_CHAR_1 => {
@@ -510,9 +510,9 @@ where
                             if let Some(command) = echo_stdin_read_line() {
                                 // Run
                                 if cfg!(target_os = "windows") {
-                                    Command::new("cmd").args(&["/C", &command]).spawn()
+                                    Command::new("cmd").args(["/C", &command]).spawn()
                                 } else {
-                                    Command::new("sh").args(&["-c", &command]).spawn()
+                                    Command::new("sh").args(["-c", &command]).spawn()
                                 }.ok();
                             }
                             continue;
@@ -523,9 +523,9 @@ where
                             if let Some(command) = echo_stdin_read_line() {
                                 // Run (no display)
                                 let output = if cfg!(target_os = "windows") {
-                                    Command::new("cmd").args(&["/C", &command]).output()
+                                    Command::new("cmd").args(["/C", &command]).output()
                                 } else {
-                                    Command::new("sh").args(&["-c", &command]).output()
+                                    Command::new("sh").args(["-c", &command]).output()
                                 };
                                 // Send
                                 if let Ok(output) = output {
@@ -650,15 +650,15 @@ fn display_escape_sequences_help() {
 }
 
 fn echo_stdin_read_line() -> Option<String> {
-    use crate::getch;
+    use getch_rs::{enable_echo_input, disable_echo_input};
     use rustyline::Editor;
     use lazy_static::lazy_static;
 
     lazy_static! { static ref RL: Mutex<Editor<()>> = Mutex::new(Editor::new()); }
 
-    getch::enable_echo_input();
+    enable_echo_input();
     let readline = RL.lock().unwrap().readline(">> ");
-    getch::disable_echo_input();
+    disable_echo_input();
     match readline {
         Ok(line) => {
             RL.lock().unwrap().add_history_entry(line.as_str());
