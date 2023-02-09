@@ -2,7 +2,6 @@ pub mod color;
 pub mod default;
 pub mod file_read;
 pub mod flag;
-pub mod getch;
 pub mod hexdump;
 pub mod negotiation;
 pub mod repl;

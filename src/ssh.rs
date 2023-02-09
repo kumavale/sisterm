@@ -5,11 +5,11 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::path::Path;
 
 use ssh2::Session;
+use getch_rs::{Getch, Key};
 
 use crate::repl;
 use crate::flag;
 use crate::setting;
-use crate::getch::{Getch, Key};
 use crate::default;
 use crate::negotiation::get_window_size;
 

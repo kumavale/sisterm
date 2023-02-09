@@ -8,7 +8,7 @@ pub const TERMINAL_TYPE:        &str = "xterm";
 
 /// Escape sequences
 pub mod escape_sequences {
-    use crate::getch::Key;
+    use getch_rs::Key;
 
     pub const ESCAPE_SIGNAL: Key = Key::Char('~');
     pub const EXIT_CHAR_0:   Key = Key::Char('.');

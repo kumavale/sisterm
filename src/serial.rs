@@ -2,10 +2,11 @@ use std::path::Path;
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
+use getch_rs::{Getch, Key};
+
 use crate::repl;
 use crate::flag;
 use crate::setting;
-use crate::getch::{Getch, Key};
 
 pub async fn run(
     port_name: String,
