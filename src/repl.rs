@@ -510,9 +510,9 @@ where
                             if let Some(command) = echo_stdin_read_line() {
                                 // Run
                                 if cfg!(target_os = "windows") {
-                                    Command::new("cmd").args(&["/C", &command]).spawn()
+                                    Command::new("cmd").args(["/C", &command]).spawn()
                                 } else {
-                                    Command::new("sh").args(&["-c", &command]).spawn()
+                                    Command::new("sh").args(["-c", &command]).spawn()
                                 }.ok();
                             }
                             continue;
@@ -523,9 +523,9 @@ where
                             if let Some(command) = echo_stdin_read_line() {
                                 // Run (no display)
                                 let output = if cfg!(target_os = "windows") {
-                                    Command::new("cmd").args(&["/C", &command]).output()
+                                    Command::new("cmd").args(["/C", &command]).output()
                                 } else {
-                                    Command::new("sh").args(&["-c", &command]).output()
+                                    Command::new("sh").args(["-c", &command]).output()
                                 };
                                 // Send
                                 if let Ok(output) = output {
