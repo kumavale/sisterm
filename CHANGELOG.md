@@ -1,5 +1,8 @@
 # Change Log
 
+## [3.0.1] - 2023-02-09
+### Fixed
+- Fixed bug about Can't exit on windows with german keyboard layout (#18)
 
 ## [3.0.0] - 2022-09-03
 ### Added
