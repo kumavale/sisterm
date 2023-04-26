@@ -449,7 +449,7 @@ where
                 }
 
                 // If the previous character is not a tilde and the current character is a tilde
-                if !last_is_escape_signal && matches!(key, ESCAPE_SIGNAL_0 | ESCAPE_SIGNAL_1) {
+                if !last_is_escape_signal && matches!(key, ESCAPE_SIGNAL) {
                     last_is_escape_signal = true;
                     eprint_flush("~");
                     continue;
@@ -459,7 +459,7 @@ where
                 if last_is_escape_signal {
                     last_is_escape_signal = false;
                     match key {
-                        ESCAPE_SIGNAL_0 | ESCAPE_SIGNAL_1 => {
+                        ESCAPE_SIGNAL => {
                             eprint_flush("\x08");
                         },
                         EXIT_CHAR_0 | EXIT_CHAR_1 => {
