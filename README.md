@@ -66,6 +66,8 @@ Keystroke | Action
 The binary name for sisterm is `sist`.  
 sisterm is written in Rust, so you'll need to grab a [Rust installation](https://www.rust-lang.org/) in order to compile it. sisterm compiles with Rust 1.43.0 (stable) or newer. Although sisterm may work with older versions.  
 
+See also [Dependencies](#dependencies).
+
 ```.sh
 $ cargo install sisterm
 ```
