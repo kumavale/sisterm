@@ -335,12 +335,13 @@ fn build_app() -> App<'static, 'static> {
 
 fn get_config_file_path() -> String {
     #[cfg(windows)]
-    return format!("{}/sisterm/config.toml",
-        if let Ok(ref user) = env::var("LOCALAPPDATA") { user } else { "%LOCALAPPDATA%" } );
-
+    const VAR_AND_FALLBACK: (&str, &str) = ("LOCALAPPDATA", "%LOCALAPPDATA%");
     #[cfg(not(windows))]
-    return format!("{}/.config/sisterm/config.toml",
-        if let Ok(ref home) = env::var("HOME") { home } else { "$HOME" } );
+    const VAR_AND_FALLBACK: (&str, &str) = ("HOME", "$HOME");
+    let var = env::var(VAR_AND_FALLBACK.0);
+
+    format!("{}/sisterm/config.toml",
+        if let Ok(ref home) = var { home } else { VAR_AND_FALLBACK.1 })
 }
 
 fn config_file_help_message() -> &'static str {
