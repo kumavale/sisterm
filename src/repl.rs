@@ -651,17 +651,17 @@ fn display_escape_sequences_help() {
 
 fn echo_stdin_read_line() -> Option<String> {
     use getch_rs::{enable_echo_input, disable_echo_input};
-    use rustyline::Editor;
+    use rustyline::{Editor, history::DefaultHistory};
     use lazy_static::lazy_static;
 
-    lazy_static! { static ref RL: Mutex<Editor<()>> = Mutex::new(Editor::new()); }
+    lazy_static! { static ref RL: Mutex<Editor<(), DefaultHistory>> = Mutex::new(Editor::new().unwrap()); }
 
     enable_echo_input();
     let readline = RL.lock().unwrap().readline(">> ");
     disable_echo_input();
     match readline {
         Ok(line) => {
-            RL.lock().unwrap().add_history_entry(line.as_str());
+            _ = RL.lock().unwrap().add_history_entry(line.as_str());
             Some(line)
         },
         _ => None,
