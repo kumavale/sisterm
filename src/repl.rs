@@ -554,7 +554,7 @@ where
 
                 // Send key
                 match key {
-                    Key::Null      => port.send(&[ 0x00 ]),
+                    Key::EOF       => port.send(&[ 0x00 ]),
                     Key::Backspace => port.send(&[ 0x08 ]),
                     Key::Delete    => port.send(&[ 0x7F ]),
                     Key::Esc       => port.send(&[ 0x1B ]),
