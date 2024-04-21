@@ -1,66 +1,135 @@
-#[macro_use]
-extern crate clap;
-extern crate sisterm;
-
 use sisterm::flag;
 use sisterm::setting;
 
 use std::env;
 
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{command, Subcommand, Parser};
 use serialport::available_ports;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// The device path to a serial port  (auto detection)
+    #[arg(short = 'l', long = "line", value_name = "PORT")]
+    port: Option<String>,
+
+    /// The baud rate to connect at
+    #[arg(short = 's', long = "speed", value_name = "BAUD", default_value = "9600")]
+    baud: Option<String>,
+
+    /// Output text from file
+    #[arg(short = 'r', long = "read", value_name = "FILE", conflicts_with_all = ["port", "baud", "write_file", "timestamp", "append", "crlf"])]
+    read_file: Option<String>,
+
+    /// Saved log
+    #[arg(short = 'w', long = "write", value_name = "FILE", global = true)]
+    write_file: Option<String>,
+
+    // config
+    #[arg(short = 'c', long = "config", value_name = "FILE", global = true, help = config_file_help_message())]
+    config_file: Option<String>,
+
+    /// Without color
+    #[arg(short = 'n', long = "no-color", global = true)]
+    nocolor: bool,
+
+    /// Add timestamp to log
+    #[arg(short = 't', long = "time-stamp", global = true)]
+    timestamp: bool,
+
+    /// Append to log  (default overwrite)
+    #[arg(short = 'a', long = "append", global = true)]
+    append: bool,
+
+    /// Send '\r\n' instead of '\r'
+    #[arg(short = 'i', long = "instead-crlf", global = true)]
+    crlf: bool,
+
+    /// Prints in hex
+    #[arg(short = 'x', long = "hexdump", global = true)]
+    hexdump: bool,
+
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Login to remote system host with ssh
+    Ssh {
+        /// Port number can be omitted. Then 22
+        #[arg(value_name = "HOST[:PORT]", required = true, num_args = 1..=2)]
+        host: Vec<String>,
+
+        /// Specify login user
+        #[arg(short = 'l', long = "login-user", value_name = "USERNAME")]
+        login_user: Option<String>,
+    },
+
+    /// Login to remote system host with telnet
+    Telnet {
+        /// Port number can be omitted. Then 23
+        #[arg(value_name = "HOST[:PORT]", required = true, num_args = 1..=2)]
+        host: Vec<String>,
+
+        /// Specify login user
+        #[arg(short = 'l', long = "login-user", value_name = "USERNAME")]
+        login_user: Option<String>,
+    },
+
+    /// TCP connection without telnet
+    Tcp {
+        /// Host and port number
+        #[arg(value_name = "HOST:PORT", required = true, num_args = 1..=2)]
+        host: Vec<String>,
+    },
+}
 
 #[tokio::main]
 async fn main() {
-
-    let matches = build_app().get_matches();
+    let args = Args::parse();
 
     #[cfg(windows)]
     enable_ansi_support();
 
     // SSH
-    if let Some(matches) = matches.subcommand_matches("ssh") {
+    if let Some(Command::Ssh { host, login_user }) = &args.command {
         use sisterm::ssh;
 
         // Hostname
-        let host = matches.values_of("host[:port]").unwrap().collect::<Vec<_>>().join(":");
+        let host = host.join(":");
 
         // Parse arguments
-        let (flags, params) = parse_arguments(matches);
+        let (flags, params) = parse_arguments(&args);
 
-        // Login user
-        let login_user = matches.value_of("login_user");
-
-        ssh::run(&host, flags, params, login_user).await;
+        ssh::run(&host, flags, params, login_user.as_deref()).await;
 
         println!("\n\x1b[0mDisconnected.");
 
     // Telnet
-    } else if let Some(matches) = matches.subcommand_matches("telnet") {
+    } else if let Some(Command::Telnet { host, login_user }) = &args.command {
         use sisterm::telnet;
 
         // Hostname
-        let host = matches.values_of("host[:port]").unwrap().collect::<Vec<_>>().join(":");
+        let host = host.join(":");
 
         // Parse arguments
-        let (flags, params) = parse_arguments(matches);
+        let (flags, params) = parse_arguments(&args);
 
-        // Login user
-        let login_user = matches.value_of("login_user");
-
-        telnet::run(&host, flags, params, login_user).await;
+        telnet::run(&host, flags, params, login_user.as_deref()).await;
 
         println!("\n\x1b[0mDisconnected.");
 
     // TCP connection witout telnet
-    } else if let Some(matches) = matches.subcommand_matches("tcp") {
+    } else if let Some(Command::Tcp { host }) = &args.command {
         use sisterm::tcp;
 
         // Hostname
-        let host = matches.values_of("host:port").unwrap().collect::<Vec<_>>().join(":");
+        let host = host.join(":");
 
         // Parse arguments
-        let (flags, params) = parse_arguments(matches);
+        let (flags, params) = parse_arguments(&args);
 
         tcp::run(&host, flags, params).await;
 
@@ -68,14 +137,14 @@ async fn main() {
 
     } else {
         // Parse arguments
-        let (flags, params) = parse_arguments(&matches);
+        let (flags, params) = parse_arguments(&args);
 
         // If "read file (-r)" is specified
         // Output text from the file
-        if let Some(path) = matches.value_of("read file") {
+        if let Some(path) = args.read_file {
             use sisterm::file_read;
 
-            file_read::run(path, flags, params);
+            file_read::run(&path, flags, params);
 
 
         // Serialport
@@ -84,7 +153,7 @@ async fn main() {
 
             let (port_name, baud_rate) = if let Some(params) = &params {
                 // If "port (-l)" is specified
-                let port_name = if let Some(port) = matches.value_of("port") {
+                let port_name = if let Some(port) = args.port {
                     port.to_string()
                 } else if let Some(port) = &params.port {
                     port.to_string()
@@ -97,7 +166,7 @@ async fn main() {
                 // If "baudrate (-s)" is specified
                 let baud_rate = if let Some(baud) = &params.speed {
                     baud
-                } else if let Some(baud) = matches.value_of("baud") {
+                } else if let Some(baud) = &args.baud {
                     baud
                 } else {
                     panic!("No baud rate");
@@ -106,7 +175,7 @@ async fn main() {
                 (port_name, baud_rate)
             } else {
                 // If "port (-l)" is specified
-                let port_name = if let Some(port) = matches.value_of("port") {
+                let port_name = if let Some(port) = args.port {
                     port.to_string()
                 } else {
                     match available_ports() {
@@ -115,7 +184,7 @@ async fn main() {
                     }
                 };
                 // If "baudrate (-s)" is specified
-                let baud_rate = matches.value_of("baud").expect("No baud rate");
+                let baud_rate = args.baud.expect("No baud rate");
 
                 (port_name, baud_rate.to_string())
             };
@@ -135,11 +204,11 @@ async fn main() {
     }
 }
 
-fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::Params>) {
+fn parse_arguments(args: &Args) -> (flag::Flags, Option<setting::Params>) {
     use chrono::Local;
 
     // If "config file (-c)" is specified
-    let config_file = if let Some(file) = matches.value_of("config file") {
+    let config_file = if let Some(file) = &args.config_file {
         file.to_string()
     } else {
         get_config_file_path()
@@ -149,10 +218,10 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     let params = setting::Params::new(&config_file);
 
     // Color display flag
-    let nocolor = matches.is_present("nocolor");
+    let nocolor = args.nocolor;
 
     // Timestamp flag
-    let timestamp = matches.is_present("timestamp");
+    let timestamp = args.timestamp;
     let timestamp = if let Some(ref params) = params {
         if timestamp { true } else { params.timestamp }
     } else {
@@ -160,10 +229,10 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     };
 
     // Append flag
-    let append = matches.is_present("append");
+    let append = args.append;
 
     // CRLF flag
-    let crlf = matches.is_present("crlf");
+    let crlf = args.crlf;
     let crlf = if let Some(ref params) = params {
         if crlf { true } else { params.crlf }
     } else {
@@ -171,7 +240,7 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     };
 
     // Hexdumo flag
-    let hexdump = matches.is_present("hexdump");
+    let hexdump = args.hexdump;
 
     // Debug mode flag
     let debug = if let Some(ref params) = params {
@@ -181,7 +250,7 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     };
 
     // If "write file (-w)" is specified
-    let write_file = matches.value_of("write file");
+    let write_file = &args.write_file;
     let write_file = if let Some(write_file) = write_file {
         Some(write_file.to_string())
     } else if let Some(ref params) = params {
@@ -202,135 +271,6 @@ fn parse_arguments(matches: &clap::ArgMatches) -> (flag::Flags, Option<setting::
     let flags = flag::Flags::new(nocolor, timestamp, append, crlf, hexdump, debug, write_file);
 
     (flags, params)
-}
-
-fn build_app() -> App<'static, 'static> {
-
-    App::new("sisterm")
-        .version(crate_version!())
-        .about(crate_description!())
-        .setting(AppSettings::DeriveDisplayOrder)
-        .arg(Arg::with_name("port")
-            .help("The device path to a serial port  (auto detection)")
-            .short("l")
-            .long("line")
-            .value_name("PORT")
-            .takes_value(true)
-        )
-        .arg(Arg::with_name("baud")
-            .help("The baud rate to connect at")
-            .short("s")
-            .long("speed")
-            .value_name("BAUD")
-            .takes_value(true)
-            .default_value("9600")
-        )
-        .arg(Arg::with_name("read file")
-            .help("Output text from file")
-            .short("r")
-            .long("read")
-            .value_name("FILE")
-            .takes_value(true)
-            .conflicts_with_all(&[
-                "port", "baud", "write file", "timestamp", "append", "crlf"
-            ])
-        )
-        .arg(Arg::with_name("write file")
-            .help("Saved log")
-            .short("w")
-            .long("write")
-            .value_name("FILE")
-            .takes_value(true)
-            .global(true)
-        )
-        .arg(Arg::with_name("config file")
-            .help(config_file_help_message())
-            .short("c")
-            .long("config")
-            .value_name("FILE")
-            .takes_value(true)
-            .global(true)
-        )
-        .arg(Arg::with_name("nocolor")
-            .help("Without color")
-            .short("n")
-            .long("no-color")
-            .global(true)
-        )
-        .arg(Arg::with_name("timestamp")
-            .help("Add timestamp to log")
-            .short("t")
-            .long("time-stamp")
-            .global(true)
-        )
-        .arg(Arg::with_name("append")
-            .help("Append to log  (default overwrite)")
-            .short("a")
-            .long("append")
-            .global(true)
-        )
-        .arg(Arg::with_name("crlf")
-            .help("Send '\\r\\n' instead of '\\r'")
-            .short("i")
-            .long("instead-crlf")
-            .global(true)
-        )
-        .arg(Arg::with_name("hexdump")
-            .help("Prints in hex")
-            .short("x")
-            .long("hexdump")
-            .global(true)
-        )
-        .subcommands(vec![SubCommand::with_name("ssh")
-            .about("Login to remote system host with ssh")
-            .usage("sist ssh [FLAGS] [OPTIONS] <HOST[:PORT]>")
-            .setting(AppSettings::DeriveDisplayOrder)
-            .arg(Arg::with_name("host[:port]")
-                .help("Port number can be omitted. Then 22")
-                .value_name("HOST[:PORT]")
-                .takes_value(true)
-                .required(true)
-                .min_values(1)
-                .max_values(2)
-                //.hidden(true)
-            )
-            .arg(Arg::with_name("login_user")
-                .help("Specify login user")
-                .short("l")
-                .long("login-user")
-                .value_name("USERNAME")
-                .takes_value(true)
-            ),
-            SubCommand::with_name("telnet")
-            .about("Login to remote system host with telnet")
-            .usage("sist telnet [FLAGS] [OPTIONS] <HOST[:PORT]>")
-            .setting(AppSettings::DeriveDisplayOrder)
-            .arg(Arg::with_name("host[:port]")
-                .help("Port number can be omitted. Then 23")
-                .value_name("HOST[:PORT]")
-                .takes_value(true)
-                .required(true)
-                .min_values(1)
-                .max_values(2)
-                //.hidden(true)
-            )
-            .arg(Arg::with_name("login_user")
-                .help("Specify login user")
-                .short("l")
-                .long("login-user")
-                .value_name("USERNAME")
-                .takes_value(true)
-            ),
-        SubCommand::with_name("tcp")
-            .about("TCP connection without telnet")
-            .setting(AppSettings::DeriveDisplayOrder)
-            .arg(Arg::with_name("host:port")
-                .help("Host and port number")
-                .takes_value(true)
-                .required(true)
-                .min_values(1)
-            ),
-        ])
 }
 
 fn get_config_file_path() -> String {
