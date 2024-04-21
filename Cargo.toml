@@ -19,7 +19,6 @@ path = "src/main.rs"
 
 [dependencies]
 serialport = "4.0.1"
-clap = "4.5.4"
 regex = "1.5.4"
 chrono = "0.4.19"
 serde = { version = "1.0.132", features = ["derive"] }
@@ -30,6 +29,7 @@ tokio = { version = "1.20", features = ["full"] }
 ssh2 = "0.9"
 rpassword = "7.0"
 getch-rs = "0.2"
+clap = { version = "4.5.4", features = ["derive", "cargo"] }
 
 [build-dependencies]
 lazy_static = "1.4.0"
