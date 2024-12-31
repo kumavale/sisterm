@@ -548,7 +548,7 @@ where
                 // If `--instead-crlf` is true, change to "\r\n"
                 if *flags.lock().unwrap().instead_crlf() && key == Key::Char('\r') {
                     // Send carriage return
-                    port.send(&[ b'\r', b'\n' ]);
+                    port.send(b"\r\n");
                     continue;
                 }
 

@@ -48,4 +48,4 @@ features = [
 version = "0.2"
 
 [target.'cfg(unix)'.dependencies]
-nix = "0.28"
+nix = { version = "0.29", features = ["process", "signal"] }
