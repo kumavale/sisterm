@@ -9,5 +9,3 @@ updates:
       dependencies:
         patterns:
           - "*"
-    reviewers:
-      - "kumavale"
