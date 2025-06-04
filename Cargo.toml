@@ -24,7 +24,7 @@ chrono = "0.4.19"
 serde = { version = "1.0.132", features = ["derive"] }
 toml = "0.8.12"
 lazy_static = "1.4.0"
-rustyline = "15.0.0"
+rustyline = "16.0.0"
 tokio = { version = "1.20", features = ["full"] }
 ssh2 = "0.9"
 rpassword = "7.0"
