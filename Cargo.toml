@@ -22,9 +22,9 @@ serialport = "4.0.1"
 regex = "1.5.4"
 chrono = "0.4.19"
 serde = { version = "1.0.132", features = ["derive"] }
-toml = "0.8.12"
+toml = "0.9.11"
 lazy_static = "1.4.0"
-rustyline = "16.0.0"
+rustyline = "17.0.2"
 tokio = { version = "1.20", features = ["full"] }
 ssh2 = "0.9"
 rpassword = "7.0"
@@ -48,4 +48,4 @@ features = [
 version = "0.2"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.30", features = ["process", "signal"] }
+nix = { version = "0.31", features = ["process", "signal"] }
